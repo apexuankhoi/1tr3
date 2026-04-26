@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,10 @@ import {
   StyleSheet,
   StatusBar,
   Platform,
+  Modal,
+  TextInput,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useGameStore } from "../store/useGameStore";
@@ -15,28 +19,121 @@ import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import QRCode from 'react-native-qrcode-svg';
-import { shopService } from "../services/api";
+import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
+import { uploadImage } from "../services/api";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { userId, fullName, userName, coins, avatarUrl, redemptions, fetchRedemptions } = useGameStore();
+  const { 
+    userId, fullName, userName, coins, avatarUrl, coverUrl, bio, location, createdAt,
+    redemptions, fetchRedemptions, userStats, updateProfile, fetchUserData 
+  } = useGameStore();
+
   const [selectedQR, setSelectedQR] = React.useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'tasks' | 'rewards' | 'badges'>('tasks');
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
+
+  // Edit states
+  const [editData, setEditData] = useState({
+    fullName: fullName,
+    bio: bio,
+    location: location
+  });
 
   React.useEffect(() => {
     fetchRedemptions();
+    if (userId) fetchUserData(userId);
   }, []);
 
-  const stats = [
-    { label: "Nhiệm vụ", value: "0", icon: "clipboard-check-outline", color: "#154212" },
-    { label: "Hái quả", value: "0", icon: "fruit-cherries", color: "#b57a3e" },
-    { label: "Xu", value: coins.toLocaleString(), icon: "leaf", color: "#2d5a27" },
-    { label: "Quà đổi", value: "0", icon: "gift-outline", color: "#d4af37" },
-  ];
+  const fetchGPS = async () => {
+    setGpsLoading(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        alert("Cần quyền GPS để lấy vị trí.");
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const geo = await Location.reverseGeocodeAsync({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude
+      });
+      
+      if (geo.length > 0) {
+        const g = geo[0];
+        const address = [g.subregion, g.region].filter(Boolean).join(", ");
+        setEditData(prev => ({ ...prev, location: address || "" }));
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Không thể lấy vị trí GPS.");
+    } finally {
+      setGpsLoading(false);
+    }
+  };
 
-  const settings = [
-    { title: "Thông tin cá nhân", icon: "account-edit-outline" },
-    { title: "Đổi mật khẩu", icon: "lock-reset" },
-  ];
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "N/A";
+    const d = new Date(dateStr);
+    return `Tham gia ${d.getMonth() + 1}/${d.getFullYear()}`;
+  };
+
+  const pickImage = async (type: 'avatar' | 'cover') => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: type === 'avatar' ? [1, 1] : [16, 9],
+      quality: 0.7,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      if (type === 'avatar') setLoading(true);
+      else setUploadingCover(true);
+      
+      try {
+        const uploadedUrl = await uploadImage(result.assets[0].uri);
+        await updateProfile({ [type === 'avatar' ? 'avatarUrl' : 'coverUrl']: uploadedUrl });
+      } catch (error) {
+        console.error(`Lỗi upload ${type}:`, error);
+      } finally {
+        if (type === 'avatar') setLoading(false);
+        else setUploadingCover(false);
+      }
+    }
+  };
+
+
+
+  const handleLogout = () => {
+    Alert.alert(
+      "Đăng xuất",
+      "Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?",
+      [
+        { text: "Hủy", style: "cancel" },
+        { 
+          text: "Đăng xuất", 
+          style: "destructive", 
+          onPress: () => useGameStore.getState().logout() 
+        }
+      ]
+    );
+  };
+
+  const handleSaveProfile = async () => {
+    setLoading(true);
+    try {
+      await updateProfile(editData);
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Lỗi cập nhật profile:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={st.root}>
@@ -44,142 +141,221 @@ export default function ProfileScreen() {
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header gradient */}
-        <LinearGradient
-          colors={["#154212", "#2d5a27"]}
-          style={[st.headerGradient, { paddingTop: insets.top + 24 }]}
-        >
-          <View style={st.avatarWrap}>
+        {/* Header Container */}
+        <View style={st.headerContainer}>
+          <View style={st.coverWrap}>
             <Image
-              source={
-                avatarUrl
-                  ? { uri: avatarUrl }
-                  : require("../../assets/avatar_premium.png")
-              }
-              style={st.avatarImg}
+              source={coverUrl ? { uri: coverUrl } : require("../../assets/sky_bg.png")}
+              style={st.coverImg}
+              resizeMode="cover"
             />
-            <TouchableOpacity style={st.cameraBtn}>
-              <MaterialCommunityIcons name="camera-outline" size={18} color="#154212" />
+            <LinearGradient colors={["rgba(0,0,0,0.3)", "transparent"]} style={st.coverOverlay} />
+            <TouchableOpacity style={st.coverCameraBtn} onPress={() => pickImage('cover')}>
+              <MaterialCommunityIcons name="camera-outline" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
 
-          <Text style={st.name}>{fullName || "Nông dân Xanh"}</Text>
-          <Text style={st.username}>@{userName || "123456"}</Text>
-
-          <View style={st.verifiedBadge}>
-            <MaterialCommunityIcons name="check-decagram" size={16} color="#fcd34d" />
-            <Text style={st.verifiedText}>Người dùng xác thực</Text>
-          </View>
-        </LinearGradient>
-
-        {/* Stats Card — floating -mt */}
-        <View style={st.statsWrap}>
-          <Animated.View entering={FadeInDown.duration(600)} style={st.statsCard}>
-            {stats.map((stat, i) => (
-              <View key={i} style={st.statItem}>
-                <View style={[st.statIcon, { backgroundColor: `${stat.color}18` }]}>
-                  <MaterialCommunityIcons name={stat.icon as any} size={22} color={stat.color} />
-                </View>
-                <Text style={st.statValue}>{stat.value}</Text>
-                <Text style={st.statLabel}>{stat.label}</Text>
+          <View style={st.profileInfoWrap}>
+            <View style={st.avatarContainer}>
+              <View style={st.avatarWrap}>
+                <Image
+                  source={avatarUrl ? { uri: avatarUrl } : require("../../assets/avatar_premium.png")}
+                  style={st.avatarImg}
+                />
+                {loading && <View style={[st.avatarImg, st.avatarOverlayLoading]}><ActivityIndicator color="#fff" /></View>}
+                <TouchableOpacity style={st.avatarCameraBtn} onPress={() => pickImage('avatar')}>
+                  <MaterialCommunityIcons name="camera-plus" size={16} color="#fff" />
+                </TouchableOpacity>
               </View>
-            ))}
-          </Animated.View>
+              
+              <View style={st.actionBtns}>
+                <TouchableOpacity style={st.editBtn} onPress={() => { setEditData({ fullName, bio, location }); setIsEditing(true); }}>
+                  <Text style={st.editBtnTxt}>Chỉnh sửa hồ sơ</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={st.shareBtn}>
+                  <MaterialCommunityIcons name="share-variant-outline" size={20} color="#374151" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={st.nameContainer}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={st.name}>{fullName || "Nông dân Xanh"}</Text>
+                <MaterialCommunityIcons name="check-decagram" size={20} color="#1d4ed8" style={{ marginLeft: 6 }} />
+              </View>
+              <Text style={st.username}>@{userName}</Text>
+            </View>
+
+            {bio ? <Text style={st.bioText}>{bio}</Text> : null}
+
+            <View style={st.metaRow}>
+              <View style={st.metaItem}>
+                <MaterialCommunityIcons name="map-marker-outline" size={16} color="#6b7280" />
+                <Text style={st.metaTxt}>{location || "Địa cầu"}</Text>
+              </View>
+              <View style={st.metaItem}>
+                <MaterialCommunityIcons name="calendar-blank-outline" size={16} color="#6b7280" />
+                <Text style={st.metaTxt}>{formatDate(createdAt)}</Text>
+              </View>
+            </View>
+
+            <View style={st.followRow}>
+              <Text style={st.followItem}><Text style={st.followCount}>{userStats.tasksCompleted}</Text> Nhiệm vụ</Text>
+              <Text style={st.followItem}><Text style={st.followCount}>{coins}</Text> Xu tích lũy</Text>
+            </View>
+          </View>
         </View>
 
-        {/* Inspirational Card */}
-        <View style={st.section}>
-          <LinearGradient
-            colors={["#154212", "#0f3a0d"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={st.inspoCard}
-          >
-            <View style={st.inspoIcon}>
-              <MaterialCommunityIcons name="heart-pulse" size={28} color="white" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={st.inspoTitle}>Gieo mầm hạnh phúc</Text>
-              <Text style={st.inspoSub}>
-                "Cho đi là còn mãi, mỗi hành động nhỏ của bạn đều làm thế giới tươi đẹp hơn."
-              </Text>
-            </View>
-          </LinearGradient>
+        {/* Tabs */}
+        <View style={st.tabsContainer}>
+          {[
+            { id: 'tasks', label: 'Nhiệm vụ', icon: 'clipboard-list' },
+            { id: 'rewards', label: 'Kho quà', icon: 'gift' },
+            { id: 'badges', label: 'Thành tựu', icon: 'medal' },
+          ].map((tab) => (
+            <TouchableOpacity 
+              key={tab.id} 
+              onPress={() => setActiveTab(tab.id as any)}
+              style={[st.tabBtn, activeTab === tab.id && st.tabBtnActive]}
+            >
+              <MaterialCommunityIcons 
+                name={tab.icon as any} 
+                size={22} 
+                color={activeTab === tab.id ? '#154212' : '#9ca3af'} 
+              />
+              <Text style={[st.tabLabel, activeTab === tab.id && st.tabLabelActive]}>{tab.label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* My Rewards Section */}
-        {redemptions.length > 0 && (
-          <View style={st.section}>
-            <Text style={st.sectionLabel}>PHẦN THƯỞNG CỦA TÔI</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-              {redemptions.map((red, i) => (
-                <TouchableOpacity 
-                  key={i} 
-                  style={st.rewardCard} 
-                  onPress={() => setSelectedQR(red.qr_code)}
-                  activeOpacity={0.8}
-                >
-                  <View style={st.rewardStatus}>
-                    <Text style={[st.statusTxt, red.status === 'collected' && { color: '#10b981' }]}>
-                      {red.status === 'collected' ? 'Đã nhận' : 'Chưa nhận'}
-                    </Text>
-                  </View>
+        {/* Tab Content */}
+        <View style={st.tabContent}>
+          {activeTab === 'tasks' && (
+            <Animated.View entering={FadeInDown} style={st.emptyState}>
+              <MaterialCommunityIcons name="flower-outline" size={64} color="#e5e7eb" />
+              <Text style={st.emptyTitle}>Hoạt động gần đây</Text>
+              <Text style={st.emptySub}>Bạn đã hoàn thành {userStats.tasksCompleted} nhiệm vụ bảo vệ môi trường.</Text>
+            </Animated.View>
+          )}
+
+          {activeTab === 'rewards' && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}>
+              {redemptions.length > 0 ? redemptions.map((red, i) => (
+                <TouchableOpacity key={i} style={st.rewardCard} onPress={() => setSelectedQR(red.qr_code)}>
                   <Image source={{ uri: red.image_url }} style={st.rewardImg} />
                   <Text style={st.rewardName} numberOfLines={1}>{red.name}</Text>
-                  <View style={st.qrMini}>
-                    <QRCode value={red.qr_code} size={40} />
+                  <View style={[st.rewardBadge, red.status === 'collected' && { backgroundColor: '#d1fae5' }]}>
+                    <Text style={[st.rewardBadgeTxt, red.status === 'collected' && { color: '#065f46' }]}>
+                      {red.status === 'collected' ? 'Đã nhận' : 'Chờ nhận'}
+                    </Text>
                   </View>
                 </TouchableOpacity>
-              ))}
+              )) : (
+                <Text style={st.noRewards}>Bạn chưa có phần thưởng nào.</Text>
+              )}
             </ScrollView>
-          </View>
-        )}
+          )}
 
-        {/* Settings */}
-        <View style={st.section}>
-          <Text style={st.sectionLabel}>CÀI ĐẶT</Text>
-          <View style={st.settingsCard}>
-            {settings.map((item, i) => (
-              <TouchableOpacity
-                key={i}
-                activeOpacity={0.7}
-                style={[st.settingRow, i < settings.length - 1 && st.settingBorder]}
-              >
-                <View style={st.settingIconWrap}>
-                  <MaterialCommunityIcons name={item.icon as any} size={20} color="#154212" />
+          {activeTab === 'badges' && (
+            <View style={st.badgeGrid}>
+              {[1, 2, 3].map(b => (
+                <View key={b} style={st.badgeItem}>
+                  <View style={st.badgeIconPlaceholder}>
+                    <MaterialCommunityIcons name="lock" size={24} color="#d1d5db" />
+                  </View>
+                  <Text style={st.badgeName}>Thành tựu {b}</Text>
                 </View>
-                <Text style={st.settingTitle}>{item.title}</Text>
-                <MaterialCommunityIcons name="chevron-right" size={22} color="#d1d5db" />
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Quick Settings */}
+        <View style={st.section}>
+          <Text style={st.sectionTitle}>Hỗ trợ & Cài đặt</Text>
+          <View style={st.settingsList}>
+            {[
+              { title: "Trung tâm trợ giúp", icon: "help-circle-outline" },
+              { title: "Quyền riêng tư", icon: "shield-lock-outline" },
+              { title: "Đăng xuất", icon: "logout", color: "#ef4444", action: handleLogout },
+            ].map((item, i) => (
+              <TouchableOpacity 
+                key={i} 
+                style={st.settingItem}
+                onPress={item.action}
+              >
+                <MaterialCommunityIcons name={item.icon as any} size={22} color={item.color || "#374151"} />
+                <Text style={[st.settingTxt, item.color && { color: item.color }]}>{item.title}</Text>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#d1d5db" />
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Logout */}
-        <TouchableOpacity
-          style={st.logoutBtn}
-          activeOpacity={0.8}
-          onPress={() => useGameStore.setState({ userId: 0, userName: "" })}
-        >
-          <MaterialCommunityIcons name="logout" size={20} color="#ef4444" />
-          <Text style={st.logoutText}>Đăng xuất</Text>
-        </TouchableOpacity>
+        {/* Edit Modal */}
+        <Modal visible={isEditing} transparent animationType="slide">
+          <View style={st.modalOverlay}>
+            <View style={st.modalContent}>
+              <View style={st.modalHeader}>
+                <TouchableOpacity onPress={() => setIsEditing(false)}>
+                  <MaterialCommunityIcons name="close" size={24} color="#374151" />
+                </TouchableOpacity>
+                <Text style={st.modalTitle}>Chỉnh sửa hồ sơ</Text>
+                <TouchableOpacity onPress={handleSaveProfile}>
+                  <Text style={st.saveTxt}>Lưu</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView style={st.modalBody}>
+                <View style={st.inputGroup}>
+                  <Text style={st.inputLabel}>Tên hiển thị</Text>
+                  <TextInput 
+                    style={st.input} 
+                    value={editData.fullName} 
+                    onChangeText={t => setEditData(prev => ({ ...prev, fullName: t }))}
+                  />
+                </View>
+                <View style={st.inputGroup}>
+                  <Text style={st.inputLabel}>Tiểu sử</Text>
+                  <TextInput 
+                    style={[st.input, { height: 100, textAlignVertical: 'top' }]} 
+                    multiline 
+                    value={editData.bio} 
+                    onChangeText={t => setEditData(prev => ({ ...prev, bio: t }))}
+                    placeholder="Giới thiệu một chút về bản thân..."
+                  />
+                </View>
+                <View style={st.inputGroup}>
+                  <Text style={st.inputLabel}>Vị trí</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <TextInput 
+                      style={[st.input, { flex: 1 }]} 
+                      value={editData.location} 
+                      placeholder="Ví dụ: Ba Tri, Bến Tre"
+                      onChangeText={t => setEditData(prev => ({ ...prev, location: t }))}
+                    />
+                    <TouchableOpacity onPress={fetchGPS} style={st.gpsBtn} disabled={gpsLoading}>
+                      {gpsLoading ? <ActivityIndicator size="small" color="#154212" /> : <MaterialCommunityIcons name="map-marker-radius" size={24} color="#154212" />}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
 
         {/* QR Modal */}
         {selectedQR && (
           <View style={st.qrModal}>
-            <View style={st.qrContent}>
-              <Text style={st.qrModalTitle}>Mã QR Đổi Quà</Text>
-              <Text style={st.qrModalSub}>Vui lòng đưa mã này cho Moderator để nhận quà tại Buôn Làng.</Text>
-              <View style={st.qrLarge}>
-                <QRCode value={selectedQR} size={200} />
-              </View>
-              <Text style={st.qrCodeRaw}>{selectedQR}</Text>
-              <TouchableOpacity onPress={() => setSelectedQR(null)} style={st.closeQrBtn}>
-                <Text style={st.closeQrTxt}>Đóng</Text>
+            <View style={st.qrBox}>
+              <Text style={st.qrTitle}>Mã nhận quà</Text>
+              <QRCode value={selectedQR} size={200} />
+              <Text style={st.qrRaw}>{selectedQR}</Text>
+              <TouchableOpacity style={st.qrClose} onPress={() => setSelectedQR(null)}>
+                <Text style={st.qrCloseTxt}>Đóng</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -190,103 +366,83 @@ export default function ProfileScreen() {
 }
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#fbfbf9" },
+  root: { flex: 1, backgroundColor: "#fff" },
 
-  headerGradient: {
-    paddingBottom: 80,
-    paddingHorizontal: 32,
-    alignItems: "center",
-    borderBottomLeftRadius: 48,
-    borderBottomRightRadius: 48,
-  },
+  headerContainer: { backgroundColor: '#fff' },
+  coverWrap: { height: 160, width: '100%', backgroundColor: '#154212' },
+  coverImg: { width: '100%', height: '100%' },
+  coverOverlay: { ...StyleSheet.absoluteFillObject },
+  coverCameraBtn: { position: 'absolute', top: 40, right: 20, backgroundColor: 'rgba(0,0,0,0.4)', padding: 8, borderRadius: 20 },
 
-  avatarWrap: { position: "relative", marginBottom: 20 },
-  avatarImg: {
-    width: 110, height: 110, borderRadius: 55,
-    borderWidth: 3, borderColor: "rgba(255,255,255,0.35)",
-    backgroundColor: "rgba(255,255,255,0.1)",
-  },
-  cameraBtn: {
-    position: "absolute", bottom: 0, right: 0,
-    backgroundColor: "#fff", width: 36, height: 36, borderRadius: 18,
-    alignItems: "center", justifyContent: "center",
-    ...Platform.select({
-      ios: { shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } },
-      android: { elevation: 4 },
-    }),
-  },
+  profileInfoWrap: { paddingHorizontal: 20, marginTop: -40 },
+  avatarContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  avatarWrap: { width: 90, height: 90, borderRadius: 45, borderWidth: 4, borderColor: '#fff', backgroundColor: '#f3f4f6', position: 'relative' },
+  avatarImg: { width: '100%', height: '100%', borderRadius: 45 },
+  avatarOverlayLoading: { position: 'absolute', backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
+  avatarCameraBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#154212', padding: 6, borderRadius: 15, borderWidth: 2, borderColor: '#fff' },
 
-  name: { color: "#fff", fontSize: 26, fontFamily: "Nunito_800ExtraBold", marginBottom: 4 },
-  username: { color: "rgba(255,255,255,0.65)", fontSize: 14, fontFamily: "Nunito_600SemiBold" },
+  actionBtns: { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  editBtn: { borderWidth: 1, borderColor: '#d1d5db', paddingHorizontal: 16, height: 36, borderRadius: 18, justifyContent: 'center' },
+  editBtnTxt: { fontSize: 14, fontFamily: 'Nunito_700Bold', color: '#374151' },
+  shareBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: '#d1d5db', alignItems: 'center', justifyContent: 'center' },
 
-  verifiedBadge: {
-    marginTop: 14, flexDirection: "row", alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 16, paddingVertical: 7,
-    borderRadius: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)",
-  },
-  verifiedText: { color: "#fff", fontSize: 13, fontFamily: "Nunito_700Bold", marginLeft: 6 },
+  nameContainer: { marginTop: 12 },
+  name: { fontSize: 22, fontFamily: 'Nunito_800ExtraBold', color: '#111827' },
+  username: { fontSize: 14, color: '#6b7280', fontFamily: 'Nunito_600SemiBold' },
+  bioText: { marginTop: 12, fontSize: 15, color: '#374151', fontFamily: 'Nunito_600SemiBold', lineHeight: 20 },
 
-  statsWrap: { paddingHorizontal: 20, marginTop: -44 },
-  statsCard: {
-    backgroundColor: "#fff", borderRadius: 28, padding: 20,
-    flexDirection: "row", justifyContent: "space-between",
-    ...Platform.select({
-      ios: { shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } },
-      android: { elevation: 6 },
-    }),
-  },
-  statItem: { alignItems: "center", flex: 1 },
-  statIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", marginBottom: 8 },
-  statValue: { fontSize: 18, fontFamily: "Nunito_800ExtraBold", color: "#1a1a1a" },
-  statLabel: { fontSize: 10, color: "#9ca3af", fontFamily: "Nunito_600SemiBold", textAlign: "center", marginTop: 2 },
+  metaRow: { flexDirection: 'row', gap: 16, marginTop: 12 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaTxt: { fontSize: 13, color: '#6b7280', fontFamily: 'Nunito_600SemiBold' },
 
-  section: { paddingHorizontal: 20, marginTop: 24 },
-  sectionLabel: { fontSize: 11, color: "#9ca3af", fontFamily: "Nunito_700Bold", letterSpacing: 2, marginLeft: 4, marginBottom: 12 },
+  followRow: { flexDirection: 'row', gap: 20, marginTop: 16, borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 16 },
+  followItem: { fontSize: 14, color: '#6b7280', fontFamily: 'Nunito_600SemiBold' },
+  followCount: { color: '#111827', fontFamily: 'Nunito_800ExtraBold' },
 
-  inspoCard: { borderRadius: 28, padding: 24, flexDirection: "row", alignItems: "center" },
-  inspoIcon: {
-    width: 56, height: 56, backgroundColor: "rgba(255,255,255,0.12)",
-    borderRadius: 18, alignItems: "center", justifyContent: "center", marginRight: 16,
-    borderWidth: 1, borderColor: "rgba(255,255,255,0.1)",
-  },
-  inspoTitle: { color: "#fff", fontSize: 16, fontFamily: "Nunito_800ExtraBold", marginBottom: 6 },
-  inspoSub: { color: "rgba(255,255,255,0.7)", fontSize: 13, fontFamily: "Nunito_600SemiBold", lineHeight: 19 },
+  tabsContainer: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f3f4f6', marginTop: 20 },
+  tabBtn: { flex: 1, alignItems: 'center', paddingVertical: 12, gap: 4, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabBtnActive: { borderBottomColor: '#154212' },
+  tabLabel: { fontSize: 12, fontFamily: 'Nunito_700Bold', color: '#9ca3af' },
+  tabLabelActive: { color: '#154212' },
 
-  settingsCard: {
-    backgroundColor: "#fff", borderRadius: 24, paddingHorizontal: 4,
-    ...Platform.select({
-      ios: { shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
-      android: { elevation: 2 },
-    }),
-  },
-  settingRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 16 },
-  settingBorder: { borderBottomWidth: 1, borderBottomColor: "#f5f5f4" },
-  settingIconWrap: {
-    width: 38, height: 38, borderRadius: 12, backgroundColor: "#f0fdf4",
-    alignItems: "center", justifyContent: "center", marginRight: 14,
-  },
-  settingTitle: { flex: 1, fontSize: 15, fontFamily: "Nunito_700Bold", color: "#374151" },
+  tabContent: { paddingVertical: 24 },
+  emptyState: { alignItems: 'center', paddingHorizontal: 40 },
+  emptyTitle: { marginTop: 16, fontSize: 18, fontFamily: 'Nunito_800ExtraBold', color: '#374151' },
+  emptySub: { marginTop: 8, fontSize: 14, color: '#6b7280', textAlign: 'center', fontFamily: 'Nunito_600SemiBold' },
 
-  logoutBtn: {
-    marginHorizontal: 20, marginTop: 24, height: 58, borderRadius: 18,
-    borderWidth: 1.5, borderColor: "#fee2e2", alignItems: "center", justifyContent: "center",
-    flexDirection: "row", backgroundColor: "#fff5f5",
-  },
-  logoutText: { marginLeft: 10, fontSize: 15, fontFamily: "Nunito_700Bold", color: "#ef4444" },
+  rewardCard: { width: 130, backgroundColor: '#f9fafb', borderRadius: 16, padding: 10, borderWidth: 1, borderColor: '#f1f5f9' },
+  rewardImg: { width: '100%', height: 80, borderRadius: 10, marginBottom: 8 },
+  rewardName: { fontSize: 12, fontFamily: 'Nunito_700Bold', color: '#1f2937' },
+  rewardBadge: { marginTop: 6, backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, alignSelf: 'flex-start' },
+  rewardBadgeTxt: { fontSize: 9, color: '#92400e', fontFamily: 'Nunito_800ExtraBold' },
+  noRewards: { marginLeft: 20, color: '#9ca3af', fontFamily: 'Nunito_600SemiBold' },
 
-  rewardCard: { backgroundColor: '#fff', width: 140, borderRadius: 20, padding: 12, borderWidth: 1, borderColor: '#f1f5f9' },
-  rewardStatus: { position: 'absolute', top: 8, right: 8, zIndex: 1, backgroundColor: '#f8fafc', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  statusTxt: { fontSize: 8, fontFamily: 'Nunito_800ExtraBold', color: '#f59e0b', textTransform: 'uppercase' },
-  rewardImg: { width: '100%', height: 80, borderRadius: 12, marginBottom: 8 },
-  rewardName: { fontSize: 12, fontFamily: 'Nunito_700Bold', color: '#1e293b' },
-  qrMini: { alignSelf: 'center', marginTop: 8, padding: 4, backgroundColor: '#fff', borderRadius: 6, borderWidth: 1, borderColor: '#f1f5f9' },
+  badgeGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 20, gap: 15 },
+  badgeItem: { width: '30%', alignItems: 'center' },
+  badgeIconPlaceholder: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  badgeName: { fontSize: 11, fontFamily: 'Nunito_700Bold', color: '#6b7280', textAlign: 'center' },
 
-  qrModal: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', zIndex: 999 },
-  qrContent: { backgroundColor: '#fff', width: '85%', borderRadius: 32, padding: 24, alignItems: 'center' },
-  qrModalTitle: { fontSize: 20, fontFamily: 'Nunito_800ExtraBold', color: '#154212', marginBottom: 8 },
-  qrModalSub: { fontSize: 13, fontFamily: 'Nunito_600SemiBold', color: '#64748b', textAlign: 'center', marginBottom: 24 },
-  qrLarge: { padding: 20, backgroundColor: '#fff', borderRadius: 24, borderWidth: 1, borderColor: '#f1f5f9', elevation: 4 },
-  qrCodeRaw: { fontSize: 10, fontFamily: 'Courier', color: '#94a3b8', marginTop: 16 },
-  closeQrBtn: { marginTop: 32, backgroundColor: '#154212', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 24 },
-  closeQrTxt: { color: '#fff', fontFamily: 'Nunito_800ExtraBold', fontSize: 16 },
+  section: { paddingHorizontal: 20, marginTop: 20 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Nunito_800ExtraBold', color: '#111827', marginBottom: 12 },
+  settingsList: { backgroundColor: '#f9fafb', borderRadius: 20, padding: 8 },
+  settingItem: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 12 },
+  settingTxt: { flex: 1, fontSize: 15, fontFamily: 'Nunito_700Bold', color: '#374151' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#fff', height: '90%', borderTopLeftRadius: 30, borderTopRightRadius: 30 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  modalTitle: { fontSize: 18, fontFamily: 'Nunito_800ExtraBold', color: '#111827' },
+  saveTxt: { color: '#154212', fontSize: 16, fontFamily: 'Nunito_800ExtraBold' },
+  modalBody: { padding: 20 },
+  inputGroup: { marginBottom: 20 },
+  inputLabel: { fontSize: 14, fontFamily: 'Nunito_700Bold', color: '#6b7280', marginBottom: 8 },
+  input: { backgroundColor: '#f9fafb', borderRadius: 12, padding: 12, fontSize: 16, color: '#111827', borderWidth: 1, borderColor: '#e5e7eb' },
+
+  qrModal: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
+  qrBox: { backgroundColor: '#fff', padding: 30, borderRadius: 30, alignItems: 'center' },
+  qrTitle: { fontSize: 20, fontFamily: 'Nunito_800ExtraBold', marginBottom: 20 },
+  qrRaw: { marginTop: 20, color: '#9ca3af', fontSize: 10 },
+  qrClose: { marginTop: 30, backgroundColor: '#154212', paddingHorizontal: 40, paddingVertical: 12, borderRadius: 20 },
+  qrCloseTxt: { color: '#fff', fontFamily: 'Nunito_800ExtraBold' },
+  gpsBtn: { backgroundColor: '#f1f5f9', width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });

@@ -12,6 +12,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+// Logging Middleware
+app.use((req, res, next) => {
+    console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
+    next();
+});
+
 // ── Gemini AI Setup ─────────────────────────────────────────────────────────
 const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
 
@@ -145,6 +151,16 @@ async function ensureUserColumns() {
     if (latCols.length === 0) {
         await db.query("ALTER TABLE users ADD COLUMN last_lat DOUBLE AFTER growth_stage, ADD COLUMN last_lng DOUBLE AFTER last_lat, ADD COLUMN last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER last_lng");
     }
+
+    const [coverCols] = await db.query("SHOW COLUMNS FROM users LIKE 'cover_url'");
+    if (coverCols.length === 0) {
+        await db.query("ALTER TABLE users ADD COLUMN cover_url VARCHAR(255) AFTER avatar_url");
+    }
+
+    const [bioCols] = await db.query("SHOW COLUMNS FROM users LIKE 'bio'");
+    if (bioCols.length === 0) {
+        await db.query("ALTER TABLE users ADD COLUMN bio TEXT AFTER cover_url, ADD COLUMN location VARCHAR(255) AFTER bio");
+    }
 }
 
 // ── Ensure Garden tables (user_pots + push_tokens) ──────────────────────────
@@ -208,6 +224,11 @@ async function ensureGardenTables() {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     `);
+    
+    const [libVideoCols] = await db.query("SHOW COLUMNS FROM library LIKE 'video_url'");
+    if (libVideoCols.length === 0) {
+        await db.query("ALTER TABLE library ADD COLUMN video_url TEXT AFTER image_url, ADD COLUMN type ENUM('image', 'video') DEFAULT 'image' AFTER video_url");
+    }
 
     // Ensure task_submissions table exists
     await db.query(`
@@ -247,19 +268,28 @@ async function startServer() {
 // API Endpoints
 // Image Upload to Cloudinary
 app.post('/api/upload', upload.single('image'), async (req, res) => {
+    console.log('[Upload] Request received');
     try {
-        if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-
+        if (!req.file) {
+            console.log('[Upload] No file');
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+        console.log('[Upload] Buffer size:', req.file.size);
         const uploadStream = cloudinary.uploader.upload_stream(
             { folder: 'nong_nghiep_xanh' },
             (error, result) => {
-                if (error) return res.status(500).json({ error: error.message });
+                if (error) {
+                    console.error('[Upload] Cloudinary error:', error);
+                    return res.status(500).json({ error: error.message });
+                }
+                console.log('[Upload] Success:', result.secure_url);
                 res.json({ url: result.secure_url });
             }
         );
 
         uploadStream.end(req.file.buffer);
     } catch (err) {
+        console.error('[Upload] Server error:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -277,7 +307,7 @@ app.post('/api/auth/register', async (req, res) => {
         );
 
         const [rows] = await db.query(
-            'SELECT id, username, full_name, email, dob, role, coins, water_level, energy_level, growth_stage, growing_until, avatar_url, created_at FROM users WHERE id = ?',
+            'SELECT id, username, full_name, email, dob, role, coins, water_level, energy_level, growth_stage, growing_until, avatar_url, cover_url, bio, location, created_at FROM users WHERE id = ?',
             [result.insertId]
         );
 
@@ -301,7 +331,7 @@ app.post('/api/auth/login', async (req, res) => {
     const { username, password } = req.body;
     try {
         const [users] = await db.query(
-            'SELECT id, username, full_name, role, coins, water_level, energy_level, growth_stage, growing_until, avatar_url, created_at FROM users WHERE username = ? AND password = ?',
+            'SELECT id, username, full_name, role, coins, water_level, energy_level, growth_stage, growing_until, avatar_url, cover_url, bio, location, created_at FROM users WHERE username = ? AND password = ?',
             [username, password]
         );
         if (users.length === 0) return res.status(401).json({ message: 'Sai tên đăng nhập hoặc mật khẩu' });
@@ -322,16 +352,40 @@ app.post('/api/auth/login', async (req, res) => {
 // Get User Info
 app.get('/api/user/:id', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM users WHERE id = ?', [req.params.id]);
+        const [rows] = await db.query('SELECT id, username, full_name, email, dob, role, coins, water_level, energy_level, growth_stage, growing_until, avatar_url, cover_url, bio, location, created_at FROM users WHERE id = ?', [req.params.id]);
         if (rows.length === 0) return res.status(404).json({ message: 'User not found' });
         
         const user = rows[0];
+        
+        // Fetch stats
+        const [[taskCount]] = await db.query('SELECT COUNT(*) as n FROM task_submissions WHERE user_id = ? AND status = "approved"', [req.params.id]);
+        const [[redemptionCount]] = await db.query('SELECT COUNT(*) as n FROM redemptions WHERE user_id = ?', [req.params.id]);
+        
         user.coins = user.coins ?? 0;
         user.water_level = user.water_level ?? 0;
         user.energy_level = user.energy_level ?? 1;
         user.growing_until = user.growing_until ?? 0;
         
+        user.stats = {
+            tasksCompleted: taskCount.n,
+            redemptions: redemptionCount.n
+        };
+        
         res.json(user);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Update Profile
+app.patch('/api/user/profile/:id', async (req, res) => {
+    const { fullName, email, avatarUrl, coverUrl, bio, location } = req.body;
+    try {
+        await db.query(
+            'UPDATE users SET full_name = COALESCE(?, full_name), email = COALESCE(?, email), avatar_url = COALESCE(?, avatar_url), cover_url = COALESCE(?, cover_url), bio = COALESCE(?, bio), location = COALESCE(?, location) WHERE id = ?',
+            [fullName, email, avatarUrl, coverUrl, bio, location, req.params.id]
+        );
+        res.json({ message: 'Profile updated successfully' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

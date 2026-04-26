@@ -38,7 +38,12 @@ interface GameState {
   fullName: string;
   userRole: 'farmer' | 'buyer' | 'moderator' | 'admin';
   avatarUrl: string;
+  coverUrl: string;
+  bio: string;
+  location: string;
+  createdAt: string;
   coins: number;
+  userStats: { tasksCompleted: number; redemptions: number };
 
   // Multi-pot System
   pots: PotData[];
@@ -70,6 +75,8 @@ interface GameState {
   fetchRedemptions: () => Promise<void>;
   registerPushToken: () => Promise<void>;
   scheduleWaterReminder: () => Promise<void>;
+  updateProfile: (data: { fullName?: string; email?: string; avatarUrl?: string; coverUrl?: string; bio?: string; location?: string }) => Promise<void>;
+  logout: () => void;
 }
 
 // Thời gian phát triển thực tế: 1 tiếng (3,600,000ms)
@@ -109,7 +116,12 @@ export const useGameStore = create<GameState>((set, get) => ({
   fullName: "",
   userRole: 'farmer',
   avatarUrl: "",
+  coverUrl: "",
+  bio: "",
+  location: "",
+  createdAt: "",
   coins: 100,
+  userStats: { tasksCompleted: 0, redemptions: 0 },
   redemptions: [],
 
   pots: generateInitialPots(),
@@ -291,7 +303,12 @@ export const useGameStore = create<GameState>((set, get) => ({
         userRole: data.role,
         coins: data.coins,
         seeds: data.seeds ?? 2,
-        avatarUrl: data.avatar_url
+        avatarUrl: data.avatar_url,
+        coverUrl: data.cover_url,
+        bio: data.bio || "",
+        location: data.location || "Chưa cập nhật",
+        createdAt: data.created_at || "",
+        userStats: data.stats || { tasksCompleted: 0, redemptions: 0 }
       });
 
       try {
@@ -345,7 +362,12 @@ export const useGameStore = create<GameState>((set, get) => ({
         userRole: data.role,
         coins: data.coins,
         seeds: data.seeds ?? 2,
-        avatarUrl: data.avatar_url
+        avatarUrl: data.avatar_url,
+        coverUrl: data.cover_url,
+        bio: data.bio || "",
+        location: data.location || "Chưa cập nhật",
+        createdAt: data.created_at || "",
+        userStats: data.stats || { tasksCompleted: 0, redemptions: 0 }
       });
 
       try {
@@ -443,5 +465,39 @@ export const useGameStore = create<GameState>((set, get) => ({
     } catch (error) {
       console.log('[Push] Local notification schedule skipped');
     }
+  },
+  updateProfile: async (data) => {
+    const { userId } = get();
+    if (!userId) return;
+    try {
+      await userService.updateProfile(userId, data);
+      set((state) => ({
+        fullName: data.fullName ?? state.fullName,
+        avatarUrl: data.avatarUrl ?? state.avatarUrl,
+        coverUrl: data.coverUrl ?? state.coverUrl,
+        bio: data.bio ?? state.bio,
+        location: data.location ?? state.location,
+      }));
+      get().showToast("Cập nhật trang cá nhân thành công!", 'success');
+    } catch (error) {
+      console.error("Lỗi cập nhật profile:", error);
+      get().showToast("Lỗi khi cập nhật trang cá nhân.", 'error');
+    }
+  },
+  logout: () => {
+    set({
+      userId: 0,
+      userName: "",
+      fullName: "",
+      userRole: 'farmer',
+      avatarUrl: "",
+      coverUrl: "",
+      bio: "",
+      location: "",
+      coins: 100,
+      seeds: 2,
+      pots: generateInitialPots(),
+      redemptions: [],
+    });
   },
 }));

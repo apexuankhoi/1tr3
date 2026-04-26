@@ -32,6 +32,13 @@ export default function AdminLibraryScreen() {
     }
   };
 
+  const getYoutubeId = (url: string) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
   const handleEdit = (item: any) => {
     setCurrentItem(item);
     setEditModalVisible(true);
@@ -98,7 +105,7 @@ export default function AdminLibraryScreen() {
           <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={st.headerTitle}>Quản Lý Thư Viện</Text>
-        <TouchableOpacity onPress={() => handleEdit({ title: '', category: 'KIẾN THỨC', duration: '05:00', category_color: '#154212', image_url: 'https://images.unsplash.com/photo-1592724212522-88806a03c136?w=800' })} style={st.addBtn}>
+        <TouchableOpacity onPress={() => handleEdit({ title: '', category: 'Trồng trọt', type: 'image', duration: '05:00', image_url: '' })} style={st.addBtn}>
           <MaterialCommunityIcons name="plus" size={24} color="#154212" />
         </TouchableOpacity>
       </View>
@@ -106,9 +113,19 @@ export default function AdminLibraryScreen() {
       <ScrollView contentContainerStyle={st.list}>
         {items.map(item => (
           <View key={item.id} style={st.card}>
-            <Image source={{ uri: item.image_url }} style={st.cardImg} />
+            <View style={{ position: 'relative' }}>
+              <Image source={{ uri: item.type === 'video' && item.video_url ? `https://img.youtube.com/vi/${getYoutubeId(item.video_url)}/hqdefault.jpg` : item.image_url }} style={st.cardImg} />
+              {item.type === 'video' && (
+                <View style={{ ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.2)' }}>
+                  <MaterialCommunityIcons name="play-circle" size={40} color="#fff" />
+                </View>
+              )}
+            </View>
             <View style={st.cardBody}>
-              <Text style={[st.cardCat, { color: item.category_color }]}>{item.category}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Text style={[st.cardCat, { color: '#154212' }]}>{item.category}</Text>
+                {item.type === 'video' && <MaterialCommunityIcons name="video" size={14} color="#6b7280" />}
+              </View>
               <Text style={st.cardTitle}>{item.title}</Text>
               <Text style={st.cardDesc} numberOfLines={2}>{item.description}</Text>
               
@@ -132,11 +149,52 @@ export default function AdminLibraryScreen() {
           <ScrollView contentContainerStyle={[st.modalContent, { paddingTop: insets.top + 20 }]}>
             <Text style={st.modalTitle}>{currentItem?.id ? "Sửa Bài Viết" : "Thêm Bài Viết"}</Text>
             
+            <Text style={st.label}>Loại nội dung</Text>
+            <View style={st.typeSelector}>
+              <TouchableOpacity 
+                onPress={() => setCurrentItem({...currentItem, type: 'image'})}
+                style={[st.typeBtn, currentItem?.type === 'image' && st.typeBtnActive]}
+              >
+                <MaterialCommunityIcons name="image" size={20} color={currentItem?.type === 'image' ? '#fff' : '#475569'} />
+                <Text style={[st.typeBtnText, currentItem?.type === 'image' && st.typeBtnTextActive]}>Ảnh/Bài viết</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={() => setCurrentItem({...currentItem, type: 'video'})}
+                style={[st.typeBtn, currentItem?.type === 'video' && st.typeBtnActive]}
+              >
+                <MaterialCommunityIcons name="video" size={20} color={currentItem?.type === 'video' ? '#fff' : '#475569'} />
+                <Text style={[st.typeBtnText, currentItem?.type === 'video' && st.typeBtnTextActive]}>Video YouTube</Text>
+              </TouchableOpacity>
+            </View>
+
+            {currentItem?.type === 'video' && (
+              <>
+                <Text style={st.label}>Link YouTube</Text>
+                <TextInput 
+                  style={st.input} 
+                  placeholder="https://www.youtube.com/watch?v=..." 
+                  value={currentItem?.video_url} 
+                  onChangeText={t => setCurrentItem({...currentItem, video_url: t})} 
+                />
+                <Text style={st.subLabel}>Dán link video YouTube vào đây</Text>
+              </>
+            )}
+
             <Text style={st.label}>Tiêu đề</Text>
             <TextInput style={st.input} value={currentItem?.title} onChangeText={t => setCurrentItem({...currentItem, title: t})} />
 
-            <Text style={st.label}>Danh mục (Viết hoa)</Text>
-            <TextInput style={st.input} value={currentItem?.category} onChangeText={t => setCurrentItem({...currentItem, category: t})} />
+            <Text style={st.label}>Danh mục</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+              {["Trồng trọt", "Bảo vệ đất", "Nước sạch", "Phân bón", "Khác"].map(cat => (
+                <TouchableOpacity 
+                  key={cat}
+                  onPress={() => setCurrentItem({...currentItem, category: cat})}
+                  style={[st.catSelectBtn, currentItem?.category === cat && st.catSelectBtnActive]}
+                >
+                  <Text style={[st.catSelectText, currentItem?.category === cat && st.catSelectTextActive]}>{cat}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
             <Text style={st.label}>Thời lượng (Ví dụ: 05:20)</Text>
             <TextInput style={st.input} value={currentItem?.duration} onChangeText={t => setCurrentItem({...currentItem, duration: t})} />
@@ -149,7 +207,7 @@ export default function AdminLibraryScreen() {
               onChangeText={t => setCurrentItem({...currentItem, description: t})} 
             />
 
-            <Text style={st.label}>Hình ảnh bài viết</Text>
+            <Text style={st.label}>Hình ảnh {currentItem?.type === 'video' ? '(Tùy chọn nếu dùng YouTube)' : ''}</Text>
             <TouchableOpacity onPress={handlePickImage} style={st.imagePicker}>
               {currentItem?.image_url ? (
                 <Image source={{ uri: currentItem.image_url }} style={st.previewImg} />
@@ -160,10 +218,6 @@ export default function AdminLibraryScreen() {
                 </View>
               )}
             </TouchableOpacity>
-            <Text style={st.subLabel}>Hoặc dán URL: {currentItem?.image_url?.substring(0, 30)}...</Text>
-
-            <Text style={st.label}>Mã màu danh mục (HEX)</Text>
-            <TextInput style={st.input} value={currentItem?.category_color} onChangeText={t => setCurrentItem({...currentItem, category_color: t})} />
 
             <View style={st.modalBtns}>
               <TouchableOpacity onPress={() => setEditModalVisible(false)} style={st.cancelBtn}><Text style={st.cancelBtnText}>Hủy</Text></TouchableOpacity>
@@ -210,4 +264,15 @@ const st = StyleSheet.create({
   saveBtn: { flex: 2, padding: 16, borderRadius: 16, backgroundColor: '#154212', alignItems: 'center' },
   cancelBtnText: { fontSize: 16, fontFamily: "Nunito_700Bold", color: "#475569" },
   saveBtnText: { fontSize: 16, fontFamily: "Nunito_800ExtraBold", color: "#fff" },
+
+  typeSelector: { flexDirection: 'row', gap: 12, marginTop: 8 },
+  typeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 12, backgroundColor: '#f1f5f9', gap: 8, borderWidth: 1.5, borderColor: 'transparent' },
+  typeBtnActive: { backgroundColor: '#154212', borderColor: '#154212' },
+  typeBtnText: { fontSize: 13, fontFamily: 'Nunito_700Bold', color: '#475569' },
+  typeBtnTextActive: { color: '#fff' },
+
+  catSelectBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f1f5f9', marginRight: 8, borderWidth: 1, borderColor: '#e2e8f0' },
+  catSelectBtnActive: { backgroundColor: '#fef3c7', borderColor: '#f59e0b' },
+  catSelectText: { fontSize: 12, fontFamily: 'Nunito_700Bold', color: '#64748b' },
+  catSelectTextActive: { color: '#b45309' },
 });
