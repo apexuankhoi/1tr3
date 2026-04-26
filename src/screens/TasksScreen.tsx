@@ -1,0 +1,388 @@
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  View, Text, ScrollView, TouchableOpacity,
+  ActivityIndicator, StatusBar, StyleSheet,
+  RefreshControl, Platform, Dimensions,
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { taskService } from "../services/api";
+import { useGameStore } from "../store/useGameStore";
+
+const { width } = Dimensions.get("window");
+
+// ── Group config ──────────────────────────────────────────────────────────────
+const GROUP_CFG: Record<string, {
+  label: string; icon: string; emoji: string;
+  gradient: [string, string]; accent: string; bg: string;
+}> = {
+  action: {
+    label: "Hành động",
+    icon: "camera-outline", emoji: "📸",
+    gradient: ["#0f9b58", "#1dba6e"],
+    accent: "#0f9b58", bg: "#f0fdf4",
+  },
+  report: {
+    label: "Báo cáo",
+    icon: "map-marker-alert-outline", emoji: "📍",
+    gradient: ["#dc2626", "#ef4444"],
+    accent: "#dc2626", bg: "#fff5f5",
+  },
+  learn: {
+    label: "Học tập",
+    icon: "school-outline", emoji: "🎓",
+    gradient: ["#7c3aed", "#9d5cef"],
+    accent: "#7c3aed", bg: "#faf5ff",
+  },
+};
+
+const STATUS_CFG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
+  none:     { label: "Bắt đầu",    color: "#fff",    bg: "transparent", icon: "arrow-right-circle" },
+  pending:  { label: "Chờ duyệt",  color: "#92400e", bg: "#fef3c7",     icon: "clock-time-four-outline" },
+  approved: { label: "Đã xong ✓",  color: "#065f46", bg: "#d1fae5",     icon: "check-decagram" },
+  rejected: { label: "Thử lại",    color: "#991b1b", bg: "#fee2e2",     icon: "refresh" },
+};
+
+// ── MOCK fallback tasks ────────────────────────────────────────────────────────
+const MOCK_TASKS = [
+  { id: 1, title: "Gom rơm rạ/vỏ cà phê", reward: 60, category: "Action", description: "Chụp ảnh gom rơm rạ/vỏ cà phê thành đống sau thu hoạch.", icon: "camera", task_group: "action", task_type: "photo", needs_gps: false, needs_moderator: true, submissionStatus: "none" },
+  { id: 2, title: "Bón phân tự ủ cho cây", reward: 80, category: "Action", description: "Chụp ảnh đang bón phân tự ủ cho gốc cây cà phê.", icon: "leaf", task_group: "action", task_type: "photo", needs_gps: false, needs_moderator: true, submissionStatus: "none" },
+  { id: 3, title: "Báo cáo đốt rơm rạ", reward: 100, category: "Report", description: "Báo cáo tọa độ đang có đống rơm rạ bị đốt (kèm ảnh khói).", icon: "fire-alert", task_group: "report", task_type: "photo", needs_gps: true, needs_moderator: true, submissionStatus: "none" },
+  { id: 4, title: "Quiz: Ủ rơm mất bao lâu?", reward: 50, category: "Quiz", description: "Rơm rạ ủ men vi sinh mất bao lâu thì bón được cho cây?", icon: "brain", task_group: "learn", task_type: "quiz", needs_gps: false, needs_moderator: false, quiz_options: ["A. 1 tuần", "B. 30-45 ngày", "C. 3 tháng", "D. 1 năm"], quiz_answer: "B", submissionStatus: "none" },
+  { id: 5, title: "Điểm danh hôm nay", reward: 20, category: "Quiz", description: "Điểm danh: Đăng nhập mở app ngày hôm nay.", icon: "calendar-today", task_group: "learn", task_type: "checkin", needs_gps: false, needs_moderator: false, submissionStatus: "none" },
+];
+
+export default function TasksScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
+  const { seeds, coins, userId, addCoins } = useGameStore();
+
+  const [weekNum, setWeekNum] = useState(0);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Quiz state
+  const [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({});
+
+  const fetchWeekly = useCallback(async () => {
+    try {
+      const data = await taskService.getWeeklyTasks(userId || 1);
+      setWeekNum(data.weekNum);
+      setTasks(data.tasks);
+    } catch {
+      setTasks(MOCK_TASKS);
+      setWeekNum(1);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [userId]);
+
+  useEffect(() => { fetchWeekly(); }, []);
+
+  const onRefresh = () => { setRefreshing(true); fetchWeekly(); };
+
+  const completedCount = tasks.filter(t => t.submissionStatus === "approved").length;
+  const totalReward = tasks.filter(t => t.submissionStatus === "approved").reduce((s, t) => s + t.reward, 0);
+  const progress = tasks.length > 0 ? completedCount / tasks.length : 0;
+
+  // Group tasks
+  const byGroup: Record<string, any[]> = { action: [], report: [], learn: [] };
+  for (const t of tasks) { if (byGroup[t.task_group]) byGroup[t.task_group].push(t); }
+
+  const handleAction = (task: any) => {
+    if (task.submissionStatus === "approved") return;
+    if (task.task_type === "quiz") {
+      navigation.navigate("Quiz", {
+        taskId: task.id,
+        taskTitle: task.title,
+        taskDesc: task.description,
+        taskReward: task.reward,
+        quiz_options: task.quiz_options,
+        quiz_answer: task.quiz_answer,
+      });
+      return;
+    }
+    if (task.task_group === "action" || task.task_group === "report") {
+      navigation.navigate("Report", {
+        taskId: task.id,
+        taskTitle: task.title,
+        taskDesc: task.description,
+        taskReward: task.reward,
+        taskGroup: task.task_group,
+        needsGps: !!task.needs_gps,
+      });
+    } else {
+      // checkin / media / streak → auto-complete
+      taskService.submitTask(userId || 1, task.id, "auto").then((res) => {
+        if (res && res.autoApproved && res.reward) {
+          addCoins(res.reward);
+        }
+        fetchWeekly();
+      });
+    }
+  };
+
+  const handleQuizAnswer = (task: any, answer: string) => {
+    if (quizAnswers[task.id]) return;
+    setQuizAnswers(prev => ({ ...prev, [task.id]: answer }));
+    if (answer === task.quiz_answer) {
+      setTimeout(() => {
+        taskService.submitTask(userId || 1, task.id, "quiz-correct").then((res) => {
+          if (res && res.autoApproved && res.reward) {
+            addCoins(res.reward);
+          }
+          fetchWeekly();
+        });
+      }, 800);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[st.root, { justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color="#154212" />
+        <Text style={st.loaderText}>Đang tải nhiệm vụ tuần này...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={st.root}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+
+      {/* ── Top Bar ─────────────────────────────────── */}
+      <View style={[st.topBar, { paddingTop: insets.top + 14 }]}>
+        <View>
+          <Text style={st.heading}>Nhiệm Vụ Tuần</Text>
+          <Text style={st.subHeading}>Tuần #{weekNum} · Xoay mới mỗi 7 ngày 🔄</Text>
+        </View>
+        <View style={st.badges}>
+          <View style={st.badge}><Text style={st.badgeEmoji}>🍃</Text><Text style={st.badgeVal}>{seeds}</Text></View>
+          <View style={st.badge}><Text style={st.badgeEmoji}>⭐</Text><Text style={st.badgeVal}>{coins}</Text></View>
+        </View>
+      </View>
+
+      {/* ── Progress Card ───────────────────────────── */}
+      <Animated.View entering={FadeInDown.duration(400)} style={st.progressCard}>
+        <LinearGradient colors={["#154212", "#2a5c24"]} style={st.progressGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          <View style={st.progressStats}>
+            <View style={st.pStat}><Text style={st.pNum}>{tasks.length}</Text><Text style={st.pLbl}>Nhiệm vụ</Text></View>
+            <View style={st.pDivider} />
+            <View style={st.pStat}><Text style={st.pNum}>{completedCount}</Text><Text style={st.pLbl}>Hoàn thành</Text></View>
+            <View style={st.pDivider} />
+            <View style={st.pStat}><Text style={st.pNum}>+{totalReward}⭐</Text><Text style={st.pLbl}>Xu kiếm</Text></View>
+          </View>
+          {/* Progress bar */}
+          <View style={st.barBg}>
+            <View style={[st.barFill, { width: `${progress * 100}%` as any }]} />
+          </View>
+          <Text style={st.barLabel}>{Math.round(progress * 100)}% hoàn thành tuần này</Text>
+        </LinearGradient>
+      </Animated.View>
+
+      {/* ── Task List ───────────────────────────────── */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={st.listContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#154212" />}
+      >
+        {(["action", "report", "learn"] as const).map((group, gi) => {
+          const groupTasks = byGroup[group];
+          if (groupTasks.length === 0) return null;
+          const cfg = GROUP_CFG[group];
+
+          return (
+            <Animated.View key={group} entering={FadeInDown.delay(gi * 120).duration(500)}>
+              {/* Group Header */}
+              <View style={st.groupHeader}>
+                <LinearGradient colors={cfg.gradient} style={st.groupIcon}>
+                  <Text style={{ fontSize: 16 }}>{cfg.emoji}</Text>
+                </LinearGradient>
+                <View style={{ flex: 1 }}>
+                  <Text style={st.groupTitle}>Nhóm {cfg.label}</Text>
+                  <Text style={st.groupSub}>
+                    {group === "action" ? "Cần chụp ảnh · Moderator duyệt" :
+                     group === "report" ? "Cần GPS + ảnh · Moderator duyệt" :
+                     "Hệ thống tự động cộng Xu"}
+                  </Text>
+                </View>
+                <View style={[st.groupBadge, { backgroundColor: cfg.bg }]}>
+                  <Text style={[st.groupBadgeText, { color: cfg.accent }]}>{groupTasks.length} task</Text>
+                </View>
+              </View>
+
+              {groupTasks.map((task, ti) => {
+                const status = task.submissionStatus || "none";
+                const statusCfg = STATUS_CFG[status];
+                const isApproved = status === "approved";
+                const isPending = status === "pending";
+                const isQuiz = task.task_type === "quiz";
+                const myAnswer = quizAnswers[task.id];
+                const options = task.quiz_options
+                  ? (typeof task.quiz_options === "string" ? JSON.parse(task.quiz_options) : task.quiz_options)
+                  : [];
+
+                return (
+                  <Animated.View 
+                    key={task.id} 
+                    entering={FadeInDown.delay(gi * 120 + ti * 80).duration(400)}
+                  >
+                    <Animated.View style={[st.card, isApproved && st.cardDone]}>
+                    {/* Left stripe */}
+                    <LinearGradient colors={cfg.gradient} style={st.stripe} />
+
+                    <View style={st.cardInner}>
+                      {/* Header */}
+                      <View style={st.cardHead}>
+                        <View style={[st.cardIconWrap, { backgroundColor: cfg.bg }]}>
+                          <MaterialCommunityIcons name={(task.icon || cfg.icon) as any} size={20} color={cfg.accent} />
+                        </View>
+                        <View style={{ flex: 1, marginLeft: 12 }}>
+                          <Text style={[st.cardTitle, isApproved && { color: "#9ca3af", textDecorationLine: "line-through" }]} numberOfLines={2}>
+                            {task.title}
+                          </Text>
+                          <View style={st.metaRow}>
+                            <Text style={[st.rewardChip, { color: cfg.accent }]}>+{task.reward} xu</Text>
+                            {!!task.needs_gps && <View style={st.gpsPill}><MaterialCommunityIcons name="map-marker" size={10} color="#7c3aed" /><Text style={st.gpsText}>GPS</Text></View>}
+                            {!!task.needs_moderator && <View style={st.modPill}><Text style={st.modText}>Cần duyệt</Text></View>}
+                          </View>
+                        </View>
+                        {isApproved && <MaterialCommunityIcons name="check-decagram" size={22} color="#10b981" />}
+                      </View>
+
+                      {/* Description */}
+                      {!isApproved && <Text style={st.cardDesc}>{task.description}</Text>}
+
+                      {/* Quiz options */}
+                      {isQuiz && !isApproved && options.length > 0 && (
+                        <View style={st.quizWrap}>
+                          {options.map((opt: string) => {
+                            const key = opt.startsWith("A.") ? "A" : opt.startsWith("B.") ? "B" : opt.startsWith("C.") ? "C" : opt.startsWith("D.") ? "D" : opt;
+                            const isCorrect = myAnswer && opt === options.find((o: string) => o.startsWith(task.quiz_answer));
+                            const isWrong = myAnswer === key && !isCorrect;
+                            const isChosen = myAnswer === key;
+                            return (
+                              <TouchableOpacity
+                                key={opt}
+                                onPress={() => handleQuizAnswer(task, key)}
+                                style={[st.quizOpt,
+                                  isChosen && isCorrect && st.quizCorrect,
+                                  isChosen && isWrong && st.quizWrong,
+                                  !myAnswer && { borderColor: cfg.accent + "44" },
+                                ]}
+                              >
+                                <Text style={[st.quizOptText,
+                                  isChosen && isCorrect && { color: "#065f46" },
+                                  isChosen && isWrong && { color: "#991b1b" },
+                                ]}>
+                                  {opt}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      )}
+
+                      {/* Action button */}
+                      {!isQuiz && (
+                        <TouchableOpacity
+                          onPress={() => handleAction(task)}
+                          activeOpacity={0.85}
+                          disabled={isPending || isApproved}
+                          style={[st.actionBtn, (isPending || isApproved) && { backgroundColor: statusCfg.bg }]}
+                        >
+                          {!isPending && !isApproved ? (
+                            <LinearGradient colors={cfg.gradient} style={st.actionGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                              <MaterialCommunityIcons name={statusCfg.icon as any} size={16} color="#fff" />
+                              <Text style={[st.actionText, { color: "#fff" }]}>{statusCfg.label}</Text>
+                            </LinearGradient>
+                          ) : (
+                            <View style={st.actionInner}>
+                              <MaterialCommunityIcons name={statusCfg.icon as any} size={16} color={statusCfg.color} />
+                              <Text style={[st.actionText, { color: statusCfg.color }]}>{statusCfg.label}</Text>
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    </Animated.View>
+                  </Animated.View>
+                );
+              })}
+            </Animated.View>
+          );
+        })}
+
+        <View style={{ height: 120 }} />
+      </ScrollView>
+    </View>
+  );
+}
+
+const SHADOW = Platform.select({
+  ios: { shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 5 } },
+  android: { elevation: 3 },
+});
+
+const st = StyleSheet.create({
+  root: { flex: 1, backgroundColor: "#f7f8fa" },
+  loaderText: { marginTop: 12, fontFamily: "Nunito_600SemiBold", fontSize: 14, color: "#9ca3af" },
+
+  topBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingHorizontal: 22, paddingBottom: 14, backgroundColor: "#f7f8fa" },
+  heading: { fontSize: 24, fontFamily: "Nunito_800ExtraBold", color: "#111827" },
+  subHeading: { fontSize: 12, fontFamily: "Nunito_600SemiBold", color: "#6b7280", marginTop: 2 },
+  badges: { flexDirection: "row", gap: 8 },
+  badge: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", paddingHorizontal: 11, paddingVertical: 7, borderRadius: 18, gap: 4, ...SHADOW },
+  badgeEmoji: { fontSize: 14 },
+  badgeVal: { fontSize: 13, fontFamily: "Nunito_700Bold", color: "#111827" },
+
+  progressCard: { marginHorizontal: 20, marginBottom: 18, borderRadius: 22, overflow: "hidden", ...SHADOW },
+  progressGradient: { padding: 20 },
+  progressStats: { flexDirection: "row", justifyContent: "space-around", marginBottom: 16 },
+  pStat: { alignItems: "center" },
+  pNum: { fontSize: 22, fontFamily: "Nunito_800ExtraBold", color: "#fff" },
+  pLbl: { fontSize: 11, fontFamily: "Nunito_600SemiBold", color: "rgba(255,255,255,0.65)", marginTop: 2 },
+  pDivider: { width: 1, height: 32, backgroundColor: "rgba(255,255,255,0.2)" },
+  barBg: { height: 7, backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 4, overflow: "hidden" },
+  barFill: { height: "100%", backgroundColor: "#86efac", borderRadius: 4 },
+  barLabel: { fontSize: 11, fontFamily: "Nunito_600SemiBold", color: "rgba(255,255,255,0.6)", textAlign: "center", marginTop: 8 },
+
+  listContent: { paddingHorizontal: 20, paddingTop: 4 },
+
+  groupHeader: { flexDirection: "row", alignItems: "center", marginBottom: 12, marginTop: 8 },
+  groupIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", marginRight: 12 },
+  groupTitle: { fontSize: 16, fontFamily: "Nunito_800ExtraBold", color: "#111827" },
+  groupSub: { fontSize: 11, fontFamily: "Nunito_600SemiBold", color: "#9ca3af", marginTop: 1 },
+  groupBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+  groupBadgeText: { fontSize: 12, fontFamily: "Nunito_700Bold" },
+
+  card: { backgroundColor: "#fff", borderRadius: 20, marginBottom: 12, flexDirection: "row", overflow: "hidden", ...SHADOW },
+  cardDone: { opacity: 0.65 },
+  stripe: { width: 5 },
+  cardInner: { flex: 1, padding: 16 },
+  cardHead: { flexDirection: "row", alignItems: "flex-start", marginBottom: 10 },
+  cardIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  cardTitle: { fontSize: 14, fontFamily: "Nunito_800ExtraBold", color: "#111827", lineHeight: 20 },
+  metaRow: { flexDirection: "row", alignItems: "center", marginTop: 4, gap: 6, flexWrap: "wrap" },
+  rewardChip: { fontSize: 12, fontFamily: "Nunito_700Bold" },
+  gpsPill: { flexDirection: "row", alignItems: "center", backgroundColor: "#ede9fe", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, gap: 2 },
+  gpsText: { fontSize: 10, fontFamily: "Nunito_700Bold", color: "#7c3aed" },
+  modPill: { backgroundColor: "#fef3c7", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  modText: { fontSize: 10, fontFamily: "Nunito_700Bold", color: "#92400e" },
+  cardDesc: { fontSize: 12, fontFamily: "Nunito_600SemiBold", color: "#6b7280", lineHeight: 18, marginBottom: 14 },
+
+  quizWrap: { gap: 8, marginBottom: 4 },
+  quizOpt: { borderWidth: 1.5, borderColor: "#e5e7eb", borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14 },
+  quizCorrect: { backgroundColor: "#d1fae5", borderColor: "#10b981" },
+  quizWrong: { backgroundColor: "#fee2e2", borderColor: "#ef4444" },
+  quizOptText: { fontSize: 13, fontFamily: "Nunito_700Bold", color: "#374151" },
+
+  actionBtn: { borderRadius: 12, overflow: "hidden" },
+  actionGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 11, gap: 7 },
+  actionInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 11, gap: 7 },
+  actionText: { fontSize: 13, fontFamily: "Nunito_700Bold" },
+});

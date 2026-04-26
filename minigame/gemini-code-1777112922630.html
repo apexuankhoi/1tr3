@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khu Vườn Trên Mây</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Nunito', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #e0f2f1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Mobile App Container */
+        .app-container {
+            width: 100%;
+            max-width: 414px;
+            height: 896px;
+            background: linear-gradient(180deg, #87DEE4 0%, #A9EBD5 100%);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        /* Header Section */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 20px 10px 20px;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .avatar {
+            width: 45px;
+            height: 45px;
+            background: #FFDDAA;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-info .sub-text {
+            font-size: 12px;
+            color: #2D5A50;
+        }
+
+        .user-info .name {
+            font-size: 15px;
+            font-weight: 800;
+            color: #0A2E26;
+        }
+
+        .stats {
+            display: flex;
+            gap: 10px;
+        }
+
+        .stat-badge {
+            background: #fff;
+            padding: 6px 12px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 700;
+            font-size: 15px;
+            color: #1a1a1a;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        /* Title */
+        .page-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 800;
+            color: #fff;
+            margin: 15px 0 30px 0;
+            text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.15);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            -webkit-text-stroke: 1px rgba(255,255,255,0.8);
+        }
+
+        /* Grid Garden */
+        .garden-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px 10px;
+            padding: 0 15px;
+        }
+
+        .cloud-slot {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            height: 90px;
+            position: relative;
+        }
+
+        /* Pure CSS Cloud */
+        .cloud {
+            width: 90px;
+            height: 38px;
+            background: linear-gradient(180deg, #FFFFFF 0%, #D8F2FB 100%);
+            border-radius: 50px;
+            position: relative;
+            box-shadow: 0 6px 12px rgba(118, 192, 198, 0.3);
+            z-index: 1;
+        }
+
+        .cloud::before {
+            content: '';
+            position: absolute;
+            width: 45px;
+            height: 45px;
+            background: #FFFFFF;
+            border-radius: 50%;
+            top: -22px;
+            left: 12px;
+        }
+
+        .cloud::after {
+            content: '';
+            position: absolute;
+            width: 35px;
+            height: 35px;
+            background: #FFFFFF;
+            border-radius: 50%;
+            top: -15px;
+            right: 14px;
+        }
+
+        /* Dirt and Plants */
+        .dirt {
+            position: absolute;
+            width: 60px;
+            height: 20px;
+            background: #8A5A44;
+            border-radius: 50%;
+            bottom: 22px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+            box-shadow: inset 0 -3px 5px rgba(0,0,0,0.3);
+        }
+
+        .plant {
+            position: absolute;
+            bottom: 35px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3;
+            font-size: 35px;
+            filter: drop-shadow(0 4px 4px rgba(0,0,0,0.1));
+        }
+
+        /* Empty Slot Add Button */
+        .add-btn {
+            position: absolute;
+            bottom: 22px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(180deg, #A8E8DF 0%, #83D6D2 100%);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            font-size: 24px;
+            font-weight: 300;
+            z-index: 3;
+            border: 2px solid rgba(255,255,255,0.8);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Action Panel */
+        .action-panel {
+            position: absolute;
+            bottom: 85px; /* Above nav bar */
+            left: 15px;
+            right: 15px;
+            background: #fff;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            z-index: 10;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: #1A1A1A;
+        }
+
+        .status-badge {
+            background: #E5F6F4;
+            color: #388E3C;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Progress Bars */
+        .progress-item {
+            margin-bottom: 15px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 15px;
+            color: #1A1A1A;
+        }
+
+        .progress-header .value {
+            font-weight: 700;
+        }
+
+        .progress-header .value.blue-text { color: #2A68AA; }
+        .progress-header .value.green-text { color: #388E3C; }
+
+        .progress-track {
+            width: 100%;
+            height: 10px;
+            background: #E8F3F1;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+        }
+
+        .progress-fill.blue {
+            width: 50%;
+            background: linear-gradient(90deg, #4EA8F2 0%, #3B82F6 100%);
+        }
+
+        .progress-fill.green {
+            width: 40%;
+            background: linear-gradient(90deg, #66C56A 0%, #4CAF50 100%);
+        }
+
+        /* Buttons */
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px 0;
+            border-radius: 20px;
+            border: none;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+        }
+
+        .btn-water {
+            background: linear-gradient(180deg, #6BB2F4 0%, #468DF0 100%);
+            box-shadow: 0 6px 15px rgba(70, 141, 240, 0.3);
+        }
+
+        .btn-fert {
+            background: linear-gradient(180deg, #74C678 0%, #51A455 100%);
+            box-shadow: 0 6px 15px rgba(81, 164, 85, 0.3);
+        }
+
+        /* Bottom Nav */
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 75px;
+            background: #fff;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.03);
+            z-index: 20;
+            padding-bottom: 10px; /* Safe area */
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #8D9999;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .nav-item.active {
+            color: #4CAF50;
+        }
+
+        .nav-icon {
+            font-size: 22px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <div class="header">
+        <div class="user-profile">
+            <div class="avatar">👨‍🌾</div>
+            <div class="user-info">
+                <span class="sub-text">Khu vườn của</span>
+                <span class="name">Nguyen Xuan Khoi</span>
+            </div>
+        </div>
+        <div class="stats">
+            <div class="stat-badge">
+                <span style="color:#4CAF50; font-size:18px;">🍃</span> 0
+            </div>
+            <div class="stat-badge">
+                <span style="color:#FFB300; font-size:18px;">⭐</span> 250
+            </div>
+        </div>
+    </div>
+
+    <div class="page-title">
+        Khu Vườn Trên Mây ☁️
+    </div>
+
+    <div class="garden-grid">
+        <div class="cloud-slot">
+            <div class="plant">🌱</div>
+            <div class="dirt"></div>
+            <div class="cloud"></div>
+        </div>
+        
+        <div class="cloud-slot">
+            <div class="plant" style="font-size: 32px; bottom: 30px;">🌼</div>
+            <div class="dirt"></div>
+            <div class="cloud"></div>
+        </div>
+        
+        <div class="cloud-slot">
+            <div class="plant">🌱</div>
+            <div class="dirt"></div>
+            <div class="cloud"></div>
+        </div>
+
+        <div class="cloud-slot" style="margin-top: 15px;">
+            <div class="add-btn">+</div>
+            <div class="cloud"></div>
+        </div>
+
+        <div class="cloud-slot" style="margin-top: 15px;">
+            <div class="add-btn">+</div>
+            <div class="cloud"></div>
+        </div>
+
+        <div class="cloud-slot" style="margin-top: 15px;">
+            <div class="add-btn">+</div>
+            <div class="cloud"></div>
+        </div>
+    </div>
+
+    <div class="action-panel">
+        <div class="panel-header">
+            <div class="panel-title">CHẬU ĐANG CHỌN</div>
+            <div class="status-badge">🌱 NẢY MẦM</div>
+        </div>
+
+        <div class="progress-item">
+            <div class="progress-header">
+                <span>Độ ẩm</span>
+                <span class="value blue-text">50%</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill blue"></div>
+            </div>
+        </div>
+
+        <div class="progress-item" style="margin-bottom: 0;">
+            <div class="progress-header">
+                <span>Dinh dưỡng</span>
+                <span class="value green-text">40%</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill green"></div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn btn-water">
+                💧 Tưới nước
+            </button>
+            <button class="btn btn-fert">
+                🌱 Bón phân
+            </button>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <a href="#" class="nav-item active">
+            <span class="nav-icon">🌳</span>
+            <span>Trang chủ</span>
+        </a>
+        <a href="#" class="nav-item">
+            <span class="nav-icon">📋</span>
+            <span>Nhiệm vụ</span>
+        </a>
+        <a href="#" class="nav-item">
+            <span class="nav-icon">🎁</span>
+            <span>Cửa hàng</span>
+        </a>
+        <a href="#" class="nav-item">
+            <span class="nav-icon">📖</span>
+            <span>Thư viện</span>
+        </a>
+        <a href="#" class="nav-item">
+            <span class="nav-icon">👤</span>
+            <span>Hồ sơ</span>
+        </a>
+    </div>
+
+</div>
+
+</body>
+</html>

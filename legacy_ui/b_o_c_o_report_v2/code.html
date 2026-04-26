@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ươm Mầm - Báo Cáo</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Design System Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline-variant": "#c2c9bb",
+                        "surface-container-highest": "#e3e2e0",
+                        "primary-container": "#2d5a27",
+                        "on-error": "#ffffff",
+                        "secondary-container": "#fadcd3",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#154212",
+                        "surface-container-low": "#f4f3f1",
+                        "on-primary": "#ffffff",
+                        "inverse-on-surface": "#f1f1ef",
+                        "on-tertiary-fixed": "#002107",
+                        "surface-variant": "#e3e2e0",
+                        "error": "#ba1a1a",
+                        "inverse-primary": "#a1d494",
+                        "surface-dim": "#dadad8",
+                        "on-secondary-container": "#765f59",
+                        "tertiary-fixed": "#c5edc1",
+                        "on-primary-fixed": "#002201",
+                        "on-surface-variant": "#42493e",
+                        "on-tertiary-fixed-variant": "#2c4e2e",
+                        "primary-fixed": "#bcf0ae",
+                        "background": "#faf9f7",
+                        "primary-fixed-dim": "#a1d494",
+                        "on-tertiary-container": "#a6cda3",
+                        "on-secondary-fixed-variant": "#56423c",
+                        "tertiary-fixed-dim": "#aad1a7",
+                        "tertiary": "#1f4022",
+                        "on-surface": "#1a1c1b",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed-variant": "#23501e",
+                        "on-background": "#1a1c1b",
+                        "secondary": "#6f5a53",
+                        "tertiary-container": "#365837",
+                        "on-secondary-fixed": "#271813",
+                        "on-secondary": "#ffffff",
+                        "outline": "#72796e",
+                        "inverse-surface": "#2f3130",
+                        "surface-container-high": "#e9e8e6",
+                        "surface-container": "#efeeec",
+                        "surface": "#faf9f7",
+                        "surface-bright": "#faf9f7",
+                        "on-primary-container": "#9dd090",
+                        "on-error-container": "#93000a",
+                        "surface-tint": "#3b6934",
+                        "secondary-fixed-dim": "#ddc0b8",
+                        "secondary-fixed": "#fadcd3"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "margin-desktop": "64px",
+                        "margin-mobile": "20px",
+                        "touch-target-min": "56px",
+                        "gutter": "24px",
+                        "container-padding": "32px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Be Vietnam Pro"],
+                        "headline-lg": ["Be Vietnam Pro"],
+                        "body-lg": ["Be Vietnam Pro"],
+                        "headline-md": ["Be Vietnam Pro"],
+                        "label-lg": ["Be Vietnam Pro"],
+                        "button": ["Be Vietnam Pro"]
+                    },
+                    "fontSize": {
+                        "body-md": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "headline-lg": ["40px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-lg": ["20px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "headline-md": ["32px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                        "label-lg": ["16px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "button": ["18px", {"lineHeight": "1", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+        }
+        /* Custom scrollbar for chips */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar (Shared Component Execution) -->
+<header class="bg-white dark:bg-stone-950 docked full-width top-0 border-b-2 border-stone-100 dark:border-stone-800 shadow-sm z-50 sticky">
+<div class="flex justify-between items-center h-20 px-8 w-full max-w-7xl mx-auto">
+<!-- Leading Icon: Overridden to "close" to denote task departure instead of "menu" for this specific screen context, but keeping JSON styling -->
+<button class="text-emerald-900 dark:text-emerald-400 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-full active:scale-95 transition-all duration-200 p-3 flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl">close</span>
+</button>
+<h1 class="text-emerald-900 dark:text-emerald-400 font-['Be_Vietnam_Pro'] text-lg font-bold tracking-tight">Ươm Mầm</h1>
+<!-- Trailing Avatar -->
+<div class="w-10 h-10 rounded-full overflow-hidden hover:bg-stone-100 dark:hover:bg-stone-800 transition-all duration-200 cursor-pointer">
+<img alt="Profile" class="w-full h-full object-cover" data-alt="Portrait of a smiling Vietnamese farmer wearing a traditional conical hat" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAP8y2mpCPpR76-tSo-2Hl43VZMxnBXxOVYtZVyaY9P554XCBLgs_ODNof5_RXb49R5GD6-XWpVA2d9D6qlphHcYTcuMfJ7WXqczdMZZJR76rmFilBV0su_28kGjMeQ3-o6zjnXXWWAUzIK45Ib12OoCkEXndtOkmcRr1X0FstEqwYqG1kdrXEvbIe7A7jTO8QKfww8W2lsjcmB2Y0HCvFJoknIhgU1_R7sSYXwOtO1Sj1wBA16fdAvKceovujnJClLDxZMBCBDko"/>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 w-full max-w-3xl mx-auto px-margin-mobile md:px-margin-desktop py-gutter flex flex-col gap-gutter pb-32">
+<!-- Header Context -->
+<div class="flex flex-col gap-2 mb-2">
+<h2 class="font-headline-md text-headline-md text-on-surface">Tạo Báo Cáo</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Ghi nhận sự cố tại hiện trường</p>
+</div>
+<!-- Section 1: Map Preview (Approx 1/3) -->
+<section class="relative h-[247px] min-h-[220px] w-full rounded-DEFAULT md:rounded-lg overflow-hidden bg-surface-container-lowest shadow-[0_10px_40px_rgba(45,90,39,0.08)] border border-surface-container-highest">
+<img alt="Map View" class="w-full h-full object-cover opacity-90" data-alt="Aerial drone view of organized green agricultural farming plots and irrigation canals" data-location="Vietnam" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_aFa7krGEm0QTwqowkVVDxLePUn0LTzGHY4CZdw-PsMWWKHJoTM_stIcYWRuli4iLFddSROCMvx1aDqvE7RRhGXHPMu8kHGGAUeaQLx9qeK3_uFW_goMcdRuTuq5ysXhRvX2dnsX05qn_5B7Wq_vry0eOemvkxiLkNVZD_A12phIdzt_JPBvHMHHqrBkXC71XHvYxgJD0uFx-fv3ykrqI82y5tofmm6eYisLDRe0RTIw4Y_Km_DevTwgLrUapg8HdKWXHxqKsfa4"/>
+<!-- Center GPS Pin -->
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+<div class="flex flex-col items-center drop-shadow-md transform -translate-y-4">
+<div class="bg-error text-on-error w-10 h-10 flex items-center justify-center rounded-t-full rounded-bl-full rounded-br-sm rotate-45 shadow-sm">
+<span class="material-symbols-outlined -rotate-45 text-xl" style="font-variation-settings: 'FILL' 1;">eco</span>
+</div>
+<div class="w-2 h-2 bg-on-surface rounded-full mt-1 opacity-50 shadow-sm blur-[1px]"></div>
+</div>
+</div>
+<!-- Location Meta Overlay -->
+<div class="absolute bottom-4 left-4 right-4 md:left-6 md:bottom-6 md:w-auto bg-surface/95 backdrop-blur-md p-4 rounded-DEFAULT flex items-center gap-4 shadow-sm border border-surface-container">
+<div class="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">my_location</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface leading-tight">Vị trí hiện tại</span>
+<span class="font-body-md text-sm text-on-surface-variant line-clamp-1">Khu vực Nam Đồng Mỏ, Tọa độ: 10.82°N, 106.62°E</span>
+</div>
+</div>
+</section>
+<!-- Section 2: Camera Preview Slot (Approx 1/3) -->
+<section class="relative h-[247px] min-h-[220px] w-full rounded-DEFAULT md:rounded-lg overflow-hidden shadow-[0_10px_40px_rgba(45,90,39,0.08)] bg-surface-container">
+<!-- Simulated captured photo -->
+<img alt="Captured Evidence" class="w-full h-full object-cover" data-alt="Close up photograph of dry, severely burnt rice stalks and charred earth in a harvested field" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhKNjQ8s6wRb-mPmNmRkkZNStX6Ti2-73Vph6VodoKgo31lRFzmulQmOLg_J79w7NLA2xWTLYEZwm0MCq0lYE4-PY07vLMZSVFAC43Ss9WvsbQcNXVvJRGtxu5lAlOM1HlxnlV2BJY5hZ6qhXi3LX9XpOJuuKQND7Ia8YE8yxRYm1Gfy5GuiV9vb3-BIX6PhK_2x8VCPzAqhAr9uauSwBB7Lrh5mdrEvMIWIb5E5L0XFvqjE-H3kRfFMXS5-1Xd7NbldfxkmE4-V0"/>
+<!-- Top Controls -->
+<div class="absolute top-4 right-4 flex gap-2">
+<button class="w-10 h-10 bg-surface/80 backdrop-blur-md rounded-full flex items-center justify-center shadow-sm text-on-surface hover:bg-surface transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Bottom Retake Action -->
+<div class="absolute bottom-6 left-0 right-0 flex justify-center">
+<button class="bg-surface/90 backdrop-blur-md h-touch-target-min px-8 rounded-full flex items-center gap-3 shadow-[0_4px_12px_rgba(0,0,0,0.1)] text-on-surface hover:bg-surface transition-colors border border-outline-variant/30 group">
+<span class="material-symbols-outlined text-outline group-hover:rotate-180 transition-transform duration-500">cached</span>
+<span class="font-label-lg text-label-lg">Chụp lại ảnh</span>
+</button>
+</div>
+</section>
+<!-- Section 3: Actions & Settings (Approx 1/3) -->
+<section class="flex flex-col gap-8 mt-2">
+<!-- Category Chips -->
+<div class="flex flex-col gap-4">
+<span class="font-label-lg text-label-lg text-on-surface">Phân loại sự cố</span>
+<div class="flex overflow-x-auto hide-scrollbar gap-3 pb-2 -mx-margin-mobile px-margin-mobile md:mx-0 md:px-0 md:flex-wrap">
+<!-- Active Chip: Burn Detection -->
+<button class="flex-shrink-0 h-touch-target-min px-6 rounded-DEFAULT bg-primary-container text-on-primary-container font-label-lg text-label-lg flex items-center gap-2 border border-primary/20 shadow-sm transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+                        Phát hiện đốt
+                    </button>
+<!-- Inactive Chip: Pests -->
+<button class="flex-shrink-0 h-touch-target-min px-6 rounded-DEFAULT bg-surface-container text-on-surface-variant font-label-lg text-label-lg flex items-center gap-2 border border-outline-variant/30 hover:bg-surface-container-high hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined">pest_control</span>
+                        Sâu bệnh
+                    </button>
+<!-- Inactive Chip: Water -->
+<button class="flex-shrink-0 h-touch-target-min px-6 rounded-DEFAULT bg-surface-container text-on-surface-variant font-label-lg text-label-lg flex items-center gap-2 border border-outline-variant/30 hover:bg-surface-container-high hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined">water_drop</span>
+                        Nguồn nước
+                    </button>
+</div>
+</div>
+<!-- Anonymous Toggle Switch -->
+<div class="min-h-[88px] bg-surface-container-lowest rounded-DEFAULT md:rounded-lg p-4 md:p-6 flex items-center justify-between border border-surface-container-highest shadow-sm">
+<div class="flex items-center gap-4">
+<div class="w-14 h-14 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container shrink-0">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">incognito</span>
+</div>
+<div class="flex flex-col justify-center">
+<span class="font-label-lg text-label-lg text-on-surface">Báo cáo ẩn danh</span>
+<span class="font-body-md text-sm text-on-surface-variant line-clamp-2">Thông tin cá nhân của bạn sẽ được bảo mật hoàn toàn</span>
+</div>
+</div>
+<!-- Toggle UI (Active State) -->
+<button aria-pressed="true" class="w-16 h-9 bg-primary rounded-full relative cursor-pointer shadow-inner shrink-0 transition-colors focus:outline-none focus:ring-4 focus:ring-primary/20">
+<div class="absolute right-1 top-1 w-7 h-7 bg-on-primary rounded-full shadow-sm transition-transform duration-300 transform translate-x-0"></div>
+</button>
+</div>
+<!-- Submission Area -->
+<div class="mt-4">
+<button class="w-full h-touch-target-min bg-primary text-on-primary rounded-full font-button text-button shadow-[0_8px_24px_rgba(45,90,39,0.25)] flex items-center justify-center gap-3 hover:bg-primary-fixed-variant transition-colors active:scale-[0.98]">
+<span class="material-symbols-outlined">send</span>
+                    Gửi Báo Cáo
+                </button>
+</div>
+</section>
+</main>
+<!-- BottomNavBar Suppressed: As per rules, task-focused screens with "close" intent imply a temporary departure from the main flow. Suppressing navigation shell to prioritize canvas. -->
+</body></html>

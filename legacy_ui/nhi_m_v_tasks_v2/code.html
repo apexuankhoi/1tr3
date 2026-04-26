@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nhiệm vụ - Ươm Mầm</title>
+<!-- Google Fonts: Be Vietnam Pro -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;900&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "outline-variant": "#c2c9bb",
+                    "surface-container-highest": "#e3e2e0",
+                    "primary-container": "#2d5a27",
+                    "on-error": "#ffffff",
+                    "secondary-container": "#fadcd3",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-lowest": "#ffffff",
+                    "primary": "#154212",
+                    "surface-container-low": "#f4f3f1",
+                    "on-primary": "#ffffff",
+                    "inverse-on-surface": "#f1f1ef",
+                    "on-tertiary-fixed": "#002107",
+                    "surface-variant": "#e3e2e0",
+                    "error": "#ba1a1a",
+                    "inverse-primary": "#a1d494",
+                    "surface-dim": "#dadad8",
+                    "on-secondary-container": "#765f59",
+                    "tertiary-fixed": "#c5edc1",
+                    "on-primary-fixed": "#002201",
+                    "on-surface-variant": "#42493e",
+                    "on-tertiary-fixed-variant": "#2c4e2e",
+                    "primary-fixed": "#bcf0ae",
+                    "background": "#faf9f7",
+                    "primary-fixed-dim": "#a1d494",
+                    "on-tertiary-container": "#a6cda3",
+                    "on-secondary-fixed-variant": "#56423c",
+                    "tertiary-fixed-dim": "#aad1a7",
+                    "tertiary": "#1f4022",
+                    "on-surface": "#1a1c1b",
+                    "error-container": "#ffdad6",
+                    "on-primary-fixed-variant": "#23501e",
+                    "on-background": "#1a1c1b",
+                    "secondary": "#6f5a53",
+                    "tertiary-container": "#365837",
+                    "on-secondary-fixed": "#271813",
+                    "on-secondary": "#ffffff",
+                    "outline": "#72796e",
+                    "inverse-surface": "#2f3130",
+                    "surface-container-high": "#e9e8e6",
+                    "surface-container": "#efeeec",
+                    "surface": "#faf9f7",
+                    "surface-bright": "#faf9f7",
+                    "on-primary-container": "#9dd090",
+                    "on-error-container": "#93000a",
+                    "surface-tint": "#3b6934",
+                    "secondary-fixed-dim": "#ddc0b8",
+                    "secondary-fixed": "#fadcd3"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "unit": "8px",
+                    "margin-desktop": "64px",
+                    "margin-mobile": "20px",
+                    "touch-target-min": "56px",
+                    "gutter": "24px",
+                    "container-padding": "32px"
+            },
+            "fontFamily": {
+                    "body-md": ["Be Vietnam Pro", "sans-serif"],
+                    "headline-lg": ["Be Vietnam Pro", "sans-serif"],
+                    "body-lg": ["Be Vietnam Pro", "sans-serif"],
+                    "headline-md": ["Be Vietnam Pro", "sans-serif"],
+                    "label-lg": ["Be Vietnam Pro", "sans-serif"],
+                    "button": ["Be Vietnam Pro", "sans-serif"]
+            },
+            "fontSize": {
+                    "body-md": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-lg": ["40px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["20px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-md": ["32px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                    "label-lg": ["16px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "button": ["18px", {"lineHeight": "1", "fontWeight": "600"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md text-body-md min-h-screen relative pb-[120px]">
+<!-- TopAppBar -->
+<header class="fixed z-50 docked full-width top-0 border-b-2 bg-white dark:bg-stone-950 border-stone-100 dark:border-stone-800 shadow-sm flex justify-between items-center h-20 px-8 w-full max-w-7xl mx-auto left-1/2 -translate-x-1/2 font-['Be_Vietnam_Pro'] text-lg font-bold tracking-tight text-emerald-900 dark:text-emerald-400">
+<button class="w-12 h-12 flex items-center justify-center hover:bg-stone-100 dark:hover:bg-stone-800 rounded-full active:scale-95 transition-all duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">menu</span>
+</button>
+<h1 class="text-2xl font-black text-emerald-800 dark:text-emerald-500 text-center flex-1">Ươm Mầm</h1>
+<button class="w-12 h-12 rounded-full overflow-hidden hover:bg-stone-100 dark:hover:bg-stone-800 active:scale-95 transition-all duration-200 border-2 border-transparent focus:border-emerald-500">
+<img alt="Profile" class="w-full h-full object-cover" data-alt="Close up portrait of a middle-aged Vietnamese farmer with a warm smile, wearing a traditional conical hat (nón lá), soft natural lighting, shallow depth of field, natural background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqs5M4Wp1efvdsZRM0sHKjwanNRTxmcOTkINR2pqKfTKPUqxB10-NL_76PJxqYCgJWafrQAborlyxaHLbYkw1Hhhms0tlMsnkSTfVpuXe4VcOkHkMtiyuXBtr8tXntuPHYdPMaVxfgsaFpQSYgRvzbqynOQ1CFxqchTEo6YV1ForPJ4NaG5S98SQrSzrVmU8yY0XsGOBnZDbUjXjRVMY8RPxKVJHJEEeXAiY3TRfgxqJpABFGrujAyBVc2mvU-MsUjvj6lmKqyd9U"/>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-[120px] px-container-padding max-w-7xl mx-auto">
+<header class="mb-10 text-center md:text-left">
+<h2 class="font-headline-lg text-headline-lg text-primary mb-2">Nhiệm vụ hôm nay</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Hoàn thành các hoạt động để nhận xu và đóng góp cho cộng đồng.</p>
+</header>
+<!-- Task Hub Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<!-- Card 1: Green Action -->
+<article class="bg-surface-container-lowest rounded-lg p-container-padding shadow-[0_12px_40px_rgba(21,66,18,0.06)] flex flex-col items-center text-center transition-transform hover:-translate-y-2 duration-300 border border-surface-container">
+<div class="h-20 w-20 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center mb-6 shadow-inner">
+<span class="material-symbols-outlined text-[40px]" style="font-variation-settings: 'FILL' 1;">photo_camera</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4">Green Action</h3>
+<div class="inline-flex items-center gap-2 bg-tertiary-container text-on-tertiary px-6 py-2 rounded-full font-label-lg text-label-lg mb-8">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">generating_tokens</span>
+                    +500 xu
+                </div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-8 flex-1">Chụp ảnh hành động bảo vệ môi trường của bạn hôm nay và chia sẻ để truyền cảm hứng.</p>
+<button class="w-full min-h-touch-target-min bg-primary text-on-primary rounded-full font-button text-button flex items-center justify-center gap-2 hover:bg-primary-fixed-variant transition-colors shadow-[0_4px_14px_rgba(21,66,18,0.2)]">
+                    Thực hiện ngay
+                    <span class="material-symbols-outlined text-[24px]">arrow_forward</span>
+</button>
+</article>
+<!-- Card 2: Report -->
+<article class="bg-surface-container-lowest rounded-lg p-container-padding shadow-[0_12px_40px_rgba(21,66,18,0.06)] flex flex-col items-center text-center transition-transform hover:-translate-y-2 duration-300 border border-surface-container">
+<div class="h-20 w-20 rounded-full bg-error-container text-on-error-container flex items-center justify-center mb-6 shadow-inner">
+<span class="material-symbols-outlined text-[40px]" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4">Report</h3>
+<div class="inline-flex items-center gap-2 bg-tertiary-container text-on-tertiary px-6 py-2 rounded-full font-label-lg text-label-lg mb-8">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">generating_tokens</span>
+                    +300 xu
+                </div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-8 flex-1">Báo cáo các vấn đề về đất đai, nguồn nước hoặc sâu bệnh bất thường trong khu vực.</p>
+<button class="w-full min-h-touch-target-min border-2 border-primary text-primary rounded-full font-button text-button flex items-center justify-center gap-2 hover:bg-primary hover:text-on-primary transition-colors">
+                    Báo cáo sự cố
+                </button>
+</article>
+<!-- Card 3: Quick Quiz -->
+<article class="bg-surface-container-lowest rounded-lg p-container-padding shadow-[0_12px_40px_rgba(21,66,18,0.06)] flex flex-col items-center text-center transition-transform hover:-translate-y-2 duration-300 border border-surface-container">
+<div class="h-20 w-20 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center mb-6 shadow-inner">
+<span class="material-symbols-outlined text-[40px]" style="font-variation-settings: 'FILL' 1;">menu_book</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4">Quick Quiz</h3>
+<div class="inline-flex items-center gap-2 bg-tertiary-container text-on-tertiary px-6 py-2 rounded-full font-label-lg text-label-lg mb-8">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">generating_tokens</span>
+                    +50 xu
+                </div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-8 flex-1">Kiểm tra kiến thức nông nghiệp hàng ngày của bạn với 3 câu hỏi trắc nghiệm nhanh.</p>
+<button class="w-full min-h-touch-target-min bg-surface-container-high text-on-surface rounded-full font-button text-button flex items-center justify-center gap-2 hover:bg-surface-dim transition-colors">
+                    Bắt đầu Quiz
+                </button>
+</article>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-evenly items-end pb-8 pt-4 px-4 bg-white dark:bg-stone-900 border-t-2 border-stone-50 dark:border-stone-800 shadow-[0_-10px_40px_rgba(45,90,39,0.12)] rounded-t-[40px] font-['Be_Vietnam_Pro'] text-[12px] font-bold uppercase tracking-wider">
+<!-- Trang chủ -->
+<button class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 py-4 px-2 hover:text-emerald-700 dark:hover:text-emerald-300 active:scale-90 transition-transform duration-300 min-h-[72px]">
+<span class="material-symbols-outlined mb-1 text-[24px]">forest</span>
+<span>Trang chủ</span>
+</button>
+<!-- Nhiệm vụ (ACTIVE) -->
+<button class="flex flex-col items-center justify-center bg-emerald-800 dark:bg-emerald-500 text-white dark:text-stone-950 rounded-full py-4 px-6 shadow-[0_0_20px_rgba(45,90,39,0.4)] scale-110 active:scale-90 transition-transform duration-300 min-h-[72px]">
+<span class="material-symbols-outlined mb-1 text-[28px]" style="font-variation-settings: 'FILL' 1;">checklist</span>
+<span>Nhiệm vụ</span>
+</button>
+<!-- Cửa hàng -->
+<button class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 py-4 px-2 hover:text-emerald-700 dark:hover:text-emerald-300 active:scale-90 transition-transform duration-300 min-h-[72px]">
+<span class="material-symbols-outlined mb-1 text-[24px]">redeem</span>
+<span>Cửa hàng</span>
+</button>
+<!-- Thư viện -->
+<button class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 py-4 px-2 hover:text-emerald-700 dark:hover:text-emerald-300 active:scale-90 transition-transform duration-300 min-h-[72px]">
+<span class="material-symbols-outlined mb-1 text-[24px]">play_circle</span>
+<span>Thư viện</span>
+</button>
+<!-- Xếp hạng -->
+<button class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-500 py-4 px-2 hover:text-emerald-700 dark:hover:text-emerald-300 active:scale-90 transition-transform duration-300 min-h-[72px]">
+<span class="material-symbols-outlined mb-1 text-[24px]">leaderboard</span>
+<span>Xếp hạng</span>
+</button>
+</nav>
+<!-- Desktop Navigation Cluster (Visible only on md+) -->
+<nav class="hidden md:flex fixed top-0 right-32 h-20 items-center gap-8 z-50 font-['Be_Vietnam_Pro'] text-[14px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
+<a class="text-stone-600 dark:text-stone-400 hover:text-emerald-700 transition-colors" href="#">Trang chủ</a>
+<a class="font-bold text-emerald-800 dark:text-emerald-400 relative after:content-[''] after:absolute after:-bottom-2 after:left-0 after:w-full after:h-1 after:bg-emerald-800 after:rounded-t-md" href="#">Nhiệm vụ</a>
+<a class="text-stone-600 dark:text-stone-400 hover:text-emerald-700 transition-colors" href="#">Cửa hàng</a>
+<a class="text-stone-600 dark:text-stone-400 hover:text-emerald-700 transition-colors" href="#">Thư viện</a>
+<a class="text-stone-600 dark:text-stone-400 hover:text-emerald-700 transition-colors" href="#">Xếp hạng</a>
+</nav>
+</body></html>

@@ -1,0 +1,5 @@
+Tab 1 (Server):
+cd d:\1tr3\server; npm start
+
+Tab 2 (Expo):
+cd d:\1tr3; npm start

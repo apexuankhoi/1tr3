@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ươm Mầm - Vườn của tôi</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline-variant": "#c2c9bb",
+                        "surface-container-highest": "#e3e2e0",
+                        "primary-container": "#2d5a27",
+                        "on-error": "#ffffff",
+                        "secondary-container": "#fadcd3",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#154212",
+                        "surface-container-low": "#f4f3f1",
+                        "on-primary": "#ffffff",
+                        "inverse-on-surface": "#f1f1ef",
+                        "on-tertiary-fixed": "#002107",
+                        "surface-variant": "#e3e2e0",
+                        "error": "#ba1a1a",
+                        "inverse-primary": "#a1d494",
+                        "surface-dim": "#dadad8",
+                        "on-secondary-container": "#765f59",
+                        "tertiary-fixed": "#c5edc1",
+                        "on-primary-fixed": "#002201",
+                        "on-surface-variant": "#42493e",
+                        "on-tertiary-fixed-variant": "#2c4e2e",
+                        "primary-fixed": "#bcf0ae",
+                        "background": "#faf9f7",
+                        "primary-fixed-dim": "#a1d494",
+                        "on-tertiary-container": "#a6cda3",
+                        "on-secondary-fixed-variant": "#56423c",
+                        "tertiary-fixed-dim": "#aad1a7",
+                        "tertiary": "#1f4022",
+                        "on-surface": "#1a1c1b",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed-variant": "#23501e",
+                        "on-background": "#1a1c1b",
+                        "secondary": "#6f5a53",
+                        "tertiary-container": "#365837",
+                        "on-secondary-fixed": "#271813",
+                        "on-secondary": "#ffffff",
+                        "outline": "#72796e",
+                        "inverse-surface": "#2f3130",
+                        "surface-container-high": "#e9e8e6",
+                        "surface-container": "#efeeec",
+                        "surface": "#faf9f7",
+                        "surface-bright": "#faf9f7",
+                        "on-primary-container": "#9dd090",
+                        "on-error-container": "#93000a",
+                        "surface-tint": "#3b6934",
+                        "secondary-fixed-dim": "#ddc0b8",
+                        "secondary-fixed": "#fadcd3"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "margin-desktop": "64px",
+                        "margin-mobile": "20px",
+                        "touch-target-min": "56px",
+                        "gutter": "24px",
+                        "container-padding": "32px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Be Vietnam Pro"],
+                        "headline-lg": ["Be Vietnam Pro"],
+                        "body-lg": ["Be Vietnam Pro"],
+                        "headline-md": ["Be Vietnam Pro"],
+                        "label-lg": ["Be Vietnam Pro"],
+                        "button": ["Be Vietnam Pro"]
+                    },
+                    "fontSize": {
+                        "body-md": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "headline-lg": ["40px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-lg": ["20px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "headline-md": ["32px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                        "label-lg": ["16px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "button": ["18px", {"lineHeight": "1", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md text-body-md pb-[120px] antialiased">
+<!-- TopAppBar Shared Component -->
+<header class="bg-white border-b-2 border-stone-100 shadow-sm sticky top-0 z-40">
+<div class="flex justify-between items-center h-20 px-8 w-full max-w-7xl mx-auto">
+<button aria-label="Menu" class="hover:bg-stone-100 rounded-full active:scale-95 transition-all duration-200 p-2 text-emerald-900">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-['Be_Vietnam_Pro'] text-lg font-bold tracking-tight text-emerald-800">Ươm Mầm</h1>
+<div class="flex items-center gap-4">
+<!-- Green Leaf Coin Wallet -->
+<div class="hidden sm:flex items-center gap-1.5 bg-surface-container-high py-2 px-4 rounded-full shadow-sm border border-outline-variant/30">
+<span class="material-symbols-outlined text-[20px] text-primary" style="font-variation-settings: 'FILL' 1;">eco</span>
+<span class="font-label-lg text-label-lg text-primary">1,250</span>
+</div>
+<!-- Trailing Avatar -->
+<button class="hover:bg-stone-100 rounded-full active:scale-95 transition-all duration-200 w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container shadow-sm flex-shrink-0">
+<img alt="Profile" class="w-full h-full object-cover" data-alt="Close-up portrait of a cheerful Vietnamese farmer with sun-weathered face wearing a traditional conical hat against a blurred green field background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOjoVjp_29pbtfA2EjJeC2tky7pbn2Wv2zJqpJzfqa70GQ7xz8I3gVw12g0V4TUrUz6C5P5m0Pcuyqu3YTx4f-TPiuKSdc_rDTF65SzQTD_j8vPtIblhsd03xJIEHeG6rOYfEcMJ8Ou91iV6wvo0gkVuc_6X64jc-sBaL0mA0bgSC7ikz1rjnUKi4PqvTTIJiprZ8QnWdKpKkiqTUOqWFWeLQ7f9QZr_EcNgUdYvrORBTwUZis-4NhhoOGyP4e5b-o_eYr6TKQQGY"/>
+</button>
+</div>
+</div>
+</header>
+<!-- Mobile Wallet Pill (Visible only on very small screens if header gets crowded) -->
+<div class="sm:hidden flex justify-center mt-4 px-container-padding">
+<div class="inline-flex items-center gap-1.5 bg-surface-container-high py-2 px-6 rounded-full shadow-sm border border-outline-variant/30">
+<span class="material-symbols-outlined text-[20px] text-primary" style="font-variation-settings: 'FILL' 1;">eco</span>
+<span class="font-label-lg text-label-lg text-primary">1,250</span>
+</div>
+</div>
+<!-- Main Content Canvas -->
+<main class="max-w-2xl mx-auto px-container-padding py-8 flex flex-col items-center">
+<!-- Hero: 3D Coffee Tree Progress -->
+<section class="w-full flex flex-col items-center justify-center mb-10 relative">
+<h2 class="font-headline-md text-headline-md text-primary mb-8 text-center">Vườn của tôi</h2>
+<div class="relative w-[300px] h-[300px] flex items-center justify-center">
+<!-- Ambient Glow Behind Tree -->
+<div class="absolute inset-0 bg-gradient-to-tr from-primary-fixed to-surface-container rounded-full blur-[40px] opacity-40"></div>
+<!-- The 3D Tree Image -->
+<img class="w-[260px] h-[260px] object-cover rounded-full shadow-[0_30px_60px_-20px_rgba(21,66,18,0.25)] border-[8px] border-surface z-10 relative" data-alt="High-end 3D render of a stylized, mature coffee plant in a pristine white ceramic pot, showing rich green glossy leaves and bright red ripe coffee cherries, soft studio lighting, minimalist off-white background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuARGvRWJ4DbtzQDKXLTvSSC6-N3RmxGCJtut145xun5yT1IDg-zBwX8-6zNSTfGekZD5Rt6iRYhGeHWj6k8FzCVOAGpKvsTYxrZvSNhCQOtCcYUw57yTsL970PUO6O9BtEQ1kCX7da_yqBAEXKPCUIhgysHPzLW5sVcfk2xyVxw7NgFGWF2JM_xeZTIeHaP1heUb342x_FtQBiCvLEzwus4KZqy2Va6YaOLuG5j66JowZYDrcQ8--R8RyXvp6IlSV3THZcWGZSCFAY"/>
+<!-- Floating Indicator 1 -->
+<div class="absolute top-[10%] left-[-5%] bg-surface/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-[0_8px_16px_rgba(0,0,0,0.08)] border border-surface-container-highest z-20 flex items-center gap-2 transform -rotate-2">
+<span class="material-symbols-outlined text-[18px] text-tertiary" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="font-label-lg text-label-lg text-on-surface">Khỏe mạnh</span>
+</div>
+<!-- Floating Indicator 2 -->
+<div class="absolute bottom-[15%] right-[-10%] bg-surface/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-[0_8px_16px_rgba(0,0,0,0.08)] border border-surface-container-highest z-20 flex items-center gap-2 transform rotate-3">
+<span class="material-symbols-outlined text-[18px] text-primary" style="font-variation-settings: 'FILL' 1;">nutrition</span>
+<span class="font-label-lg text-label-lg text-on-surface">Giai đoạn thu hoạch</span>
+</div>
+</div>
+</section>
+<!-- Status Bars (Water & Energy) -->
+<section class="w-full bg-surface p-8 rounded-[32px] shadow-[0_15px_40px_-15px_rgba(21,66,18,0.1)] border border-surface-container-high mb-12">
+<div class="space-y-8">
+<!-- Water Status -->
+<div>
+<div class="flex justify-between items-end mb-3">
+<span class="font-label-lg text-label-lg text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[24px] text-primary" style="font-variation-settings: 'FILL' 1;">water_drop</span> 
+                            Nước
+                        </span>
+<span class="font-label-lg text-label-lg text-primary">80/100</span>
+</div>
+<!-- Thick Rounded Progress Bar -->
+<div class="h-6 w-full bg-surface-container-highest rounded-full overflow-hidden shadow-inner">
+<div class="h-full bg-primary rounded-full w-[80%] relative overflow-hidden">
+<!-- Subtle highlight for depth -->
+<div class="absolute top-0 left-0 w-full h-[30%] bg-white/20 rounded-t-full"></div>
+</div>
+</div>
+</div>
+<!-- Energy Status -->
+<div>
+<div class="flex justify-between items-end mb-3">
+<span class="font-label-lg text-label-lg text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[24px] text-[#b57a3e]" style="font-variation-settings: 'FILL' 1;">bolt</span> 
+                            Năng lượng
+                        </span>
+<span class="font-label-lg text-label-lg text-[#b57a3e]">45/100</span>
+</div>
+<!-- Thick Rounded Progress Bar -->
+<div class="h-6 w-full bg-surface-container-highest rounded-full overflow-hidden shadow-inner">
+<div class="h-full bg-[#b57a3e] rounded-full w-[45%] relative overflow-hidden">
+<!-- Subtle highlight for depth -->
+<div class="absolute top-0 left-0 w-full h-[30%] bg-white/20 rounded-t-full"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Primary CTA / FAB -->
+<button class="bg-primary text-on-primary min-h-touch-target-min px-10 py-4 rounded-full font-button text-button shadow-[0_12px_24px_rgba(21,66,18,0.3)] hover:shadow-[0_16px_32px_rgba(21,66,18,0.4)] hover:bg-tertiary active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 w-full max-w-[320px]">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">task_alt</span>
+            Làm nhiệm vụ
+        </button>
+</main>
+<!-- BottomNavBar Shared Component -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-evenly items-end pb-8 pt-4 px-4 bg-white border-t-2 border-stone-50 rounded-t-[40px] shadow-[0_-10px_40px_rgba(45,90,39,0.12)] md:hidden">
+<!-- Active Tab: Trang chủ -->
+<button class="flex flex-col items-center justify-center bg-emerald-800 text-white rounded-full py-4 px-6 shadow-[0_0_20px_rgba(45,90,39,0.4)] scale-110 active:scale-90 transition-transform duration-300 min-h-[72px]">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">forest</span>
+<span class="font-['Be_Vietnam_Pro'] text-[12px] font-bold uppercase tracking-wider">Trang chủ</span>
+</button>
+<!-- Inactive Tab: Nhiệm vụ -->
+<button class="flex flex-col items-center justify-center text-stone-400 py-4 px-2 hover:text-emerald-700 active:scale-90 transition-transform duration-300 min-h-[72px]">
+<span class="material-symbols-outlined mb-1">checklist</span>
+<span class="font-['Be_Vietnam_Pro'] text-[12px] font-bold uppercase tracking-wider">Nhiệm vụ</span>
+</button>
+<!-- Inactive Tab: Cửa hàng -->
+<button class="flex flex-col items-center justify-center text-stone-400 py-4 px-2 hover:text-emerald-700 active:scale-90 transition-transform duration-300 min-h-[72px]">
+<span class="material-symbols-outlined mb-1">redeem</span>
+<span class="font-['Be_Vietnam_Pro'] text-[12px] font-bold uppercase tracking-wider">Cửa hàng</span>
+</button>
+<!-- Inactive Tab: Thư viện -->
+<button class="flex flex-col items-center justify-center text-stone-400 py-4 px-2 hover:text-emerald-700 active:scale-90 transition-transform duration-300 min-h-[72px]">
+<span class="material-symbols-outlined mb-1">play_circle</span>
+<span class="font-['Be_Vietnam_Pro'] text-[12px] font-bold uppercase tracking-wider">Thư viện</span>
+</button>
+<!-- Inactive Tab: Xếp hạng -->
+<button class="flex flex-col items-center justify-center text-stone-400 py-4 px-2 hover:text-emerald-700 active:scale-90 transition-transform duration-300 min-h-[72px]">
+<span class="material-symbols-outlined mb-1">leaderboard</span>
+<span class="font-['Be_Vietnam_Pro'] text-[12px] font-bold uppercase tracking-wider">Xếp hạng</span>
+</button>
+</nav>
+</body></html>

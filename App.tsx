@@ -1,20 +1,77 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import "./global.css";
+import React, { useEffect } from "react";
+import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
+import { NavigationContainer } from "@react-navigation/native";
+import RootStack from "./src/navigation/RootStack";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { GlobalToast } from "./src/components/GlobalToast";
+import { useGameStore } from "./src/store/useGameStore";
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSequence, 
+  withTiming 
+} from "react-native-reanimated";
+import {
+  useFonts,
+  Nunito_400Regular,
+  Nunito_600SemiBold,
+  Nunito_700Bold,
+  Nunito_800ExtraBold,
+} from "@expo-google-fonts/nunito";
+
+void SplashScreen.preventAutoHideAsync();
 
 export default function App() {
+  const shakeTrigger = useGameStore((state) => state.shakeTrigger);
+  const translateX = useSharedValue(0);
+
+  const [fontsLoaded] = useFonts({
+    Nunito_400Regular,
+    Nunito_600SemiBold,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      void SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  useEffect(() => {
+    if (shakeTrigger > 0) {
+      translateX.value = withSequence(
+        withTiming(-8, { duration: 40 }),
+        withTiming(8, { duration: 40 }),
+        withTiming(-8, { duration: 40 }),
+        withTiming(8, { duration: 40 }),
+        withTiming(-8, { duration: 40 }),
+        withTiming(8, { duration: 40 }),
+        withTiming(0, { duration: 40 })
+      );
+    }
+  }, [shakeTrigger]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    flex: 1,
+    transform: [{ translateX: translateX.value }]
+  }));
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <SafeAreaProvider>
+      <Animated.View style={animatedStyle}>
+        <NavigationContainer>
+          <StatusBar style="dark" />
+          <RootStack />
+        </NavigationContainer>
+      </Animated.View>
+      <GlobalToast />
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
