@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Image,
   ImageBackground,
   Dimensions,
   KeyboardAvoidingView,
@@ -81,10 +82,14 @@ export default function LoginScreen() {
               
               <Animated.View entering={FadeInUp.delay(200)} style={st.logoContainer}>
                 <View style={st.logoCircle}>
-                  <MaterialCommunityIcons name="leaf" size={50} color="#4ade80" />
+                  <Image 
+                    source={require("../../assets/logo.png")} 
+                    style={{ width: 70, height: 70, borderRadius: 35 }} 
+                    resizeMode="contain"
+                  />
                 </View>
-                <Text style={st.appTitle}>Nông Nghiệp Xanh</Text>
-                <Text style={st.appSub}>Hệ sinh thái nông nghiệp bền vững</Text>
+                <Text style={st.appTitle}>Mùa Rẫy Không Khói</Text>
+                <Text style={st.appSub}>Phát triển bền vững, không đốt rẫy</Text>
               </Animated.View>
 
               <Animated.View entering={FadeInDown.delay(400)} style={st.formCard}>
