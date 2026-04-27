@@ -5,10 +5,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import api from "../services/api";
+import { useGameStore } from "../store/useGameStore";
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const { t } = useGameStore();
   const webViewRef = useRef<WebView>(null);
   const [loading, setLoading] = useState(true);
   const [mapData, setMapData] = useState<any>(null);
@@ -259,11 +261,15 @@ export default function MapScreen() {
                 </TouchableOpacity>
               ))
             ) : (
-              mapData?.pois?.map((p: any) => {
-                const parts = p.image_url.split("|GPS:");
-                const coords = parts[1]?.split("|ADDR:")[0].split(",");
-                const lat = parseFloat(coords[0]);
-                const lng = parseFloat(coords[1]);
+                  mapData?.pois?.map((p: any) => {
+                    const parts = (p.image_url || "").split("|GPS:");
+                    if (parts.length < 2) return null;
+                    const coordsPart = parts[1].split("|ADDR:")[0];
+                    const coords = coordsPart.split(",");
+                    if (coords.length < 2) return null;
+                    const lat = parseFloat(coords[0]);
+                    const lng = parseFloat(coords[1]);
+                    if (isNaN(lat) || isNaN(lng)) return null;
                 return (
                   <TouchableOpacity 
                     key={p.id} 
