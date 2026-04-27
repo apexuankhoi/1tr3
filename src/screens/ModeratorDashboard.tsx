@@ -24,8 +24,8 @@ export default function ModeratorDashboard() {
 
   const fetchSubmissions = async () => {
     try {
-      const res = await api.get("/admin/submissions");
-      setSubmissions(res.data);
+      const data = await api.get("/admin/submissions");
+      setSubmissions(data || []);
     } catch (error) {
       console.error(error);
     } finally {

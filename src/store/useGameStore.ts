@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { userService, shopService, gardenService, pushService } from "../services/api";
+import { translations, Language } from "../translations";
+import { userService, shopService, gardenService, pushService, taskService } from "../services/api";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
@@ -45,6 +46,11 @@ interface GameState {
   coins: number;
   userStats: { tasksCompleted: number; redemptions: number };
   submissions: any[];
+  
+  // Language
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  t: (path: string) => string;
 
   // Multi-pot System
   pots: PotData[];
@@ -131,6 +137,22 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   pots: generateInitialPots(),
   seeds: 2,
+
+  language: 'vi',
+  setLanguage: (lang) => set({ language: lang }),
+  t: (path) => {
+    const { language } = get();
+    const keys = path.split('.');
+    let result: any = (translations as any)[language];
+    for (const key of keys) {
+      if (result && result[key]) {
+        result = result[key];
+      } else {
+        return path;
+      }
+    }
+    return typeof result === 'string' ? result : path;
+  },
 
   hasSeenTutorial: false,
   setHasSeenTutorial: (val) => set({ hasSeenTutorial: val }),
@@ -352,7 +374,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!userId) return;
     try {
       const data = await shopService.getRedemptions(userId);
-      set({ redemptions: data });
+      set({ redemptions: data || [] });
     } catch (error) {
       console.error("Lỗi lấy danh sách đổi thưởng:", error);
     }
@@ -363,7 +385,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!userId) return;
     try {
       const data = await taskService.getUserSubmissions(userId);
-      set({ submissions: data });
+      set({ submissions: data || [] });
     } catch (error) {
       console.error("Lỗi lấy danh sách nhiệm vụ đã nộp:", error);
     }

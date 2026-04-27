@@ -27,7 +27,7 @@ export default function AdminShopScreen() {
     setLoading(true);
     try {
       const shopItems = await shopService.getShopItems();
-      const stockData = await adminService.getStock();
+      const stockData = await adminService.getStocks();
       setItems(shopItems);
       setStocks(stockData);
     } catch (err) {

@@ -19,8 +19,8 @@ export default function RankingScreen() {
 
   const fetchRankings = async () => {
     try {
-      const res = await api.get("/rankings");
-      setRankings(res.data);
+      const data = await api.get("/rankings");
+      setRankings(data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -28,7 +28,7 @@ export default function RankingScreen() {
     }
   };
 
-  const top3 = rankings.slice(0, 3).map((item, index) => {
+  const top3 = (rankings || []).slice(0, 3).map((item, index) => {
     // Reorder for podium: [2, 1, 3]
     if (index === 0) return { ...item, rank: 1, isFirst: true };
     if (index === 1) return { ...item, rank: 2 };
@@ -38,7 +38,7 @@ export default function RankingScreen() {
 
   // Podium order: index 1 (rank 2), index 0 (rank 1), index 2 (rank 3)
   const podiumData = [top3[1], top3[0], top3[2]].filter(Boolean);
-  const others = rankings.slice(3).map((item, index) => ({ ...item, rank: index + 4 }));
+  const others = (rankings || []).slice(3).map((item, index) => ({ ...item, rank: index + 4 }));
 
   if (loading) return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator size="large" color="#154212" /></View>;
 

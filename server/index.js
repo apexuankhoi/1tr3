@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const db = require('./config/db');
 require('dotenv').config();
+const readline = require('readline');
 
 const app = express();
 const cloudinary = require('cloudinary').v2;
@@ -114,6 +115,11 @@ async function ensureUserColumns() {
     const [dobColumns] = await db.query("SHOW COLUMNS FROM users LIKE 'dob'");
     if (dobColumns.length === 0) {
         await db.query("ALTER TABLE users ADD COLUMN dob VARCHAR(50) AFTER email");
+    }
+
+    const [lockedCols] = await db.query("SHOW COLUMNS FROM users LIKE 'is_locked'");
+    if (lockedCols.length === 0) {
+        await db.query("ALTER TABLE users ADD COLUMN is_locked BOOLEAN DEFAULT FALSE AFTER role");
     }
 
     const [roleColumns] = await db.query("SHOW COLUMNS FROM users LIKE 'role'");
@@ -265,6 +271,74 @@ async function ensureGardenTables() {
     console.log('✅ Garden + Push + AI + Library tables verified.');
 }
 
+async function performPreStartChecks() {
+    console.log("\n--- BẮT ĐẦU KIỂM TRA HỆ THỐNG ---");
+    let issues = [];
+
+    // 1. Kiểm tra Database
+    try {
+        await db.query('SELECT 1');
+        console.log("   - Database: ✅ OK");
+    } catch (e) {
+        console.error("   - Database: ❌ LỖI -", e.message);
+        issues.push("Database không kết nối được.");
+    }
+
+    // 2. Kiểm tra Cloudinary
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY) {
+        console.error("   - Cloudinary: ❌ LỖI - Thiếu cấu hình trong .env");
+        issues.push("Cloudinary chưa được cấu hình.");
+    } else {
+        try {
+            // Thử ping nhanh tới Cloudinary
+            const res = await fetch(`https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/sample.jpg`, { method: 'HEAD' });
+            if (res.ok) {
+                console.log("   - Cloudinary: ✅ OK");
+            } else {
+                console.warn("   - Cloudinary: ⚠️ CẢNH BÁO - Không truy cập được (có thể do chặn mạng)");
+                issues.push("Cloudinary không phản hồi (có thể do lỗi mạng).");
+            }
+        } catch (e) {
+            console.error("   - Cloudinary: ❌ LỖI -", e.message);
+            issues.push("Lỗi kết nối Cloudinary.");
+        }
+    }
+
+    // 3. Kiểm tra Gemini AI
+    if (!process.env.GEMINI_API_KEY) {
+        console.warn("   - Gemini AI: ⚠️ CẢNH BÁO - Thiếu API Key");
+        issues.push("Gemini AI chưa có API Key (tính năng xác minh ảnh sẽ bị tắt).");
+    } else {
+        console.log("   - Gemini AI: ✅ OK (Key đã cài đặt)");
+    }
+
+    if (issues.length > 0) {
+        console.log("\n⚠️ PHÁT HIỆN CÁC VẤN ĐỀ SAU:");
+        issues.forEach((issue, index) => console.log(`   ${index + 1}. ${issue}`));
+        
+        const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+        });
+
+        return new Promise((resolve) => {
+            rl.question('\nBạn có muốn TIẾP TỤC bật server không? (y/n): ', (answer) => {
+                rl.close();
+                if (answer.toLowerCase() === 'y') {
+                    console.log("⏩ Đang tiếp tục khởi động bất chấp lỗi...");
+                    resolve(true);
+                } else {
+                    console.log("🛑 Đã hủy khởi động.");
+                    process.exit(0);
+                }
+            });
+        });
+    }
+
+    console.log("✨ Mọi thứ đều ổn! Đang bật server...");
+    return true;
+}
+
 async function initDatabase() {
     console.log("1. Đang kiểm tra và chuẩn hóa cấu trúc Database...");
     await ensureUserColumns();
@@ -275,7 +349,8 @@ async function initDatabase() {
 }
 
 async function startServer() {
-    console.log("--- ĐANG KHỞI ĐỘNG SERVER ---");
+    await performPreStartChecks();
+    console.log("\n--- ĐANG KHỞI ĐỘNG SERVER ---");
     try {
         await initDatabase();
         console.log(`   AI Verification: ${genAI ? '✅ Enabled' : '⚠️ Disabled (set GEMINI_API_KEY in .env)'}`);
@@ -355,10 +430,14 @@ app.post('/api/auth/login', async (req, res) => {
     const { username, password } = req.body;
     try {
         const [users] = await db.query(
-            'SELECT id, username, full_name, role, coins, water_level, energy_level, growth_stage, growing_until, avatar_url, cover_url, bio, location, created_at FROM users WHERE username = ? AND password = ?',
+            'SELECT id, username, full_name, role, is_locked, coins, water_level, energy_level, growth_stage, growing_until, avatar_url, cover_url, bio, location, created_at FROM users WHERE username = ? AND password = ?',
             [username, password]
         );
         if (users.length === 0) return res.status(401).json({ message: 'Sai tên đăng nhập hoặc mật khẩu' });
+        
+        if (users[0].is_locked) {
+            return sendResponse(res, false, null, 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin.', 403);
+        }
         
         const user = users[0];
         user.coins = user.coins ?? 0;
@@ -800,9 +879,9 @@ app.get('/api/tasks/submissions/:userId', async (req, res) => {
              WHERE ts.user_id = ? ORDER BY ts.submitted_at DESC`,
             [req.params.userId]
         );
-        res.json(rows);
+        return sendResponse(res, true, rows, 'Lấy danh sách chờ duyệt thành công');
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -888,9 +967,9 @@ app.get('/api/admin/submissions', async (req, res) => {
             WHERE ts.status = 'pending' OR ts.status = 'ai_rejected'
             ORDER BY ts.submitted_at DESC
         `);
-        res.json(rows);
+        return sendResponse(res, true, rows, 'Lấy danh sách chờ duyệt thành công');
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -898,23 +977,40 @@ app.get('/api/admin/submissions', async (req, res) => {
 app.post('/api/admin/approve', async (req, res) => {
     const { submissionId } = req.body;
     try {
-        // 1. Get submission details
-        const [submissions] = await db.query('SELECT * FROM task_submissions WHERE id = ?', [submissionId]);
-        if (submissions.length === 0) return res.status(404).json({ message: 'Submission not found' });
+        // 1. Get submission details with reward
+        const [submissions] = await db.query(`
+            SELECT ts.*, t.reward 
+            FROM task_submissions ts 
+            JOIN tasks t ON ts.task_id = t.id 
+            WHERE ts.id = ?
+        `, [submissionId]);
+
+        if (submissions.length === 0) {
+            return sendResponse(res, false, null, 'Không tìm thấy minh chứng', 404);
+        }
         
         const sub = submissions[0];
-        const [tasks] = await db.query('SELECT reward FROM tasks WHERE id = ?', [sub.task_id]);
-        const reward = tasks[0].reward;
 
         // 2. Update status
         await db.query('UPDATE task_submissions SET status = "approved" WHERE id = ?', [submissionId]);
 
         // 3. Add coins to user
-        await db.query('UPDATE users SET coins = coins + ? WHERE id = ?', [reward, sub.user_id]);
+        await db.query('UPDATE users SET coins = coins + ? WHERE id = ?', [sub.reward, sub.user_id]);
 
-        res.json({ message: 'Submission approved and coins granted' });
+        return sendResponse(res, true, null, 'Đã duyệt nhiệm vụ và cộng xu thành công');
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
+    }
+});
+
+// Reject Submission
+app.post('/api/admin/reject', async (req, res) => {
+    const { submissionId } = req.body;
+    try {
+        await db.query('UPDATE task_submissions SET status = "rejected" WHERE id = ?', [submissionId]);
+        return sendResponse(res, true, null, 'Đã từ chối nhiệm vụ');
+    } catch (err) {
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -922,9 +1018,9 @@ app.post('/api/admin/approve', async (req, res) => {
 app.get('/api/library', async (req, res) => {
     try {
         const [items] = await db.query('SELECT * FROM library ORDER BY created_at DESC');
-        res.json(items);
+        return sendResponse(res, true, items, 'Lấy danh sách thư viện thành công');
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -932,12 +1028,10 @@ app.get('/api/library', async (req, res) => {
 app.get('/api/rankings', async (req, res) => {
     try {
         const [users] = await db.query('SELECT id, full_name as name, coins as points, avatar_url as imageUri FROM users ORDER BY coins DESC LIMIT 20');
-        res.json(users);
+        return sendResponse(res, true, users, 'Lấy bảng xếp hạng thành công');
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
-});
-
 // Get Map Data (Users + POIs from Submissions)
 app.get('/api/map/data', async (req, res) => {
     try {
@@ -949,7 +1043,7 @@ app.get('/api/map/data', async (req, res) => {
             WHERE last_lat IS NOT NULL
         `);
 
-        // 2. Get submissions with GPS data (parsing from image_url which has |GPS:...)
+        // 2. Get submissions with GPS data
         const [submissions] = await db.query(`
             SELECT ts.id, ts.image_url, ts.status, u.username, t.title
             FROM task_submissions ts
@@ -977,9 +1071,9 @@ app.get('/api/map/data', async (req, res) => {
             };
         });
 
-        res.json({ users, pois });
+        return sendResponse(res, true, { users, pois }, 'Lấy dữ liệu bản đồ thành công');
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -991,14 +1085,14 @@ app.get('/api/admin/stats', async (req, res) => {
         const [[submissions]] = await db.query('SELECT COUNT(*) as count FROM task_submissions WHERE status = "pending"');
         const [[items]] = await db.query('SELECT COUNT(*) as count FROM shop_items');
         
-        res.json({
+        return sendResponse(res, true, {
             userCount: users.count,
             taskCount: tasks.count,
             pendingSubmissions: submissions.count,
             itemCount: items.count
-        });
+        }, 'Lấy thống kê thành công');
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -1014,16 +1108,16 @@ app.post('/api/admin/tasks', async (req, res) => {
                 quiz_options = ?, quiz_answer = ?
                 WHERE id = ?
             `, [title, reward, category, description, icon, task_group, task_type, needs_gps, needs_moderator, JSON.stringify(quiz_options), quiz_answer, id]);
-            res.json({ message: 'Cập nhật nhiệm vụ thành công' });
+            return sendResponse(res, true, null, 'Cập nhật nhiệm vụ thành công');
         } else {
             await db.query(`
                 INSERT INTO tasks (title, reward, category, description, icon, task_group, task_type, needs_gps, needs_moderator, quiz_options, quiz_answer)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [title, reward, category, description, icon, task_group, task_type, needs_gps, needs_moderator, JSON.stringify(quiz_options), quiz_answer]);
-            res.json({ message: 'Tạo nhiệm vụ thành công' });
+            return sendResponse(res, true, null, 'Tạo nhiệm vụ thành công');
         }
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -1037,16 +1131,16 @@ app.post('/api/admin/library', async (req, res) => {
                 title = ?, category = ?, duration = ?, description = ?, image_url = ?, category_color = ?
                 WHERE id = ?
             `, [title, category, duration, description, image_url, category_color, id]);
-            res.json({ message: 'Cập nhật thư viện thành công' });
+            return sendResponse(res, true, null, 'Cập nhật thư viện thành công');
         } else {
             await db.query(`
                 INSERT INTO library (title, category, duration, description, image_url, category_color)
                 VALUES (?, ?, ?, ?, ?, ?)
             `, [title, category, duration, description, image_url, category_color]);
-            res.json({ message: 'Thêm bài đăng thành công' });
+            return sendResponse(res, true, null, 'Thêm bài đăng thành công');
         }
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -1061,10 +1155,10 @@ app.get('/api/redemptions/:userId', async (req, res) => {
             WHERE r.user_id = ?
             ORDER BY r.redeemed_at DESC
         `, [req.params.userId]);
-        res.json(rows);
+        return sendResponse(res, true, rows, 'Lấy danh sách đổi thưởng thành công');
     } catch (err) {
         console.error('[Redemptions] Error fetching redemptions:', err);
-        res.status(500).json({ error: 'Lỗi server khi lấy danh sách đổi thưởng: ' + err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -1078,7 +1172,7 @@ app.post('/api/admin/shop', async (req, res) => {
                 name = ?, price = ?, description = ?, image_url = ?
                 WHERE id = ?
             `, [name, price, description, image_url, id]);
-            res.json({ message: 'Cập nhật sản phẩm thành công' });
+            return sendResponse(res, true, null, 'Cập nhật sản phẩm thành công');
         } else {
             const [result] = await db.query(`
                 INSERT INTO shop_items (name, price, description, image_url)
@@ -1086,10 +1180,10 @@ app.post('/api/admin/shop', async (req, res) => {
             `, [name, price, description, image_url]);
             // Also initialize stock
             await db.query('INSERT INTO inventory_stock (item_id, quantity) VALUES (?, 100)', [result.insertId]);
-            res.json({ message: 'Thêm sản phẩm thành công' });
+            return sendResponse(res, true, null, 'Thêm sản phẩm thành công');
         }
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -1101,9 +1195,9 @@ app.get('/api/admin/stock', async (req, res) => {
             FROM shop_items s
             LEFT JOIN inventory_stock i ON s.id = i.item_id
         `);
-        res.json(rows);
+        return sendResponse(res, true, rows, 'Lấy danh sách kho thành công');
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -1111,9 +1205,9 @@ app.post('/api/admin/stock', async (req, res) => {
     const { itemId, quantity } = req.body;
     try {
         await db.query('INSERT INTO inventory_stock (item_id, quantity) VALUES (?, ?) ON DUPLICATE KEY UPDATE quantity = ?', [itemId, quantity, quantity]);
-        res.json({ message: 'Cập nhật kho thành công' });
+        return sendResponse(res, true, null, 'Cập nhật kho thành công');
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -1129,9 +1223,9 @@ app.delete('/api/admin/:type/:id', async (req, res) => {
             await db.query('DELETE FROM inventory_stock WHERE item_id = ?', [id]);
         }
         await db.query(`DELETE FROM ${table} WHERE id = ?`, [id]);
-        res.json({ message: 'Xóa thành công' });
+        return sendResponse(res, true, null, 'Xóa thành công');
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -1140,9 +1234,55 @@ app.post('/api/admin/reject', async (req, res) => {
     const { submissionId } = req.body;
     try {
         await db.query('UPDATE task_submissions SET status = "rejected" WHERE id = ?', [submissionId]);
-        res.json({ message: 'Submission rejected' });
+        return sendResponse(res, true, null, 'Đã từ chối nhiệm vụ');
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
+    }
+// ── Admin: User Management ──────────────────────────────────────────────────
+
+// Get all users (Admin only)
+app.get('/api/admin/users', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT id, username, full_name, email, role, is_locked, coins, created_at FROM users ORDER BY created_at DESC');
+        return sendResponse(res, true, rows, 'Lấy danh sách người dùng thành công');
+    } catch (err) {
+        return sendResponse(res, false, null, err.message, 500);
+    }
+});
+
+// Lock/Unlock user
+app.patch('/api/admin/users/:id/status', async (req, res) => {
+    const { id } = req.params;
+    const { is_locked } = req.body;
+    try {
+        await db.query('UPDATE users SET is_locked = ? WHERE id = ?', [is_locked, id]);
+        return sendResponse(res, true, null, is_locked ? 'Đã khóa tài khoản' : 'Đã mở khóa tài khoản');
+    } catch (err) {
+        return sendResponse(res, false, null, err.message, 500);
+    }
+});
+
+// Reset password
+app.patch('/api/admin/users/:id/password', async (req, res) => {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+    if (!newPassword) return sendResponse(res, false, null, 'Vui lòng nhập mật khẩu mới', 400);
+    try {
+        await db.query('UPDATE users SET password = ? WHERE id = ?', [newPassword, id]);
+        return sendResponse(res, true, null, 'Đã cập nhật mật khẩu thành công');
+    } catch (err) {
+        return sendResponse(res, false, null, err.message, 500);
+    }
+});
+
+// Delete user
+app.delete('/api/admin/users/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await db.query('DELETE FROM users WHERE id = ?', [id]);
+        return sendResponse(res, true, null, 'Đã xóa người dùng thành công');
+    } catch (err) {
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 

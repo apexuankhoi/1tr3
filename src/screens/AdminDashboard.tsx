@@ -135,6 +135,20 @@ export default function AdminDashboard() {
           <MaterialCommunityIcons name="chevron-right" size={24} color="#d1d5db" />
         </TouchableOpacity>
 
+        <TouchableOpacity 
+          style={st.menuItem} 
+          onPress={() => navigation.navigate("AdminUsers" as any)}
+        >
+          <LinearGradient colors={['#374151', '#111827']} style={st.menuIcon}>
+            <MaterialCommunityIcons name="account-cog" size={24} color="#fff" />
+          </LinearGradient>
+          <View style={st.menuText}>
+            <Text style={st.menuTitle}>Quản lý Người dùng</Text>
+            <Text style={st.menuSub}>Khóa, Xóa, Đổi mật khẩu</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={24} color="#d1d5db" />
+        </TouchableOpacity>
+
       </ScrollView>
     </View>
   );

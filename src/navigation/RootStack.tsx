@@ -34,6 +34,7 @@ export default function RootStack() {
             <Stack.Screen name="AdminLibrary" component={require("../screens/AdminLibraryScreen").default} />
             <Stack.Screen name="AdminShop" component={require("../screens/AdminShopScreen").default} />
             <Stack.Screen name="AdminDashboard" component={require("../screens/AdminDashboard").default} />
+            <Stack.Screen name="AdminUsers" component={require("../screens/AdminUsersScreen").default} />
             <Stack.Screen name="ModDashboard" component={require("../screens/ModeratorDashboard").default} />
             <Stack.Screen name="QRScanner" component={require("../screens/QRScannerScreen").default} />
           </>

@@ -15,10 +15,10 @@ export default function MapScreen() {
 
   const fetchMapData = async () => {
     try {
-      const res = await api.get("/map/data");
-      setMapData(res.data);
-      if (webViewRef.current) {
-        const script = `updateMap(${JSON.stringify(res.data)})`;
+      const data = await api.get("/map/data");
+      setMapData(data || { users: [], pois: [] });
+      if (webViewRef.current && data) {
+        const script = `updateMap(${JSON.stringify(data)})`;
         webViewRef.current.injectJavaScript(script);
       }
     } catch (err) {

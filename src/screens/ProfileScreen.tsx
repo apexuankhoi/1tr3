@@ -29,7 +29,8 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { 
     userId, fullName, userName, coins, avatarUrl, coverUrl, bio, location, createdAt,
-    redemptions, fetchRedemptions, submissions, fetchSubmissions, userStats, updateProfile, fetchUserData 
+    redemptions, fetchRedemptions, submissions, fetchSubmissions, userStats, updateProfile, fetchUserData, userRole,
+    language, setLanguage, t
   } = useGameStore();
 
   const [selectedQR, setSelectedQR] = React.useState<string | null>(null);
@@ -212,6 +213,38 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Management Section (Admin/Moderator) */}
+        {(userRole === 'admin' || userRole === 'moderator') && (
+          <View style={st.mgmtSection}>
+            <Text style={st.sectionTitle}>Quản lý hệ thống</Text>
+            <View style={st.mgmtGrid}>
+              {(userRole === 'admin' || userRole === 'moderator') && (
+                <TouchableOpacity 
+                  style={st.mgmtCard}
+                  onPress={() => navigation.navigate("ModDashboard" as any)}
+                >
+                  <LinearGradient colors={['#2563eb', '#1d4ed8']} style={st.mgmtIcon}>
+                    <MaterialCommunityIcons name="check-decagram" size={20} color="#fff" />
+                  </LinearGradient>
+                  <Text style={st.mgmtText}>Duyệt bài</Text>
+                </TouchableOpacity>
+              )}
+              
+              {userRole === 'admin' && (
+                <TouchableOpacity 
+                  style={st.mgmtCard}
+                  onPress={() => navigation.navigate("AdminDashboard" as any)}
+                >
+                  <LinearGradient colors={['#154212', '#2d5a27']} style={st.mgmtIcon}>
+                    <MaterialCommunityIcons name="shield-crown" size={20} color="#fff" />
+                  </LinearGradient>
+                  <Text style={st.mgmtText}>Quản trị</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Tabs */}
         <View style={st.tabsContainer}>
           {[
@@ -243,7 +276,7 @@ export default function ProfileScreen() {
                 <Text style={st.recentSub}>Bạn đã hoàn thành {userStats.tasksCompleted} nhiệm vụ</Text>
               </View>
 
-              {submissions.length > 0 ? (
+              {(submissions?.length || 0) > 0 ? (
                 <View style={st.submissionList}>
                   {submissions.map((sub, idx) => (
                     <View key={idx} style={st.submissionCard}>
@@ -281,7 +314,7 @@ export default function ProfileScreen() {
 
           {activeTab === 'rewards' && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}>
-              {redemptions.length > 0 ? redemptions.map((red, i) => (
+              {(redemptions?.length || 0) > 0 ? redemptions.map((red, i) => (
                 <TouchableOpacity key={i} style={st.rewardCard} onPress={() => setSelectedQR(red.qr_code)}>
                   <Image source={{ uri: red.image_url }} style={st.rewardImg} />
                   <Text style={st.rewardName} numberOfLines={1}>{red.name}</Text>
@@ -417,6 +450,35 @@ export default function ProfileScreen() {
             </View>
           </View>
         )}
+
+        {/* Language Settings */}
+        <View style={st.section}>
+          <Text style={st.sectionTitle}>Ngôn ngữ (Language)</Text>
+          <View style={st.langGrid}>
+            {[
+              { id: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' },
+              { id: 'en', label: 'English', flag: '🇺🇸' },
+              { id: 'ede', label: 'Ê đê', flag: '📜' },
+            ].map(lang => (
+              <TouchableOpacity 
+                key={lang.id}
+                style={[st.langBtn, language === lang.id && st.langBtnActive]}
+                onPress={() => setLanguage(lang.id as any)}
+              >
+                <Text style={st.langFlag}>{lang.flag}</Text>
+                <Text style={[st.langLabel, language === lang.id && st.langLabelActive]}>{lang.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={st.section}>
+          <TouchableOpacity style={st.logoutBtn} onPress={handleLogout}>
+            <MaterialCommunityIcons name="logout" size={20} color="#ef4444" />
+            <Text style={st.logoutBtnTxt}>{t('profile.logout')}</Text>
+          </TouchableOpacity>
+        </View>
+
       </ScrollView>
     </View>
   );
@@ -530,4 +592,35 @@ const st = StyleSheet.create({
   subDate: { fontSize: 11, color: '#9ca3af', fontFamily: 'Nunito_600SemiBold' },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   statusBadgeTxt: { fontSize: 10, fontFamily: 'Nunito_800ExtraBold' },
+  
+  mgmtSection: { paddingHorizontal: 20, marginTop: 24 },
+  mgmtGrid: { flexDirection: 'row', gap: 12, marginTop: 12 },
+  mgmtCard: { 
+    flex: 1, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#fff', 
+    padding: 12, 
+    borderRadius: 16, 
+    borderWidth: 1, 
+    borderColor: '#f1f5f9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+    gap: 10
+  },
+  mgmtIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  mgmtText: { fontSize: 14, fontFamily: 'Nunito_700Bold', color: '#111827' },
+
+  langGrid: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  langBtn: { flex: 1, paddingVertical: 12, borderRadius: 16, backgroundColor: '#f9fafb', alignItems: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
+  langBtnActive: { backgroundColor: '#154212', borderColor: '#154212' },
+  langFlag: { fontSize: 20, marginBottom: 4 },
+  langLabel: { fontSize: 12, fontFamily: 'Nunito_700Bold', color: '#6b7280' },
+  langLabelActive: { color: '#fff' },
+
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#fee2e2', gap: 10 },
+  logoutBtnTxt: { fontSize: 15, fontFamily: 'Nunito_800ExtraBold', color: '#ef4444' },
 });

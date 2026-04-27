@@ -146,7 +146,7 @@ function Bee({ startX, startY, delay }: { startX: number; startY: number; delay:
 export default function HomeScreen({ navigation }: any) {
   const {
     userId, userRole, fullName, coins, pots, seeds, avatarUrl,
-    plantSeed, waterPot, fertilizePot, harvestPot, advancePotStage,
+    plantSeed, waterPot, fertilizePot, harvestPot, advancePotStage, t
   } = useGameStore();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -305,7 +305,7 @@ export default function HomeScreen({ navigation }: any) {
             <Image source={avatarUrl ? { uri: avatarUrl } : require("../../assets/avatar_premium.png")} style={{width: '100%', height: '100%'}} />
           </View>
           <View style={st.userInfo}>
-            <Text style={st.subText}>Khu vườn của</Text>
+            <Text style={st.subText}>{t('home.garden_of')}</Text>
             <Text style={st.name}>{fullName || "Nông dân"}</Text>
           </View>
         </View>
@@ -354,14 +354,13 @@ export default function HomeScreen({ navigation }: any) {
         )}
       </View>
 
-      {/* ── Flying Bugs ── */}
       <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
         <Butterfly startX={50}  startY={180} delay={0}    />
         <Butterfly startX={220} startY={280} delay={1200} />
         <Bee       startX={130} startY={240} delay={600}  />
       </View>
-
-      <Text style={st.pageTitle}>Khu Vườn Trên Mây ☁️</Text>
+      
+      <Text style={st.pageTitle}>{t('home.garden_title')} ☁️</Text>
 
       <ScrollView
         style={{ flex: 1 }}
