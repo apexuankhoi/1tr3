@@ -167,7 +167,7 @@ export default function ProfileScreen() {
             <View style={st.avatarContainer}>
               <View style={st.avatarWrap}>
                 <Image
-                  source={avatarUrl ? { uri: avatarUrl } : require("../../assets/avatar_premium.png")}
+                  source={(avatarUrl && avatarUrl.length > 5) ? { uri: avatarUrl } : require("../../assets/avatar_premium.png")}
                   style={st.avatarImg}
                 />
                 {loading && <View style={[st.avatarImg, st.avatarOverlayLoading]}><ActivityIndicator color="#fff" /></View>}

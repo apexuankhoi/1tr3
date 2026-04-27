@@ -21,6 +21,8 @@ export default function ModeratorDashboard() {
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+  const [filterGroup, setFilterGroup] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
   const fetchSubmissions = async () => {
     try {
@@ -82,6 +84,38 @@ export default function ModeratorDashboard() {
         </TouchableOpacity>
       </View>
 
+      {/* Filter Bar */}
+      <View style={st.filterBar}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.filterScroll}>
+          <TouchableOpacity 
+            style={[st.filterPill, filterGroup === 'all' && st.filterPillActive]} 
+            onPress={() => setFilterGroup('all')}
+          >
+            <Text style={[st.filterLabel, filterGroup === 'all' && st.filterLabelActive]}>Tất cả</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[st.filterPill, filterGroup === 'action' && st.filterPillActive]} 
+            onPress={() => setFilterGroup('action')}
+          >
+            <Text style={[st.filterLabel, filterGroup === 'action' && st.filterLabelActive]}>Hành động</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[st.filterPill, filterGroup === 'report' && st.filterPillActive]} 
+            onPress={() => setFilterGroup('report')}
+          >
+            <Text style={[st.filterLabel, filterGroup === 'report' && st.filterLabelActive]}>Báo cáo</Text>
+          </TouchableOpacity>
+          <View style={st.filterDivider} />
+          <TouchableOpacity 
+            style={[st.filterPill, filterStatus === 'ai_warning' && st.filterPillActive, { borderColor: '#ef4444' }]} 
+            onPress={() => setFilterStatus(filterStatus === 'ai_warning' ? 'all' : 'ai_warning')}
+          >
+            <MaterialCommunityIcons name="robot-angry-outline" size={16} color={filterStatus === 'ai_warning' ? "#fff" : "#ef4444"} />
+            <Text style={[st.filterLabel, filterStatus === 'ai_warning' && st.filterLabelActive, { color: filterStatus === 'ai_warning' ? "#fff" : "#ef4444" }]}>AI Cảnh báo</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+
       <ScrollView style={{ flex: 1 }} contentContainerStyle={st.content} showsVerticalScrollIndicator={false}>
         {loading ? (
           <View style={st.loader}>
@@ -97,7 +131,10 @@ export default function ModeratorDashboard() {
             <Text style={st.emptySubtitle}>Không có minh chứng nào đang chờ duyệt lúc này.</Text>
           </View>
         ) : (
-          submissions.map((sub, index) => {
+          submissions
+            .filter(sub => filterGroup === 'all' || sub.task_group?.toLowerCase() === filterGroup)
+            .filter(sub => filterStatus === 'all' || (filterStatus === 'ai_warning' && (sub.ai_verified === 0 || sub.status === 'ai_rejected')))
+            .map((sub, index) => {
             const evidenceParts = sub.image_url ? sub.image_url.split("|GPS:") : [""];
             const imageUrl = evidenceParts[0];
             const gpsData = evidenceParts.length > 1 ? evidenceParts[1].split("|ADDR:") : null;
@@ -108,10 +145,14 @@ export default function ModeratorDashboard() {
               <Animated.View key={sub.id} entering={FadeInDown.delay(index * 100).duration(500)} style={st.card}>
                 <View style={st.cardHeader}>
                   <View style={st.avatar}>
-                    <MaterialCommunityIcons name="account" size={24} color="#154212" />
+                    {sub.avatar_url ? (
+                      <Image source={{ uri: sub.avatar_url }} style={st.avatarImg} />
+                    ) : (
+                      <MaterialCommunityIcons name="account" size={24} color="#154212" />
+                    )}
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={st.username}>{sub.username}</Text>
+                    <Text style={st.username}>{sub.full_name || sub.username}</Text>
                     <Text style={st.timestamp}>Gửi lúc: {new Date(sub.submitted_at).toLocaleString('vi-VN')}</Text>
                   </View>
                 </View>
@@ -225,7 +266,8 @@ const st = StyleSheet.create({
 
   card: { backgroundColor: "#fff", borderRadius: 28, padding: 20, marginBottom: 24, borderWidth: 1, borderColor: "#f3f4f6", ...SHADOW },
   cardHeader: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
-  avatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: "#f0fdf4", alignItems: "center", justifyContent: "center", marginRight: 14 },
+  avatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: "#f0fdf4", alignItems: "center", justifyContent: "center", marginRight: 14, overflow: 'hidden' },
+  avatarImg: { width: '100%', height: '100%' },
   username: { fontSize: 16, fontFamily: "Nunito_800ExtraBold", color: "#111827", marginBottom: 2 },
   timestamp: { fontSize: 12, fontFamily: "Nunito_600SemiBold", color: "#9ca3af" },
 
@@ -254,4 +296,12 @@ const st = StyleSheet.create({
   aiScoreText: { fontSize: 14, fontFamily: "Nunito_800ExtraBold" },
   aiRejectedBanner: { flexDirection: "row", alignItems: "center", backgroundColor: "#fef2f2", borderRadius: 10, padding: 10, marginBottom: 12, gap: 8, borderWidth: 1, borderColor: "#fecaca" },
   aiRejectedText: { fontSize: 12, fontFamily: "Nunito_600SemiBold", color: "#dc2626", flex: 1 },
+
+  filterBar: { backgroundColor: '#fff', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  filterScroll: { paddingHorizontal: 24, gap: 8, alignItems: 'center' },
+  filterPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f3f4f6', borderWidth: 1, borderColor: 'transparent', flexDirection: 'row', alignItems: 'center', gap: 6 },
+  filterPillActive: { backgroundColor: '#154212', borderColor: '#154212' },
+  filterLabel: { fontSize: 13, fontFamily: 'Nunito_700Bold', color: '#6b7280' },
+  filterLabelActive: { color: '#fff' },
+  filterDivider: { width: 1, height: 20, backgroundColor: '#e5e7eb', marginHorizontal: 4 },
 });

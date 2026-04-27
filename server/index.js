@@ -964,7 +964,7 @@ app.post('/api/tasks/submit', async (req, res) => {
 app.get('/api/admin/submissions', async (req, res) => {
     try {
         const [rows] = await db.query(`
-            SELECT ts.*, u.username, t.title, t.reward,
+            SELECT ts.*, u.username, u.full_name, u.avatar_url, t.title, t.reward, t.task_group, t.task_type,
                    av.verified as ai_verified, av.confidence as ai_confidence, av.reason as ai_reason
             FROM task_submissions ts
             JOIN users u ON ts.user_id = u.id
@@ -1045,7 +1045,9 @@ app.get('/api/map/data', async (req, res) => {
     try {
         // 1. Get all users with location + online status (active in last 5 min)
         const [users] = await db.query(`
-            SELECT id, username, full_name, role, last_lat as lat, last_lng as lng,
+            SELECT id, username, full_name, role, avatar_url, cover_url, bio, coins,
+            (SELECT COUNT(*) FROM task_submissions WHERE user_id = users.id AND status = 'approved') as tasksCompleted,
+            last_lat as lat, last_lng as lng,
             (last_seen > NOW() - INTERVAL 5 MINUTE) as isOnline
             FROM users 
             WHERE last_lat IS NOT NULL
@@ -1253,7 +1255,7 @@ app.post('/api/admin/reject', async (req, res) => {
 // Get all users (Admin only)
 app.get('/api/admin/users', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT id, username, full_name, email, role, is_locked, coins, created_at FROM users ORDER BY created_at DESC');
+        const [rows] = await db.query('SELECT id, username, full_name, email, role, is_locked, coins, avatar_url, created_at FROM users ORDER BY created_at DESC');
         return sendResponse(res, true, rows, 'Lấy danh sách người dùng thành công');
     } catch (err) {
         return sendResponse(res, false, null, err.message, 500);
@@ -1267,6 +1269,20 @@ app.patch('/api/admin/users/:id/status', async (req, res) => {
     try {
         await db.query('UPDATE users SET is_locked = ? WHERE id = ?', [is_locked, id]);
         return sendResponse(res, true, null, is_locked ? 'Đã khóa tài khoản' : 'Đã mở khóa tài khoản');
+    } catch (err) {
+        return sendResponse(res, false, null, err.message, 500);
+    }
+});
+
+// Change user role
+app.patch('/api/admin/users/:id/role', async (req, res) => {
+    const { id } = req.params;
+    const { role } = req.body;
+    const allowedRoles = ['farmer', 'buyer', 'moderator', 'admin'];
+    if (!allowedRoles.includes(role)) return sendResponse(res, false, null, 'Role không hợp lệ', 400);
+    try {
+        await db.query('UPDATE users SET role = ? WHERE id = ?', [role, id]);
+        return sendResponse(res, true, null, 'Đã cập nhật quyền hạn thành công');
     } catch (err) {
         return sendResponse(res, false, null, err.message, 500);
     }

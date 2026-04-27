@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { 
   View, Text, ScrollView, StyleSheet, TouchableOpacity, 
-  ActivityIndicator, Alert, Modal, TextInput, FlatList
+  ActivityIndicator, Alert, Modal, TextInput, FlatList, Image
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,6 +16,8 @@ export default function AdminUsersScreen() {
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [newPassword, setNewPassword] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterRole, setFilterRole] = useState("all");
 
   useEffect(() => {
     fetchUsers();
@@ -73,6 +75,31 @@ export default function AdminUsersScreen() {
     }
   };
 
+  const handleUpdateRole = (user: any) => {
+    Alert.alert("Thay đổi quyền", `Chọn quyền mới cho ${user.username}`, [
+      { text: "Farmer", onPress: () => updateRole(user.id, 'farmer') },
+      { text: "Moderator", onPress: () => updateRole(user.id, 'moderator') },
+      { text: "Admin", onPress: () => updateRole(user.id, 'admin') },
+      { text: "Hủy", style: "cancel" }
+    ]);
+  };
+
+  const updateRole = async (userId: number, role: string) => {
+    try {
+      await api.patch(`admin/users/${userId}/role`, { role });
+      Alert.alert("Thành công", "Đã cập nhật quyền hạn");
+      fetchUsers();
+    } catch (err) {
+      Alert.alert("Lỗi", "Không thể cập nhật quyền");
+    }
+  };
+
+  const filteredUsers = users.filter(u => {
+    const matchSearch = (u.full_name || u.username).toLowerCase().includes(searchQuery.toLowerCase());
+    const matchRole = filterRole === 'all' || u.role === filterRole;
+    return matchSearch && matchRole;
+  });
+
   if (loading) return <View style={st.centered}><ActivityIndicator size="large" color="#154212" /></View>;
 
   return (
@@ -85,15 +112,47 @@ export default function AdminUsersScreen() {
         <View style={{ width: 24 }} />
       </View>
 
+      <View style={st.searchBar}>
+        <View style={st.searchContainer}>
+          <MaterialCommunityIcons name="magnify" size={20} color="#64748b" />
+          <TextInput 
+            style={st.searchInput} 
+            placeholder="Tìm theo tên hoặc username..." 
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+      </View>
+
+      <View style={st.filterBar}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.filterScroll}>
+          {['all', 'farmer', 'moderator', 'admin'].map(r => (
+            <TouchableOpacity 
+              key={r} 
+              style={[st.filterPill, filterRole === r && st.filterPillActive]} 
+              onPress={() => setFilterRole(r)}
+            >
+              <Text style={[st.filterLabel, filterRole === r && st.filterLabelActive]}>
+                {r === 'all' ? 'Tất cả' : r.charAt(0).toUpperCase() + r.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
       <FlatList
-        data={users}
+        data={filteredUsers}
         keyExtractor={item => item.id.toString()}
         contentContainerStyle={st.list}
         renderItem={({ item }) => (
           <View style={[st.card, item.is_locked && st.cardLocked]}>
             <View style={st.cardHeader}>
               <View style={st.avatarPlaceholder}>
-                <Text style={st.avatarText}>{item.username[0].toUpperCase()}</Text>
+                {item.avatar_url ? (
+                  <Image source={{ uri: item.avatar_url }} style={st.avatarImg} />
+                ) : (
+                  <Text style={st.avatarText}>{item.username[0].toUpperCase()}</Text>
+                )}
               </View>
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={st.cardTitle}>{item.full_name || item.username}</Text>
@@ -105,6 +164,11 @@ export default function AdminUsersScreen() {
             </View>
             
             <View style={st.cardActions}>
+              <TouchableOpacity onPress={() => handleUpdateRole(item)} style={st.actionBtn}>
+                <MaterialCommunityIcons name="account-edit-outline" size={18} color="#154212" />
+                <Text style={[st.actionText, { color: "#154212" }]}>Sửa Quyền</Text>
+              </TouchableOpacity>
+
               <TouchableOpacity onPress={() => handleToggleLock(item)} style={st.actionBtn}>
                 <MaterialCommunityIcons name={item.is_locked ? "lock-open-outline" : "lock-outline"} size={18} color="#4b5563" />
                 <Text style={st.actionText}>{item.is_locked ? "Mở khóa" : "Khóa"}</Text>
@@ -157,7 +221,8 @@ const st = StyleSheet.create({
   card: { backgroundColor: '#fff', padding: 16, borderRadius: 20, marginBottom: 16, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
   cardLocked: { backgroundColor: '#fef2f2', borderColor: '#fee2e2', borderWidth: 1 },
   cardHeader: { flexDirection: 'row', alignItems: 'center' },
-  avatarPlaceholder: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' },
+  avatarPlaceholder: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  avatarImg: { width: '100%', height: '100%' },
   avatarText: { fontSize: 18, fontWeight: 'bold', color: '#64748b' },
   cardTitle: { fontSize: 16, fontFamily: "Nunito_800ExtraBold", color: "#1e293b" },
   cardMeta: { fontSize: 12, fontFamily: "Nunito_600SemiBold", color: "#64748b", marginTop: 2 },
@@ -174,5 +239,16 @@ const st = StyleSheet.create({
   cancelBtn: { flex: 1, padding: 12, alignItems: 'center' },
   saveBtn: { flex: 1, backgroundColor: '#154212', padding: 12, borderRadius: 12, alignItems: 'center' },
   cancelText: { color: '#64748b', fontFamily: 'Nunito_700Bold' },
-  saveText: { color: '#fff', fontFamily: 'Nunito_800ExtraBold' }
+  saveText: { color: '#fff', fontFamily: 'Nunito_800ExtraBold' },
+
+  searchBar: { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#fff' },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 12, paddingHorizontal: 12, height: 44 },
+  searchInput: { flex: 1, marginLeft: 8, fontSize: 14, fontFamily: 'Nunito_600SemiBold' },
+
+  filterBar: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 10 },
+  filterScroll: { paddingHorizontal: 20, gap: 8 },
+  filterPill: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, backgroundColor: '#f1f5f9' },
+  filterPillActive: { backgroundColor: '#154212' },
+  filterLabel: { fontSize: 13, fontFamily: 'Nunito_700Bold', color: '#64748b' },
+  filterLabelActive: { color: '#fff' },
 });

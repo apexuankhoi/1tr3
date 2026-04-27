@@ -302,7 +302,10 @@ export default function HomeScreen({ navigation }: any) {
       <View style={st.header}>
         <View style={st.userProfile}>
           <View style={st.avatar}>
-            <Image source={avatarUrl ? { uri: avatarUrl } : require("../../assets/avatar_premium.png")} style={{width: '100%', height: '100%'}} />
+            <Image 
+              source={(avatarUrl && avatarUrl.length > 5) ? { uri: avatarUrl } : require("../../assets/avatar_premium.png")} 
+              style={{width: '100%', height: '100%'}} 
+            />
           </View>
           <View style={st.userInfo}>
             <Text style={st.subText}>{t('home.garden_of')}</Text>
