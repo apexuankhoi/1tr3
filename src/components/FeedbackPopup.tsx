@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Modal, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useGameStore } from "../store/useGameStore";
 
 interface FeedbackPopupProps {
   visible: boolean;
@@ -12,6 +13,7 @@ interface FeedbackPopupProps {
 
 export default function FeedbackPopup({ visible, type, title, message, onClose }: FeedbackPopupProps) {
   const isSuccess = type === "success";
+  const t = useGameStore(s => s.t);
   
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -33,7 +35,7 @@ export default function FeedbackPopup({ visible, type, title, message, onClose }
             activeOpacity={0.85}
             style={[st.btn, { backgroundColor: isSuccess ? "#154212" : "#ef4444" }]}
           >
-            <Text style={st.btnText}>Đóng</Text>
+            <Text style={st.btnText}>{t('common.close')}</Text>
           </TouchableOpacity>
         </View>
       </View>

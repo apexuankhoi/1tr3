@@ -20,9 +20,9 @@ export default function QRScannerScreen() {
   if (!permission.granted) {
     return (
       <View style={[st.container, st.center]}>
-        <Text style={st.permissionText}>{t('common.error')}: Camera</Text>
+        <Text style={st.permissionText}>{t('qr.permission_title')}</Text>
         <TouchableOpacity onPress={requestPermission} style={st.permissionBtn}>
-          <Text style={st.permissionBtnText}>{t('profile.verify')}</Text>
+          <Text style={st.permissionBtnText}>{t('qr.permission_cta')}</Text>
         </TouchableOpacity>
       </View>
     );

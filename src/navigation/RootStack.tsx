@@ -14,11 +14,11 @@ import { OnboardingOverlay } from "../components/OnboardingOverlay";
 const Stack = createNativeStackNavigator();
 
 export default function RootStack() {
-  const userName = useGameStore((state) => state.userName);
+  const { userName, fullName } = useGameStore();
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {userName === "" ? (
+      {userName === "" || (userName !== "" && !fullName) ? (
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />

@@ -11,12 +11,12 @@ const SHADOW = Platform.select({
 
 export default function Header() {
   const insets = useSafeAreaInsets();
-  const { coins, userName } = useGameStore();
+  const { coins, t } = useGameStore();
 
   return (
     <View style={[st.container, { paddingTop: insets.top }]}>
       <View style={st.inner}>
-        <Text style={st.title}>Ươm Mầm</Text>
+        <Text style={st.title}>{t('home.garden_title')}</Text>
 
         <View style={st.right}>
           <View style={st.coinBox}>

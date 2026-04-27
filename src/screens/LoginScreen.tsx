@@ -47,12 +47,12 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!phone) {
-      Alert.alert(t('common.error'), "Vui lòng nhập số điện thoại");
+      Alert.alert(t('common.error'), t('auth.enter_phone_required'));
       return;
     }
 
     if (userCaptcha !== captchaCode) {
-      Alert.alert("Bảo mật", "Mã kiểm tra không đúng. Vui lòng nhập lại!");
+      Alert.alert(t('auth.security_title'), t('auth.captcha_invalid'));
       generateCaptcha();
       return;
     }
@@ -64,7 +64,7 @@ export default function LoginScreen() {
         navigation.navigate("RegisterInfo", { phone });
       }
     } catch (error: any) {
-      Alert.alert(t('common.error'), error.message || "Đăng nhập thất bại");
+      Alert.alert(t('common.error'), error.message || t('auth.login_failed'));
     } finally {
       setLoading(false);
     }
@@ -79,27 +79,27 @@ export default function LoginScreen() {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <LinearGradient colors={["rgba(0,0,0,0.3)", "rgba(21,66,18,0.95)"]} style={st.overlay}>
             <View style={st.container}>
-              
+
               <Animated.View entering={FadeInUp.delay(200)} style={st.logoContainer}>
                 <View style={st.logoCircle}>
-                  <Image 
-                    source={require("../../assets/logo.png")} 
-                    style={{ width: 70, height: 70, borderRadius: 35 }} 
+                  <Image
+                    source={require("../../assets/logo.png")}
+                    style={{ width: 70, height: 70, borderRadius: 35 }}
                     resizeMode="contain"
                   />
                 </View>
-                <Text style={st.appTitle}>Mùa Rẫy Không Khói</Text>
-                <Text style={st.appSub}>Phát triển bền vững, không đốt rẫy</Text>
+                <Text style={st.appTitle}>{t('auth.app_name')}</Text>
+                <Text style={st.appSub}>{t('auth.app_desc')}</Text>
               </Animated.View>
 
               <Animated.View entering={FadeInDown.delay(400)} style={st.formCard}>
-                <Text style={st.formTitle}>Chào mừng bạn trở lại</Text>
+                <Text style={st.formTitle}>{t('auth.welcome_back')}</Text>
 
                 <View style={st.inputGroup}>
                   <MaterialCommunityIcons name="phone-outline" size={20} color="#64748b" style={st.inputIcon} />
                   <TextInput
                     style={st.input}
-                    placeholder="Số điện thoại"
+                    placeholder={t('auth.phone')}
                     placeholderTextColor="#94a3b8"
                     keyboardType="phone-pad"
                     value={phone}
@@ -117,7 +117,7 @@ export default function LoginScreen() {
                   </TouchableOpacity>
                   <TextInput
                     style={st.captchaInput}
-                    placeholder="Nhập 4 số"
+                    placeholder={t('auth.captcha_placeholder')}
                     placeholderTextColor="#94a3b8"
                     keyboardType="number-pad"
                     maxLength={4}
@@ -125,7 +125,7 @@ export default function LoginScreen() {
                     onChangeText={setUserCaptcha}
                   />
                 </View>
-                <Text style={st.captchaLabel}>Xác minh bạn không phải robot</Text>
+                <Text style={st.captchaLabel}>{t('auth.captcha_verify')}</Text>
 
                 <TouchableOpacity
                   style={[st.loginBtn, loading && { opacity: 0.7 }]}
@@ -136,7 +136,7 @@ export default function LoginScreen() {
                     <ActivityIndicator color="#fff" />
                   ) : (
                     <>
-                      <Text style={st.loginBtnText}>Đăng Nhập</Text>
+                      <Text style={st.loginBtnText}>{t('auth.login_btn')}</Text>
                       <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
                     </>
                   )}

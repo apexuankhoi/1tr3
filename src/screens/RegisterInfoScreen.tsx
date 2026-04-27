@@ -26,7 +26,8 @@ const { width, height } = Dimensions.get("window");
 
 export default function RegisterInfoScreen() {
   const navigation = useNavigation<any>();
-  const { updateProfile, fetchUserData, showToast } = useGameStore();
+  const userId = useGameStore((s) => s.userId);
+  const { updateProfile, fetchUserData, showToast, t } = useGameStore();
   
   const [fullName, setFullName] = useState("");
   const [dob, setDob] = useState(new Date(2000, 0, 1));
@@ -41,7 +42,7 @@ export default function RegisterInfoScreen() {
     try {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert("Quyền truy cập", "Vui lòng cấp quyền GPS để lấy vị trí tự động");
+        Alert.alert(t('auth.security_title'), t('auth.gps_permission_required'));
         return;
       }
 
@@ -59,7 +60,7 @@ export default function RegisterInfoScreen() {
         setLocation(`${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`);
       }
     } catch (error) {
-      Alert.alert("Lỗi", "Không thể lấy vị trí hiện tại");
+      Alert.alert(t('common.error'), t('auth.current_location_failed'));
     } finally {
       setFetchingGps(false);
     }
@@ -67,11 +68,11 @@ export default function RegisterInfoScreen() {
 
   const handleComplete = async () => {
     if (!fullName || fullName.length < 3) {
-      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ họ và tên");
+      Alert.alert(t('common.error'), t('auth.full_name_required'));
       return;
     }
     if (!location) {
-      Alert.alert("Lỗi", "Vui lòng nhập hoặc lấy vị trí của bạn");
+      Alert.alert(t('common.error'), t('auth.location_required'));
       return;
     }
 
@@ -83,10 +84,10 @@ export default function RegisterInfoScreen() {
         location: location
       });
       
-      showToast("Chào mừng bạn đến với cộng đồng!", 'success');
-      await fetchUserData();
+      showToast(t('auth.welcome_community'), 'success');
+      if (userId) await fetchUserData(userId);
     } catch (error: any) {
-      Alert.alert("Lỗi", error.message || "Không thể cập nhật thông tin");
+      Alert.alert(t('common.error'), error.message || t('auth.update_profile_failed'));
     } finally {
       setLoading(false);
     }
@@ -95,7 +96,9 @@ export default function RegisterInfoScreen() {
   const onDateChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
       setShowPicker(false);
-      if (selectedDate) setDob(selectedDate);
+      if (event.type === 'set' && selectedDate) {
+        setDob(selectedDate);
+      }
     } else {
       if (selectedDate) setTempDate(selectedDate);
     }
@@ -104,6 +107,15 @@ export default function RegisterInfoScreen() {
   const confirmDate = () => {
     setDob(tempDate);
     setShowPicker(false);
+  };
+
+  const handleOpenPicker = () => {
+    if (Platform.OS === 'ios') {
+      setTempDate(dob);
+      setShowPicker(true);
+    } else {
+      setShowPicker(true);
+    }
   };
 
   return (
@@ -118,18 +130,18 @@ export default function RegisterInfoScreen() {
                   <MaterialCommunityIcons name="account-details" size={40} color="#fff" />
                 </LinearGradient>
               </View>
-              <Text style={st.title}>Hoàn thiện hồ sơ</Text>
-              <Text style={st.sub}>Hãy để cộng đồng biết bạn là ai để cùng nhau phát triển bền vững!</Text>
+              <Text style={st.title}>{t('auth.complete_profile_title')}</Text>
+              <Text style={st.sub}>{t('auth.complete_profile_subtitle')}</Text>
             </Animated.View>
 
             <Animated.View entering={FadeInDown.delay(400)} style={st.formCard}>
               <View style={st.inputWrapper}>
-                <Text style={st.label}>Họ và Tên</Text>
+                <Text style={st.label}>{t('auth.fullname')}</Text>
                 <View style={st.inputGroup}>
                   <MaterialCommunityIcons name="account-outline" size={22} color="#64748b" style={st.inputIcon} />
                   <TextInput
                     style={st.input}
-                    placeholder="Nhập tên đầy đủ của bạn..."
+                    placeholder={t('auth.full_name_placeholder')}
                     placeholderTextColor="#94a3b8"
                     value={fullName}
                     onChangeText={setFullName}
@@ -138,8 +150,8 @@ export default function RegisterInfoScreen() {
               </View>
 
               <View style={st.inputWrapper}>
-                <Text style={st.label}>Ngày tháng năm sinh</Text>
-                <TouchableOpacity style={st.inputGroup} onPress={() => { setTempDate(dob); setShowPicker(true); }}>
+                <Text style={st.label}>{t('auth.dob_label')}</Text>
+                <TouchableOpacity style={st.inputGroup} onPress={handleOpenPicker}>
                   <MaterialCommunityIcons name="calendar-month-outline" size={22} color="#64748b" style={st.inputIcon} />
                   <Text style={[st.input, { lineHeight: 56 }]}>
                     {dob.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
@@ -149,12 +161,12 @@ export default function RegisterInfoScreen() {
               </View>
 
               <View style={st.inputWrapper}>
-                <Text style={st.label}>Địa chỉ / Vị trí</Text>
+                <Text style={st.label}>{t('auth.location_label')}</Text>
                 <View style={st.inputGroup}>
                   <MaterialCommunityIcons name="map-marker-outline" size={22} color="#64748b" style={st.inputIcon} />
                   <TextInput
                     style={st.input}
-                    placeholder="Tên buôn làng, xã..."
+                    placeholder={t('auth.location_placeholder')}
                     placeholderTextColor="#94a3b8"
                     value={location}
                     onChangeText={setLocation}
@@ -178,7 +190,7 @@ export default function RegisterInfoScreen() {
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
-                    <Text style={st.completeBtnText}>Bắt đầu ngay</Text>
+                    <Text style={st.completeBtnText}>{t('common.start')}</Text>
                     <MaterialCommunityIcons name="arrow-right-circle" size={24} color="#fff" />
                   </>
                 )}
@@ -189,26 +201,38 @@ export default function RegisterInfoScreen() {
         </LinearGradient>
       </TouchableWithoutFeedback>
 
-      {/* Modern Date Picker Modal */}
-      <Modal visible={showPicker} transparent animationType="fade">
+      {/* Android Native Picker */}
+      {Platform.OS === 'android' && showPicker && (
+        <DateTimePicker
+          value={dob}
+          mode="date"
+          display="default"
+          onChange={onDateChange}
+          maximumDate={new Date()}
+        />
+      )}
+
+      {/* iOS Premium Modal */}
+      <Modal visible={Platform.OS === 'ios' && showPicker} transparent animationType="fade">
         <TouchableWithoutFeedback onPress={() => setShowPicker(false)}>
           <View style={st.modalOverlay}>
             <Animated.View entering={SlideInDown} exiting={FadeOut} style={st.modalContent}>
               <View style={st.modalHeader}>
-                <Text style={st.modalTitle}>Chọn ngày sinh</Text>
+                <Text style={st.modalTitle}>{t('auth.pick_birth_date')}</Text>
                 <TouchableOpacity onPress={confirmDate} style={st.confirmBtn}>
-                  <Text style={st.confirmBtnText}>Xong</Text>
+                  <Text style={st.confirmBtnText}>{t('common.done')}</Text>
                 </TouchableOpacity>
               </View>
               <View style={st.pickerContainer}>
                 <DateTimePicker
                   value={tempDate}
                   mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  display="spinner"
                   onChange={onDateChange}
                   maximumDate={new Date()}
                   locale="vi-VN"
-                  style={{ height: 250 }}
+                  style={{ height: 250, width: width }}
+                  textColor="#000"
                 />
               </View>
             </Animated.View>

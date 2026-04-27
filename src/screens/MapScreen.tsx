@@ -38,7 +38,7 @@ export default function MapScreen() {
         webViewRef.current.injectJavaScript(script);
       }
     } catch (err) {
-      console.error("Lỗi lấy dữ liệu bản đồ:", err);
+      console.error(t('common.error'), err);
     }
   };
 
@@ -126,9 +126,9 @@ export default function MapScreen() {
                 <div style="width:150px">
                   <img src="\${poi.imageUrl}" class="popup-img" />
                   <p class="popup-title">\${poi.title}</p>
-                  <p class="popup-sub">Địa chỉ: \${poi.address}</p>
-                  <p class="popup-sub">Gửi bởi: \${poi.username}</p>
-                  <p class="popup-sub">Trạng thái: \${poi.status}</p>
+                  <p class="popup-sub">${t('map.popup_address')}: \${poi.address}</p>
+                  <p class="popup-sub">${t('map.popup_submitted_by')}: \${poi.username}</p>
+                  <p class="popup-sub">${t('map.popup_status')}: \${poi.status}</p>
                 </div>
               \`);
             poiMarkers.push(m);
@@ -157,7 +157,11 @@ export default function MapScreen() {
           <View style={st.statusRow}>
             <View style={st.dot} />
             <Text style={st.statusText}>
-              {mapData?.users?.filter((u: any) => u.isOnline).length || 0} online / {mapData?.users?.length || 0} {t('ranking.tab_user')}
+              {t('map.status_summary', {
+                online: mapData?.users?.filter((u: any) => u.isOnline).length || 0,
+                total: mapData?.users?.length || 0,
+                users: t('map.users_label')
+              })}
             </Text>
           </View>
         </View>
@@ -242,10 +246,10 @@ export default function MapScreen() {
         <View style={[st.sidePanel, { top: insets.top + 80, bottom: insets.bottom + 100 }]}>
           <View style={st.panelTabs}>
             <TouchableOpacity onPress={() => setActiveTab('users')} style={[st.panelTab, activeTab === 'users' && st.panelTabActive]}>
-              <Text style={[st.panelTabText, activeTab === 'users' && st.panelTabTextActive]}>Người dùng</Text>
+              <Text style={[st.panelTabText, activeTab === 'users' && st.panelTabTextActive]}>{t('map.panel_users')}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setActiveTab('pois')} style={[st.panelTab, activeTab === 'pois' && st.panelTabActive]}>
-              <Text style={[st.panelTabText, activeTab === 'pois' && st.panelTabTextActive]}>Ảnh nhiệm vụ</Text>
+              <Text style={[st.panelTabText, activeTab === 'pois' && st.panelTabTextActive]}>{t('map.panel_pois')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -262,8 +266,8 @@ export default function MapScreen() {
                 >
                   <Image source={u.avatar_url ? { uri: u.avatar_url } : require("../../assets/avatar_premium.png")} style={st.listAvatar} />
                   <View style={{ flex: 1 }}>
-                    <Text style={st.listItemName}>{u.full_name || "Nông dân"}</Text>
-                    <Text style={st.listItemSub}>{u.isOnline ? 'Đang hoạt động' : 'Ngoại tuyến'}</Text>
+                    <Text style={st.listItemName}>{u.full_name || t('map.user_fallback')}</Text>
+                    <Text style={st.listItemSub}>{u.isOnline ? t('map.user_status_online') : t('map.user_status_offline')}</Text>
                   </View>
                   <MaterialCommunityIcons name="target" size={20} color="#154212" />
                 </TouchableOpacity>
@@ -290,7 +294,7 @@ export default function MapScreen() {
                     <Image source={{ uri: parts[0] }} style={st.listPoiImg} />
                     <View style={{ flex: 1 }}>
                       <Text style={st.listItemName} numberOfLines={1}>{p.title}</Text>
-                      <Text style={st.listItemSub}>Bởi: {p.username}</Text>
+                      <Text style={st.listItemSub}>{t('map.by_label')}: {p.username}</Text>
                     </View>
                     <MaterialCommunityIcons name="map-marker-radius" size={20} color="#f59e0b" />
                   </TouchableOpacity>
@@ -305,15 +309,15 @@ export default function MapScreen() {
       <View style={[st.legend, { bottom: insets.bottom + 20 }]}>
         <View style={st.legendItem}>
           <View style={[st.legendDot, { backgroundColor: '#154212' }]} />
-          <Text style={st.legendText}>Online</Text>
+          <Text style={st.legendText}>{t('map.legend_online')}</Text>
         </View>
         <View style={st.legendItem}>
           <View style={[st.legendDot, { backgroundColor: '#94a3b8' }]} />
-          <Text style={st.legendText}>Ngoại tuyến</Text>
+          <Text style={st.legendText}>{t('map.legend_offline')}</Text>
         </View>
         <View style={st.legendItem}>
           <View style={[st.legendDot, { backgroundColor: '#f59e0b', borderRadius: 2 }]} />
-          <Text style={st.legendText}>Minh chứng</Text>
+          <Text style={st.legendText}>{t('map.legend_evidence')}</Text>
         </View>
       </View>
     </View>

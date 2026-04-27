@@ -24,10 +24,11 @@ export default function QuizScreen({ navigation, route }: any) {
   const { userId, addCoins, t } = useGameStore();
 
   const taskId: number = route?.params?.taskId ?? 1;
-  const taskTitle: string = route?.params?.taskTitle ?? "Quiz Nông nghiệp";
-  const taskDesc: string = route?.params?.taskDesc ?? "Chọn đáp án đúng để nhận xu.";
+  const taskTitle: string = route?.params?.taskTitle ?? t('quiz.default_title');
+  const taskDesc: string = route?.params?.taskDesc ?? t('quiz.default_desc');
   const taskReward: number = route?.params?.taskReward ?? 50;
-  const rawOptions: any = route?.params?.quiz_options ?? ["A. 1 tuần", "B. 30-45 ngày", "C. 3 tháng", "D. 1 năm"];
+  const defaultOptions = t('tasks.mock_2_options');
+  const rawOptions: any = route?.params?.quiz_options ?? (Array.isArray(defaultOptions) ? defaultOptions : []);
   const correctAnswer: string = route?.params?.quiz_answer ?? "B";
   const explanation: string = route?.params?.quiz_explanation ?? "";
 
@@ -132,7 +133,7 @@ export default function QuizScreen({ navigation, route }: any) {
               <MaterialCommunityIcons name="brain" size={28} color="#7c3aed" />
             </View>
             <View style={st.quizBadge}>
-              <Text style={st.quizBadgeText}>Quiz</Text>
+              <Text style={st.quizBadgeText}>{t('quiz.badge_label')}</Text>
             </View>
           </View>
           <Text style={st.questionText}>{taskDesc}</Text>
@@ -185,8 +186,8 @@ export default function QuizScreen({ navigation, route }: any) {
           <View style={[st.resultBanner, st.resultWrong, { backgroundColor: "#f3f4f6", borderColor: "#d1d5db" }]}>
             <Text style={st.resultEmoji}>😕</Text>
             <View style={{ flex: 1 }}>
-              <Text style={[st.resultTitle, { color: "#4b5563" }]}>Bạn đã trả lời chưa đúng</Text>
-              <Text style={[st.resultSub, { color: "#6b7280" }]}>Vui lòng xem kỹ giải thích và quay lại sau.</Text>
+              <Text style={[st.resultTitle, { color: "#4b5563" }]}>{t('quiz.result_wrong_title')}</Text>
+              <Text style={[st.resultSub, { color: "#6b7280" }]}>{t('quiz.result_wrong_sub')}</Text>
             </View>
           </View>
         )}
@@ -196,10 +197,10 @@ export default function QuizScreen({ navigation, route }: any) {
           <View style={[st.explanationCard, isWrong && { borderLeftColor: "#9ca3af", backgroundColor: "#f8fafc" }]}>
             <View style={st.explanationHeader}>
               <MaterialCommunityIcons name="lightbulb-on" size={20} color={isCorrect ? "#7c3aed" : "#9ca3af"} />
-              <Text style={[st.explanationTitle, isWrong && { color: "#64748b" }]}>Giải thích từ chuyên gia</Text>
+              <Text style={[st.explanationTitle, isWrong && { color: "#64748b" }]}>{t('quiz.explanation_title')}</Text>
             </View>
             <Text style={[st.explanationText, isWrong && { color: "#64748b" }]}>
-              {explanation || "Đáp án đúng là " + correctAnswer + ". Hãy tìm hiểu thêm kiến thức trong Thư viện để trả lời đúng vào lần tới nhé!"}
+              {explanation || t('quiz.explanation_fallback', { answer: correctAnswer })}
             </Text>
           </View>
         )}

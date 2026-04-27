@@ -42,8 +42,8 @@ export default function ShopScreen() {
     } catch {
       // Fallback
       setItems([
-        { id: 1, name: "Phân bón NPK", price: 500, description: "Cung cấp dưỡng chất thiết yếu giúp cây phát triển.", image_url: "https://images.unsplash.com/photo-1628352081506-83c43123ed6d?w=400" },
-        { id: 2, name: "Hạt giống cà phê", price: 1200, description: "Giống cà phê chất lượng cao, kháng bệnh tốt.", image_url: "https://images.unsplash.com/photo-1599307734111-d138f6d66934?w=400" },
+        { id: 1, name: t('shop.fallback_item_1_name'), price: 500, description: t('shop.fallback_item_1_desc'), image_url: "https://images.unsplash.com/photo-1628352081506-83c43123ed6d?w=400" },
+        { id: 2, name: t('shop.fallback_item_2_name'), price: 1200, description: t('shop.fallback_item_2_desc'), image_url: "https://images.unsplash.com/photo-1599307734111-d138f6d66934?w=400" },
       ]);
     } finally {
       setLoading(false);
@@ -58,7 +58,7 @@ export default function ShopScreen() {
 
     Alert.alert(
       t('shop.buy'),
-      `${t('shop.price')}: ${item.price} xu. ${t('shop.buy')} "${item.name}"?`,
+      t('shop.confirm_buy', { price: item.price, unit: t('common.coin_unit'), name: item.name }),
       [
         { text: t('common.cancel'), style: "cancel" },
         { 
@@ -128,7 +128,7 @@ export default function ShopScreen() {
                   <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={st.cardImgGrad}>
                     <View style={st.pricePill}>
                       <MaterialCommunityIcons name="star-four-points" size={16} color="#fbbf24" />
-                      <Text style={st.priceText}>{item.price} xu</Text>
+                      <Text style={st.priceText}>{item.price} {t('common.coin_unit')}</Text>
                     </View>
                   </LinearGradient>
                 </View>

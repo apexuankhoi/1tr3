@@ -43,7 +43,7 @@ export default function RegisterScreen({ navigation }: any) {
   const [dob, setDob] = useState("");
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [villageName, setVillageName] = useState("Làng Cà Phê");
+  const [villageName, setVillageName] = useState(() => useGameStore.getState().t("auth.default_village_name"));
   const [password, setPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -67,7 +67,7 @@ export default function RegisterScreen({ navigation }: any) {
           <View style={st.dateOverlay}>
             <View style={st.dateContent}>
               <View style={st.dateHeader}>
-                <Text style={st.dateTitle}>{t('auth.fullname')}</Text>
+                <Text style={st.dateTitle}>{t('auth.dob_label')}</Text>
                 <TouchableOpacity onPress={() => setShowDatePicker(false)}>
                   <Text style={st.dateDoneBtn}>{t('common.close')}</Text>
                 </TouchableOpacity>
@@ -83,15 +83,15 @@ export default function RegisterScreen({ navigation }: any) {
 
   const handleRegister = async () => {
     if (!fullName || !phone || !password || !email || !dob) return showToast(t('common.error'));
-    if (!agreed) return setShowTermsModal(true), showToast(t('profile.privacy'));
-    if (password.length < 6) return showToast(t('auth.password'));
+    if (!agreed) return setShowTermsModal(true), showToast(t('auth.must_agree_terms'));
+    if (password.length < 6) return showToast(t('auth.password_min_length'));
     
     const today = new Date();
     let age = today.getFullYear() - date.getFullYear();
     if (today.getMonth() < date.getMonth() || (today.getMonth() === date.getMonth() && today.getDate() < date.getDate())) age--;
-    if (age < 10) return showToast("Bạn phải từ 10 tuổi trở lên mới được tham gia!");
+    if (age < 10) return showToast(t('auth.min_age_error'));
     
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showToast("Email không hợp lệ");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showToast(t('auth.invalid_email'));
     
     setLoading(true);
     try {
@@ -126,7 +126,7 @@ export default function RegisterScreen({ navigation }: any) {
         <View style={st.modalOverlay}>
           <View style={st.modalContent}>
             <View style={st.modalHeader}>
-              <Text style={st.modalTitle}>{t('profile.privacy')}</Text>
+              <Text style={st.modalTitle}>{t('auth.terms_privacy_modal_title')}</Text>
               <TouchableOpacity onPress={() => setShowTermsModal(false)}>
                 <MaterialCommunityIcons name="close" size={24} color="#9ca3af" />
               </TouchableOpacity>
@@ -134,18 +134,7 @@ export default function RegisterScreen({ navigation }: any) {
 
             <ScrollView onScroll={handleScroll} scrollEventThrottle={16} style={{ flex: 1 }} showsVerticalScrollIndicator>
               <Text style={st.termsText}>
-                CHÍNH SÁCH BẢO MẬT VÀ ĐIỀU KHOẢN SỬ DỤNG {"\n\n"}
-                Chào mừng bạn đến với Nông Nghiệp Xanh. Bằng việc sử dụng ứng dụng của chúng tôi, bạn đồng ý tuân thủ các điều khoản sau:{"\n\n"}
-                1. Thu thập thông tin: Chúng tôi thu thập thông tin cá nhân như họ tên, số điện thoại, email và ngày sinh để cung cấp dịch vụ tốt nhất.{"\n\n"}
-                2. Bảo mật dữ liệu: Thông tin của bạn được mã hóa và bảo vệ bằng công nghệ tiên tiến nhất. Chúng tôi cam kết không chia sẻ thông tin cho bên thứ ba khi chưa có sự đồng ý.{"\n\n"}
-                3. Quyền hạn người dùng: Bạn có quyền yêu cầu truy cập, sửa đổi hoặc xóa dữ liệu cá nhân của mình bất kỳ lúc nào thông qua cài đặt ứng dụng.{"\n\n"}
-                4. Trách nhiệm: Người dùng chịu trách nhiệm bảo mật mật khẩu tài khoản của mình. Mọi hoạt động diễn ra dưới tài khoản của bạn sẽ được coi là do bạn thực hiện.{"\n\n"}
-                5. Thay đổi điều khoản: Chúng tôi có quyền cập nhật chính sách này. Thông báo sẽ được gửi qua ứng dụng khi có thay đổi quan trọng.{"\n\n"}
-                6. Quy tắc cộng đồng: Nghiêm cấm các hành vi gian lận, phá hoại hoặc sử dụng ứng dụng cho mục đích phi pháp.{"\n\n"}
-                7. Chấm dứt dịch vụ: Chúng tôi có quyền tạm ngừng hoặc khóa tài khoản nếu phát hiện vi phạm nghiêm trọng các điều khoản này.{"\n\n"}
-                8. Giải quyết tranh chấp: Mọi tranh chấp phát sinh sẽ được giải quyết thông qua thương lượng trên tinh thần hợp tác.{"\n\n"}
-                9. Quy định đặc biệt: Bạn phải đọc kỹ toàn bộ văn bản này trước khi nhấn đồng ý. Hệ thống chỉ cho phép bạn xác nhận sau khi đã cuộn xuống tận cùng của nội dung.{"\n\n"}
-                Cảm ơn bạn đã tin tưởng và đồng hành cùng Nông Nghiệp Xanh!
+                {t('auth.terms_content')}
               </Text>
             </ScrollView>
 
@@ -155,7 +144,7 @@ export default function RegisterScreen({ navigation }: any) {
               style={[st.agreeBtn, hasScrolledToBottom ? st.agreeBtnActive : st.agreeBtnDisabled]}
             >
               <Text style={[st.agreeBtnText, hasScrolledToBottom ? st.agreeBtnTextActive : st.agreeBtnTextDisabled]}>
-                {hasScrolledToBottom ? "Tôi đã đọc và đồng ý" : "Vui lòng cuộn xuống hết"}
+                {hasScrolledToBottom ? t('auth.read_and_agree') : t('auth.scroll_to_bottom')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -182,18 +171,18 @@ export default function RegisterScreen({ navigation }: any) {
         </View>
 
         <View style={st.form}>
-          <StaticInput label={t('auth.fullname')} icon="account-outline" value={fullName} onChangeText={setFullName} placeholder="Nguyễn Văn A" />
-          <StaticInput label={t('auth.fullname')} icon="calendar-month-outline" value={dob} editable={false} onPress={() => setShowDatePicker(true)} placeholder="01/01/1990" />
+          <StaticInput label={t('auth.fullname')} icon="account-outline" value={fullName} onChangeText={setFullName} placeholder={t('auth.full_name_sample')} />
+          <StaticInput label={t('auth.dob_label')} icon="calendar-month-outline" value={dob} editable={false} onPress={() => setShowDatePicker(true)} placeholder={t('auth.dob_placeholder')} />
           {renderDatePicker()}
-          <StaticInput label="Email" icon="email-outline" value={email} onChangeText={setEmail} placeholder="example@gmail.com" keyboardType="email-address" />
-          <StaticInput label={t('ranking.tab_village')} icon="home-group" value={villageName} onChangeText={setVillageName} placeholder="Tên buôn làng của bạn" />
-          <StaticInput label={t('auth.phone')} icon="phone-outline" value={phone} onChangeText={setPhone} placeholder="09xxxxxxxx" keyboardType="phone-pad" />
-          <StaticInput label={t('auth.password')} icon="lock-outline" value={password} onChangeText={setPassword} secureTextEntry placeholder="••••••••" />
+          <StaticInput label={t('auth.email')} icon="email-outline" value={email} onChangeText={setEmail} placeholder={t('auth.email_placeholder')} keyboardType="email-address" />
+          <StaticInput label={t('ranking.tab_village')} icon="home-group" value={villageName} onChangeText={setVillageName} placeholder={t('auth.village_placeholder')} />
+          <StaticInput label={t('auth.phone')} icon="phone-outline" value={phone} onChangeText={setPhone} placeholder={t('auth.phone_placeholder')} keyboardType="phone-pad" />
+          <StaticInput label={t('auth.password')} icon="lock-outline" value={password} onChangeText={setPassword} secureTextEntry placeholder={t('auth.password_placeholder')} />
 
           <TouchableOpacity onPress={() => setShowTermsModal(true)} activeOpacity={0.7} style={st.agreeWrap}>
             <MaterialCommunityIcons name={agreed ? "checkbox-marked" : "checkbox-blank-outline"} size={24} color={agreed ? "#154212" : "#9ca3af"} />
             <Text style={st.agreeText}>
-              Tôi đồng ý với <Text style={st.agreeHighlight}>Điều khoản</Text> và <Text style={st.agreeHighlight}>Chính sách bảo mật</Text>
+              {t('auth.terms_and_privacy')}
             </Text>
           </TouchableOpacity>
 
@@ -206,18 +195,18 @@ export default function RegisterScreen({ navigation }: any) {
 
         <View style={st.dividerWrap}>
           <View style={st.dividerLine} />
-          <Text style={st.dividerText}>Hoặc</Text>
+          <Text style={st.dividerText}>{t('auth.or')}</Text>
           <View style={st.dividerLine} />
         </View>
 
         <View style={st.socialWrap}>
           <TouchableOpacity style={st.socialBtn}>
             <MaterialCommunityIcons name="google" size={24} color="#ea4335" />
-            <Text style={st.socialText}>Tiếp tục bằng Google</Text>
+            <Text style={st.socialText}>{t('auth.continue_google')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={st.socialBtn}>
             <MaterialCommunityIcons name="facebook" size={24} color="#1877f2" />
-            <Text style={st.socialText}>Tiếp tục bằng Facebook</Text>
+            <Text style={st.socialText}>{t('auth.continue_facebook')}</Text>
           </TouchableOpacity>
         </View>
 

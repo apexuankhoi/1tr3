@@ -5,20 +5,32 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useNavigation } from "@react-navigation/native";
+import { useGameStore } from "../store/useGameStore";
 
 const { width } = Dimensions.get("window");
 
 const RANKING_DATA = [
-  { id: 1, name: "Nguyễn Văn A", coins: 1200, level: 15, avatar: "https://i.pravatar.cc/150?u=a", rank: 1 },
-  { id: 2, name: "K'sor H'Bia", coins: 900, level: 12, avatar: "https://i.pravatar.cc/150?u=b", rank: 2 },
-  { id: 3, name: "Y'Binh Niê", coins: 750, level: 10, avatar: "https://i.pravatar.cc/150?u=c", rank: 3 },
-  { id: 4, name: "Trần Thị B", coins: 600, level: 8, avatar: "https://i.pravatar.cc/150?u=d", rank: 4 },
-  { id: 5, name: "Lê Văn C", coins: 500, level: 7, avatar: "https://i.pravatar.cc/150?u=e", rank: 5 },
+  { id: 1, coins: 1200, level: 15, avatar: "https://i.pravatar.cc/150?u=a", rank: 1 },
+  { id: 2, coins: 900, level: 12, avatar: "https://i.pravatar.cc/150?u=b", rank: 2 },
+  { id: 3, coins: 750, level: 10, avatar: "https://i.pravatar.cc/150?u=c", rank: 3 },
+  { id: 4, coins: 600, level: 8, avatar: "https://i.pravatar.cc/150?u=d", rank: 4 },
+  { id: 5, coins: 500, level: 7, avatar: "https://i.pravatar.cc/150?u=e", rank: 5 },
 ];
+
+const DEMO_NAME_KEYS = [
+  "ranking.demo_name_1",
+  "ranking.demo_name_2",
+  "ranking.demo_name_3",
+  "ranking.demo_name_4",
+  "ranking.demo_name_5",
+] as const;
 
 export default function RankingScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const t = useGameStore(s => s.t);
+
+  const demoName = (id: number) => t(DEMO_NAME_KEYS[id - 1] ?? DEMO_NAME_KEYS[0]);
 
   const top3 = RANKING_DATA.slice(0, 3);
   const others = RANKING_DATA.slice(3);
@@ -31,7 +43,7 @@ export default function RankingScreen() {
           <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
             <MaterialCommunityIcons name="chevron-left" size={32} color="#fff" />
           </TouchableOpacity>
-          <Text style={st.headerTitle}>Bảng Vàng Buôn Làng</Text>
+          <Text style={st.headerTitle}>{t('ranking.title_village')}</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -45,8 +57,8 @@ export default function RankingScreen() {
                 <Text style={st.rankBadgeText}>2</Text>
               </View>
             </View>
-            <Text style={st.podiumName} numberOfLines={1}>{top3[1].name}</Text>
-            <Text style={st.podiumCoins}>{top3[1].coins} xu</Text>
+            <Text style={st.podiumName} numberOfLines={1}>{demoName(top3[1].id)}</Text>
+            <Text style={st.podiumCoins}>{top3[1].coins} {t('common.coin_unit')}</Text>
             <View style={[st.podiumBase, { height: 60, backgroundColor: 'rgba(255,255,255,0.1)' }]} />
           </Animated.View>
 
@@ -59,8 +71,8 @@ export default function RankingScreen() {
                 <Text style={[st.rankBadgeText, { color: '#92400e' }]}>1</Text>
               </View>
             </View>
-            <Text style={[st.podiumName, st.podiumNameLarge]} numberOfLines={1}>{top3[0].name}</Text>
-            <Text style={[st.podiumCoins, st.podiumCoinsLarge]}>{top3[0].coins} xu</Text>
+            <Text style={[st.podiumName, st.podiumNameLarge]} numberOfLines={1}>{demoName(top3[0].id)}</Text>
+            <Text style={[st.podiumCoins, st.podiumCoinsLarge]}>{top3[0].coins} {t('common.coin_unit')}</Text>
             <View style={[st.podiumBase, { height: 90, backgroundColor: 'rgba(255,255,255,0.2)' }]} />
           </Animated.View>
 
@@ -72,8 +84,8 @@ export default function RankingScreen() {
                 <Text style={st.rankBadgeText}>3</Text>
               </View>
             </View>
-            <Text style={st.podiumName} numberOfLines={1}>{top3[2].name}</Text>
-            <Text style={st.podiumCoins}>{top3[2].coins} xu</Text>
+            <Text style={st.podiumName} numberOfLines={1}>{demoName(top3[2].id)}</Text>
+            <Text style={st.podiumCoins}>{top3[2].coins} {t('common.coin_unit')}</Text>
             <View style={[st.podiumBase, { height: 45, backgroundColor: 'rgba(255,255,255,0.05)' }]} />
           </Animated.View>
         </View>
@@ -81,7 +93,7 @@ export default function RankingScreen() {
 
       <ScrollView style={st.list} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         <View style={st.listInner}>
-          <Text style={st.sectionTitle}>Bảng Xếp Hạng</Text>
+          <Text style={st.sectionTitle}>{t('ranking.list_title')}</Text>
           {others.map((item, index) => (
             <Animated.View 
               key={item.id} 
@@ -91,12 +103,12 @@ export default function RankingScreen() {
               <Text style={st.rowRank}>{item.rank}</Text>
               <Image source={{ uri: item.avatar }} style={st.rowAvatar} />
               <View style={st.rowInfo}>
-                <Text style={st.rowName}>{item.name}</Text>
-                <Text style={st.rowLevel}>Cấp độ {item.level}</Text>
+                <Text style={st.rowName}>{demoName(item.id)}</Text>
+                <Text style={st.rowLevel}>{t('ranking.level_label', { level: item.level })}</Text>
               </View>
               <View style={st.rowCoinsWrap}>
                 <MaterialCommunityIcons name="star-circle" size={18} color="#f59e0b" />
-                <Text style={st.rowCoins}>{item.coins} xu</Text>
+                <Text style={st.rowCoins}>{item.coins} {t('common.coin_unit')}</Text>
               </View>
             </Animated.View>
           ))}
@@ -115,6 +127,9 @@ const st = StyleSheet.create({
   
   podiumContainer: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', marginTop: 30, paddingHorizontal: 20, paddingBottom: 10 },
   podiumItem: { alignItems: 'center', flex: 1 },
+  rank1: {},
+  rank2: {},
+  rank3: {},
   avatarContainer: { width: 60, height: 60, borderRadius: 30, borderWidth: 3, borderColor: 'rgba(255,255,255,0.3)', backgroundColor: '#fff', padding: 2, marginBottom: 8, position: 'relative' },
   avatarLarge: { width: 84, height: 84, borderRadius: 42, borderColor: '#fcd34d' },
   avatar: { width: '100%', height: '100%', borderRadius: 100 },

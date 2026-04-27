@@ -25,18 +25,18 @@ import { uploadImage } from "../services/api";
 import { useNavigation } from "@react-navigation/native";
 
 export default function ProfileScreen() {
-  const navigation = useNavigation<any>();
-  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+
   const { 
     userId, fullName, userName, coins, level, exp, avatarUrl, coverUrl, bio, location, createdAt,
     redemptions, fetchRedemptions, submissions, fetchSubmissions, userStats, updateProfile, fetchUserData, userRole,
     language, setLanguage, t
   } = useGameStore();
 
-  const [selectedQR, setSelectedQR] = React.useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'tasks' | 'rewards' | 'badges'>('tasks');
-  const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedQR, setSelectedQR] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"tasks" | "rewards" | "badges">("tasks");
   const [uploadingCover, setUploadingCover] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
@@ -61,7 +61,7 @@ export default function ProfileScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        alert("Cần quyền GPS để lấy vị trí.");
+        alert(t('profile.gps_permission'));
         return;
       }
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
@@ -77,16 +77,16 @@ export default function ProfileScreen() {
       }
     } catch (err) {
       console.error(err);
-      alert("Không thể lấy vị trí GPS.");
+      alert(t('profile.gps_unavailable'));
     } finally {
       setGpsLoading(false);
     }
   };
 
   const formatDate = (dateStr: string) => {
-    if (!dateStr) return "N/A";
+    if (!dateStr) return t('common.not_updated');
     const d = new Date(dateStr);
-    return `Tham gia ${d.getMonth() + 1}/${d.getFullYear()}`;
+    return `${t('profile.joined')} ${d.getMonth() + 1}/${d.getFullYear()}`;
   };
 
   const pickImage = async (type: 'avatar' | 'cover') => {
@@ -117,12 +117,12 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     Alert.alert(
-      "Đăng xuất",
-      "Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?",
+      t('profile.logout'),
+      t('auth.logout_confirm'),
       [
-        { text: "Hủy", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
         { 
-          text: "Đăng xuất", 
+          text: t('profile.logout'), 
           style: "destructive", 
           onPress: () => useGameStore.getState().logout() 
         }
@@ -136,7 +136,7 @@ export default function ProfileScreen() {
       await updateProfile(editData);
       setIsEditing(false);
     } catch (error) {
-      console.error("Lỗi cập nhật profile:", error);
+      console.error(t('common.error'), error);
     } finally {
       setLoading(false);
     }
@@ -180,7 +180,7 @@ export default function ProfileScreen() {
               
               <View style={st.actionBtns}>
                 <TouchableOpacity style={st.editBtn} onPress={() => { setEditData({ fullName, bio, location }); setIsEditing(true); }}>
-                  <Text style={st.editBtnTxt}>Chỉnh sửa hồ sơ</Text>
+                  <Text style={st.editBtnTxt}>{t('profile.edit_profile')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={st.shareBtn}>
                   <MaterialCommunityIcons name="share-variant-outline" size={20} color="#374151" />
@@ -190,14 +190,14 @@ export default function ProfileScreen() {
 
             <View style={st.nameContainer}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={st.name}>{fullName || "Nông dân Xanh"}</Text>
+                <Text style={st.name}>{fullName || t('common.not_updated')}</Text>
                 <MaterialCommunityIcons name="check-decagram" size={20} color="#1d4ed8" style={{ marginLeft: 6 }} />
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                 <View style={{ backgroundColor: '#154212', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginRight: 8 }}>
-                  <Text style={{ color: '#fff', fontSize: 10, fontFamily: 'Nunito_800ExtraBold' }}>LV.{level}</Text>
+                  <Text style={{ color: '#fff', fontSize: 10, fontFamily: 'Nunito_800ExtraBold' }}>{t('profile.level_short')}{level}</Text>
                 </View>
-                <Text style={{ color: '#6b7280', fontSize: 11, fontFamily: 'Nunito_700Bold' }}>{exp} / {level * 100} EXP</Text>
+                <Text style={{ color: '#6b7280', fontSize: 11, fontFamily: 'Nunito_700Bold' }}>{exp} / {level * 100} {t('profile.exp_short')}</Text>
               </View>
               <Text style={st.username}>@{userName}</Text>
             </View>
@@ -207,7 +207,7 @@ export default function ProfileScreen() {
             <View style={st.metaRow}>
               <View style={st.metaItem}>
                 <MaterialCommunityIcons name="map-marker-outline" size={16} color="#6b7280" />
-                <Text style={st.metaTxt}>{location || "Địa cầu"}</Text>
+                <Text style={st.metaTxt}>{location || t('common.not_updated')}</Text>
               </View>
               <View style={st.metaItem}>
                 <MaterialCommunityIcons name="calendar-blank-outline" size={16} color="#6b7280" />
@@ -216,8 +216,8 @@ export default function ProfileScreen() {
             </View>
 
             <View style={st.followRow}>
-              <Text style={st.followItem}><Text style={st.followCount}>{userStats.tasksCompleted}</Text> Nhiệm vụ</Text>
-              <Text style={st.followItem}><Text style={st.followCount}>{coins}</Text> Xu tích lũy</Text>
+              <Text style={st.followItem}><Text style={st.followCount}>{userStats.tasksCompleted}</Text> {t('profile.tasks_stat')}</Text>
+              <Text style={st.followItem}><Text style={st.followCount}>{coins}</Text> {t('profile.coins_stat')}</Text>
             </View>
           </View>
         </View>
@@ -225,7 +225,7 @@ export default function ProfileScreen() {
         {/* Management Section (Admin/Moderator) */}
         {(userRole === 'admin' || userRole === 'moderator') && (
           <View style={st.mgmtSection}>
-            <Text style={st.sectionTitle}>Quản lý hệ thống</Text>
+            <Text style={st.sectionTitle}>{t('profile.mgmt')}</Text>
             <View style={st.mgmtGrid}>
               {(userRole === 'admin' || userRole === 'moderator') && (
                 <TouchableOpacity 
@@ -235,7 +235,7 @@ export default function ProfileScreen() {
                   <LinearGradient colors={['#2563eb', '#1d4ed8']} style={st.mgmtIcon}>
                     <MaterialCommunityIcons name="check-decagram" size={20} color="#fff" />
                   </LinearGradient>
-                  <Text style={st.mgmtText}>Duyệt bài</Text>
+                  <Text style={st.mgmtText}>{t('profile.verify')}</Text>
                 </TouchableOpacity>
               )}
               
@@ -247,7 +247,7 @@ export default function ProfileScreen() {
                   <LinearGradient colors={['#154212', '#2d5a27']} style={st.mgmtIcon}>
                     <MaterialCommunityIcons name="shield-crown" size={20} color="#fff" />
                   </LinearGradient>
-                  <Text style={st.mgmtText}>Quản trị</Text>
+                  <Text style={st.mgmtText}>{t('profile.admin')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -257,9 +257,9 @@ export default function ProfileScreen() {
         {/* Tabs */}
         <View style={st.tabsContainer}>
           {[
-            { id: 'tasks', label: 'Nhiệm vụ', icon: 'clipboard-list' },
-            { id: 'rewards', label: 'Kho quà', icon: 'gift' },
-            { id: 'badges', label: 'Thành tựu', icon: 'medal' },
+            { id: 'tasks', label: t('profile.tab_tasks'), icon: 'clipboard-list' },
+            { id: 'rewards', label: t('profile.tab_rewards'), icon: 'gift' },
+            { id: 'badges', label: t('profile.tab_badges'), icon: 'medal' },
           ].map((tab) => (
             <TouchableOpacity 
               key={tab.id} 
@@ -281,8 +281,8 @@ export default function ProfileScreen() {
           {activeTab === 'tasks' && (
             <Animated.View entering={FadeInDown} style={st.tasksTabContainer}>
               <View style={st.recentHeader}>
-                <Text style={st.recentTitle}>Hoạt động gần đây</Text>
-                <Text style={st.recentSub}>Bạn đã hoàn thành {userStats.tasksCompleted} nhiệm vụ</Text>
+                <Text style={st.recentTitle}>{t('profile.recent_activity')}</Text>
+                <Text style={st.recentSub}>{t('profile.activity_desc', { count: userStats.tasksCompleted })}</Text>
               </View>
 
               {(submissions?.length || 0) > 0 ? (
@@ -300,7 +300,7 @@ export default function ProfileScreen() {
                         <Text style={st.subTitle}>{sub.title}</Text>
                         <Text style={st.subDesc} numberOfLines={2}>{sub.description}</Text>
                         <View style={st.subFooter}>
-                          <Text style={st.subDate}>{new Date(sub.submitted_at).toLocaleDateString('vi-VN')}</Text>
+                          <Text style={st.subDate}>{new Date(sub.submitted_at).toLocaleDateString(language === 'vi' ? 'vi-VN' : 'en-US')}</Text>
                           <View style={[st.statusBadge, { backgroundColor: sub.status === 'approved' ? '#d1fae5' : sub.status === 'rejected' ? '#fee2e2' : '#fef3c7' }]}>
                             <Text style={[st.statusBadgeTxt, { color: sub.status === 'approved' ? '#065f46' : sub.status === 'rejected' ? '#991b1b' : '#92400e' }]}>
                               {sub.status === 'approved' ? t('tasks.status_approved') : sub.status === 'rejected' ? t('tasks.status_rejected') : t('tasks.status_pending')}
@@ -334,7 +334,7 @@ export default function ProfileScreen() {
                   </View>
                 </TouchableOpacity>
               )) : (
-                <Text style={st.noRewards}>Bạn chưa có phần thưởng nào.</Text>
+                <Text style={st.noRewards}>{t('common.no_data')}</Text>
               )}
             </ScrollView>
           )}
@@ -346,7 +346,7 @@ export default function ProfileScreen() {
                   <View style={st.badgeIconPlaceholder}>
                     <MaterialCommunityIcons name="lock" size={24} color="#d1d5db" />
                   </View>
-                  <Text style={st.badgeName}>Thành tựu {b}</Text>
+                  <Text style={st.badgeName}>{t('profile.tab_badges')} {b}</Text>
                 </View>
               ))}
             </View>
@@ -359,16 +359,16 @@ export default function ProfileScreen() {
           <View style={st.settingsList}>
             {[
               { 
-                title: "Trung tâm trợ giúp", 
+                title: t('profile.help_center'), 
                 icon: "help-circle-outline", 
                 action: () => {
                   Alert.alert(
-                    "Trợ giúp",
-                    "Bác Sáu sẽ quay lại để hướng dẫn cháu một lần nữa nhé?",
+                    t('auth.help_title'),
+                    t('auth.help_message'),
                     [
-                      { text: "Để sau", style: "cancel" },
+                      { text: t('auth.later'), style: "cancel" },
                       { 
-                        text: "Đồng ý", 
+                        text: t('auth.agree'), 
                         onPress: () => {
                           useGameStore.getState().setHasSeenTutorial(false);
                           navigation.navigate("Home");
@@ -384,7 +384,7 @@ export default function ProfileScreen() {
                 action: () => setShowLanguageModal(true)
               },
               { 
-                title: t('profile.privacy'), 
+                title: t('profile.privacy_policy'), 
                 icon: "shield-lock-outline",
                 action: () => setShowPrivacy(true)
               },
@@ -409,15 +409,15 @@ export default function ProfileScreen() {
                 <TouchableOpacity onPress={() => setIsEditing(false)}>
                   <MaterialCommunityIcons name="close" size={24} color="#374151" />
                 </TouchableOpacity>
-                <Text style={st.modalTitle}>Chỉnh sửa hồ sơ</Text>
+                <Text style={st.modalTitle}>{t('profile.edit_profile')}</Text>
                 <TouchableOpacity onPress={handleSaveProfile}>
-                  <Text style={st.saveTxt}>Lưu</Text>
+                  <Text style={st.saveTxt}>{t('common.save')}</Text>
                 </TouchableOpacity>
               </View>
               
               <ScrollView style={st.modalBody}>
                 <View style={st.inputGroup}>
-                  <Text style={st.inputLabel}>Tên hiển thị</Text>
+                  <Text style={st.inputLabel}>{t('auth.fullname')}</Text>
                   <TextInput 
                     style={st.input} 
                     value={editData.fullName} 
@@ -425,22 +425,22 @@ export default function ProfileScreen() {
                   />
                 </View>
                 <View style={st.inputGroup}>
-                  <Text style={st.inputLabel}>Tiểu sử</Text>
+                  <Text style={st.inputLabel}>{t('profile.bio_placeholder')}</Text>
                   <TextInput 
                     style={[st.input, { height: 100, textAlignVertical: 'top' }]} 
                     multiline 
                     value={editData.bio} 
                     onChangeText={t => setEditData(prev => ({ ...prev, bio: t }))}
-                    placeholder="Giới thiệu một chút về bản thân..."
+                    placeholder={t('profile.bio_placeholder')}
                   />
                 </View>
                 <View style={st.inputGroup}>
-                  <Text style={st.inputLabel}>Vị trí</Text>
+                  <Text style={st.inputLabel}>{t('profile.location_placeholder')}</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                     <TextInput 
                       style={[st.input, { flex: 1 }]} 
                       value={editData.location} 
-                      placeholder="Ví dụ: Ba Tri, Bến Tre"
+                      placeholder={t('profile.location_placeholder')}
                       onChangeText={t => setEditData(prev => ({ ...prev, location: t }))}
                     />
                     <TouchableOpacity onPress={fetchGPS} style={st.gpsBtn} disabled={gpsLoading}>
@@ -460,9 +460,9 @@ export default function ProfileScreen() {
               <Text style={st.modalTitle}>{t('profile.language')}</Text>
               <View style={{ gap: 10, marginTop: 20 }}>
                 {[
-                  { id: 'vi', name: 'Tiếng Việt', flag: '🇻🇳' },
-                  { id: 'en', name: 'English', flag: '🇺🇸' },
-                  { id: 'ede', name: 'Tiếng Ê-đê', flag: '🏹' },
+                  { id: 'vi', name: t('profile.language_vi'), flag: '🇻🇳' },
+                  { id: 'en', name: t('profile.language_en'), flag: '🇺🇸' },
+                  { id: 'ede', name: t('profile.language_ede'), flag: '🏹' },
                 ].map(lang => (
                   <TouchableOpacity 
                     key={lang.id} 
@@ -490,21 +490,13 @@ export default function ProfileScreen() {
           <View style={st.modalOverlay}>
             <View style={[st.modalContent, { height: '80%' }]}>
               <View style={st.modalHeader}>
-                <Text style={st.modalTitle}>{t('profile.privacy')}</Text>
+                <Text style={st.modalTitle}>{t('profile.privacy_policy')}</Text>
                 <TouchableOpacity onPress={() => setShowPrivacy(false)}>
                   <MaterialCommunityIcons name="close" size={24} color="#374151" />
                 </TouchableOpacity>
               </View>
               <ScrollView style={{ padding: 20 }}>
-                <Text style={st.privacyText}>
-                  Chào mừng bạn đến với Nông Nghiệp Xanh. Chúng tôi cam kết bảo vệ dữ liệu của bạn...
-                  {"\n\n"}
-                  1. Thông tin thu thập: Vị trí GPS (để xác thực nhiệm vụ), Ảnh chụp (minh chứng hoạt động).
-                  {"\n\n"}
-                  2. Mục đích: Khuyến khích canh tác bền vững, trao thưởng quà tặng vật tư.
-                  {"\n\n"}
-                  3. Chia sẻ dữ liệu: Dữ liệu chỉ được chia sẻ với Cán bộ kiểm duyệt địa phương.
-                </Text>
+                <Text style={st.privacyText}>{t('profile.privacy_brief')}</Text>
               </ScrollView>
             </View>
           </View>
@@ -529,30 +521,24 @@ export default function ProfileScreen() {
           <View style={st.modalOverlay}>
             <View style={[st.modalContent, { height: '80%' }]}>
               <View style={st.modalHeader}>
-                <Text style={st.modalTitle}>Quyền riêng tư & Điều khoản</Text>
+                <Text style={st.modalTitle}>{t('profile.privacy_policy')}</Text>
                 <TouchableOpacity onPress={() => setShowPrivacy(false)}>
                   <MaterialCommunityIcons name="close" size={24} color="#374151" />
                 </TouchableOpacity>
               </View>
               <ScrollView style={st.modalBody} showsVerticalScrollIndicator={false}>
-                <Text style={st.privacyHeading}>1. Thu thập thông tin</Text>
-                <Text style={st.privacyText}>
-                  Chúng tôi thu thập thông tin vị trí (GPS) để xác minh các báo cáo môi trường và hình ảnh nhiệm vụ để cộng điểm thưởng.
-                </Text>
+                <Text style={st.privacyHeading}>{t('profile.privacy_policy_heading_1')}</Text>
+                <Text style={st.privacyText}>{t('profile.privacy_policy_body_1')}</Text>
                 
-                <Text style={st.privacyHeading}>2. Sử dụng dữ liệu</Text>
-                <Text style={st.privacyText}>
-                  Dữ liệu của bạn được sử dụng để xếp hạng người dùng và hiển thị bản đồ ô nhiễm cộng đồng. Chúng tôi cam kết không chia sẻ dữ liệu cá nhân cho bên thứ ba.
-                </Text>
+                <Text style={st.privacyHeading}>{t('profile.privacy_policy_heading_2')}</Text>
+                <Text style={st.privacyText}>{t('profile.privacy_policy_body_2')}</Text>
 
-                <Text style={st.privacyHeading}>3. Quyền của người dùng</Text>
-                <Text style={st.privacyText}>
-                  Bạn có quyền yêu cầu xóa tài khoản và dữ liệu cá nhân bất cứ lúc nào thông qua mục hỗ trợ hoặc liên hệ trực tiếp Admin.
-                </Text>
+                <Text style={st.privacyHeading}>{t('profile.privacy_policy_heading_3')}</Text>
+                <Text style={st.privacyText}>{t('profile.privacy_policy_body_3')}</Text>
 
                 <View style={{ height: 40 }} />
                 <TouchableOpacity style={st.qrClose} onPress={() => setShowPrivacy(false)}>
-                  <Text style={st.qrCloseTxt}>Đã hiểu</Text>
+                  <Text style={st.qrCloseTxt}>{t('common.confirm')}</Text>
                 </TouchableOpacity>
                 <View style={{ height: 40 }} />
               </ScrollView>
@@ -562,12 +548,12 @@ export default function ProfileScreen() {
 
         {/* Language Settings */}
         <View style={st.section}>
-          <Text style={st.sectionTitle}>Ngôn ngữ (Language)</Text>
+          <Text style={st.sectionTitle}>{t('profile.language')}</Text>
           <View style={st.langGrid}>
             {[
-              { id: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' },
-              { id: 'en', label: 'English', flag: '🇺🇸' },
-              { id: 'ede', label: 'Ê đê', flag: '📜' },
+              { id: 'vi', label: t('profile.language_vi'), flag: '🇻🇳' },
+              { id: 'en', label: t('profile.language_en'), flag: '🇺🇸' },
+              { id: 'ede', label: t('profile.language_ede'), flag: '📜' },
             ].map(lang => (
               <TouchableOpacity 
                 key={lang.id}

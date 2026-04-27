@@ -15,42 +15,43 @@ const { width } = Dimensions.get("window");
 
 // ── Group config ──────────────────────────────────────────────────────────────
 const GROUP_CFG: Record<string, {
-  label: string; icon: string; emoji: string;
+  icon: string; emoji: string;
   gradient: [string, string]; accent: string; bg: string;
 }> = {
   action: {
-    label: "Hành động",
     icon: "camera-outline", emoji: "📸",
     gradient: ["#0f9b58", "#1dba6e"],
     accent: "#0f9b58", bg: "#f0fdf4",
   },
   report: {
-    label: "Báo cáo",
     icon: "map-marker-alert-outline", emoji: "📍",
     gradient: ["#dc2626", "#ef4444"],
     accent: "#dc2626", bg: "#fff5f5",
   },
   learn: {
-    label: "Học tập",
     icon: "school-outline", emoji: "🎓",
     gradient: ["#7c3aed", "#9d5cef"],
     accent: "#7c3aed", bg: "#faf5ff",
   },
 };
 
-const STATUS_CFG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
-  none:     { label: "Bắt đầu",    color: "#fff",    bg: "transparent", icon: "arrow-right-circle" },
-  pending:  { label: "Chờ duyệt",  color: "#92400e", bg: "#fef3c7",     icon: "clock-time-four-outline" },
-  approved: { label: "Đã xong ✓",  color: "#065f46", bg: "#d1fae5",     icon: "check-decagram" },
-  rejected: { label: "Thử lại",    color: "#991b1b", bg: "#fee2e2",     icon: "refresh" },
+const STATUS_CFG: Record<string, { color: string; bg: string; icon: string }> = {
+  none:     { color: "#fff",    bg: "transparent", icon: "arrow-right-circle" },
+  pending:  { color: "#92400e", bg: "#fef3c7",     icon: "clock-time-four-outline" },
+  approved: { color: "#065f46", bg: "#d1fae5",     icon: "check-decagram" },
+  rejected: { color: "#991b1b", bg: "#fee2e2",     icon: "refresh" },
 };
 
 // ── MOCK fallback tasks ────────────────────────────────────────────────────────
-const MOCK_TASKS = [
-  { id: 1, title: "Ủ phân vỏ cà phê", reward: 60, category: "Action", description: "Chụp ảnh quá trình ủ vỏ cà phê bằng men vi sinh tại rẫy.", icon: "shovel", task_group: "action", task_type: "photo", needs_gps: false, needs_moderator: true, submissionStatus: "none" },
-  { id: 2, title: "Làm quiz nông nghiệp", reward: 40, category: "Quiz", description: "Trả lời câu hỏi trắc nghiệm về kỹ thuật canh tác cà phê xanh.", icon: "brain", task_group: "learn", task_type: "quiz", needs_gps: false, needs_moderator: false, quiz_options: ["A. 1 tuần", "B. 30-45 ngày", "C. 3 tháng", "D. 1 năm"], quiz_answer: "B", quiz_explanation: "Theo quy trình kỹ thuật, vỏ cà phê cần được ủ với men vi sinh trong khoảng 30-45 ngày để phân hủy hoàn toàn các chất hữu cơ khó tiêu thành dinh dưỡng dễ hấp thụ cho cây trồng.", submissionStatus: "none" },
-  { id: 3, title: "Báo cáo đốt rẫy", reward: 0, category: "Report", description: "Chụp ảnh và lấy tọa độ GPS điểm đang có khói bụi/đốt rẫy.", icon: "fire-alert", task_group: "report", task_type: "photo", needs_gps: true, needs_moderator: false, submissionStatus: "none" },
-];
+const getMockTasks = (t: (key: string, params?: Record<string, any>) => any) => {
+  const quizOptions = t('tasks.mock_2_options');
+  const normalizedOptions = Array.isArray(quizOptions) ? quizOptions : [];
+  return [
+    { id: 1, title: t('tasks.mock_1_title'), reward: 60, category: "Action", description: t('tasks.mock_1_desc'), icon: "shovel", task_group: "action", task_type: "photo", needs_gps: false, needs_moderator: true, submissionStatus: "none" },
+    { id: 2, title: t('tasks.mock_2_title'), reward: 40, category: "Quiz", description: t('tasks.mock_2_desc'), icon: "brain", task_group: "learn", task_type: "quiz", needs_gps: false, needs_moderator: false, quiz_options: normalizedOptions, quiz_answer: "B", quiz_explanation: t('tasks.mock_2_explanation'), submissionStatus: "none" },
+    { id: 3, title: t('tasks.mock_3_title'), reward: 0, category: "Report", description: t('tasks.mock_3_desc'), icon: "fire-alert", task_group: "report", task_type: "photo", needs_gps: true, needs_moderator: false, submissionStatus: "none" },
+  ];
+};
 
 export default function TasksScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -76,17 +77,17 @@ export default function TasksScreen({ navigation }: any) {
         setTasks(res);
         setWeekNum(1);
       } else {
-        setTasks(MOCK_TASKS);
+        setTasks(getMockTasks(t));
         setWeekNum(1);
       }
     } catch (error) {
-      console.error("Lỗi lấy nhiệm vụ:", error);
-      setTasks(MOCK_TASKS);
+      console.error(t('common.error'), error);
+      setTasks(getMockTasks(t));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [userId]);
+  }, [userId, t]);
 
   useEffect(() => { fetchWeekly(); }, []);
 
@@ -130,13 +131,13 @@ export default function TasksScreen({ navigation }: any) {
         const res: any = await taskService.submitTask(userId || 1, task.id, "auto");
         if (res?.autoApproved) {
           addCoins(res.reward);
-          Alert.alert("Thành công!", `Bạn nhận được ${res.reward} xu.`);
+          Alert.alert(t('common.success'), t('tasks.auto_approved_message', { reward: res.reward, unit: t('common.coin_unit') }));
         } else {
-          Alert.alert("Đã nộp bài", "Chờ Moderator duyệt để nhận xu nhé!");
+          Alert.alert(t('tasks.submitted_title'), t('tasks.submitted_message'));
         }
         fetchWeekly();
       } catch (err: any) {
-        Alert.alert("Lỗi", err.message || "Không thể nộp bài");
+        Alert.alert(t('common.error'), err.message || t('tasks.submit_error_message'));
       }
     }
   };
@@ -171,8 +172,8 @@ export default function TasksScreen({ navigation }: any) {
       {/* ── Top Bar ─────────────────────────────────── */}
       <View style={[st.topBar, { paddingTop: insets.top + 14 }]}>
         <View>
-          <Text style={st.heading}>Nhiệm Vụ Tuần</Text>
-          <Text style={st.subHeading}>Tuần #{weekNum} · Xoay mới mỗi 7 ngày 🔄</Text>
+          <Text style={st.heading}>{t('tasks.weekly_title')}</Text>
+          <Text style={st.subHeading}>{t('tasks.weekly_sub', { week: weekNum })}</Text>
         </View>
         <View style={st.badges}>
           <View style={st.badge}><Text style={st.badgeEmoji}>🍃</Text><Text style={st.badgeVal}>{seeds}</Text></View>
@@ -184,7 +185,7 @@ export default function TasksScreen({ navigation }: any) {
       <Animated.View entering={FadeInDown.duration(400)} style={st.progressCard}>
         <LinearGradient colors={["#154212", "#2a5c24"]} style={st.progressGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
           <View style={st.progressStats}>
-            <View style={st.pStat}><Text style={st.pNum}>{tasks.length}</Text><Text style={st.pLbl}>{t('profile.tasks_completed')}</Text></View>
+            <View style={st.pStat}><Text style={st.pNum}>{tasks.length}</Text><Text style={st.pLbl}>{t('tasks.total')}</Text></View>
             <View style={st.pDivider} />
             <View style={st.pStat}><Text style={st.pNum}>{completedCount}</Text><Text style={st.pLbl}>{t('tasks.status_approved')}</Text></View>
             <View style={st.pDivider} />
@@ -194,7 +195,7 @@ export default function TasksScreen({ navigation }: any) {
           <View style={st.barBg}>
             <View style={[st.barFill, { width: `${progress * 100}%` as any }]} />
           </View>
-          <Text style={st.barLabel}>{Math.round(progress * 100)}% hoàn thành tuần này</Text>
+          <Text style={st.barLabel}>{t('tasks.weekly_progress', { percent: Math.round(progress * 100) })}</Text>
         </LinearGradient>
       </Animated.View>
 
@@ -220,13 +221,13 @@ export default function TasksScreen({ navigation }: any) {
                 <View style={{ flex: 1 }}>
                   <Text style={st.groupTitle}>{group === 'action' ? t('tasks.filter_action') : group === 'report' ? t('tasks.filter_report') : t('tasks.filter_quiz')}</Text>
                   <Text style={st.groupSub}>
-                    {group === "action" ? "Chụp ảnh minh chứng" :
-                     group === "report" ? "Ghi nhận tọa độ GPS" :
-                     "Hệ thống tự động ghi nhận"}
+                    {group === "action" ? t('tasks.group_action_sub') :
+                     group === "report" ? t('tasks.group_report_sub') :
+                     t('tasks.group_learn_sub')}
                   </Text>
                 </View>
                 <View style={[st.groupBadge, { backgroundColor: cfg.bg }]}>
-                  <Text style={[st.groupBadgeText, { color: cfg.accent }]}>{groupTasks.length} task</Text>
+                  <Text style={[st.groupBadgeText, { color: cfg.accent }]}>{t('tasks.group_count', { count: groupTasks.length })}</Text>
                 </View>
               </View>
 
@@ -261,8 +262,8 @@ export default function TasksScreen({ navigation }: any) {
                             {task.title}
                           </Text>
                           <View style={st.metaRow}>
-                            <Text style={[st.rewardChip, { color: cfg.accent }]}>+{task.reward} xu</Text>
-                            {!!task.needs_gps && <View style={st.gpsPill}><MaterialCommunityIcons name="map-marker" size={10} color="#7c3aed" /><Text style={st.gpsText}>GPS</Text></View>}
+                            <Text style={[st.rewardChip, { color: cfg.accent }]}>+{task.reward} {t('common.coin_unit')}</Text>
+                            {!!task.needs_gps && <View style={st.gpsPill}><MaterialCommunityIcons name="map-marker" size={10} color="#7c3aed" /><Text style={st.gpsText}>{t('tasks.gps_label')}</Text></View>}
                             {!!task.needs_moderator && <View style={st.modPill}><Text style={st.modText}>{t('tasks.status_pending')}</Text></View>}
                           </View>
                         </View>
@@ -303,7 +304,7 @@ export default function TasksScreen({ navigation }: any) {
                           
                           {!!myAnswer && !!task.quiz_explanation && (
                             <View style={st.inlineExplanation}>
-                              <Text style={st.inlineExplanationTitle}>💡 Giải thích:</Text>
+                              <Text style={st.inlineExplanationTitle}>💡 {t('tasks.inline_explanation')}:</Text>
                               <Text style={st.inlineExplanationText}>{task.quiz_explanation}</Text>
                             </View>
                           )}

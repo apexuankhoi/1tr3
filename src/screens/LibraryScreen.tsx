@@ -35,7 +35,7 @@ export default function LibraryScreen() {
 
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState("Tất cả");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<any | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -48,7 +48,7 @@ export default function LibraryScreen() {
       const data = res?.data || res;
       setItems(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Lỗi nạp thư viện:", error);
+      console.error(t('common.error'), error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -66,14 +66,14 @@ export default function LibraryScreen() {
 
   // Dynamic categories
   const dynamicCategories = [
-    { id: "Tất cả", label: "Tất cả" },
+    { id: "all", label: t('library.cat_all') },
     ...Array.from(new Set(items.map(i => i.category))).filter(Boolean).map(cat => ({
       id: cat,
       label: cat
     }))
   ];
 
-  const filteredItems = selectedCategory === "Tất cả" 
+  const filteredItems = selectedCategory === "all" 
     ? items 
     : items.filter(i => i.category === selectedCategory);
 
@@ -114,12 +114,12 @@ export default function LibraryScreen() {
               </View>
             )}
             <View style={[st.categoryBadge, { backgroundColor: item.category_color || "#154212" }]}>
-              <Text style={st.categoryText}>{item.category || "Kiến thức"}</Text>
+              <Text style={st.categoryText}>{item.category || t('library.default_category')}</Text>
             </View>
             {isVideo && (
               <View style={st.videoBadge}>
                 <MaterialCommunityIcons name="video" size={14} color="#fff" />
-                <Text style={st.videoBadgeText}>VIDEO</Text>
+                <Text style={st.videoBadgeText}>{t('library.video_badge')}</Text>
               </View>
             )}
           </View>
@@ -128,11 +128,11 @@ export default function LibraryScreen() {
             <View style={st.cardFooter}>
               <View style={st.footerItem}>
                 <MaterialCommunityIcons name="clock-outline" size={14} color="#6b7280" />
-                <Text style={st.footerText}>{item.duration || "5 phút"}</Text>
+                <Text style={st.footerText}>{item.duration || t('library.default_duration')}</Text>
               </View>
               <View style={st.footerItem}>
                 <MaterialCommunityIcons name="eye-outline" size={14} color="#6b7280" />
-                <Text style={st.footerText}>Xông xáo</Text>
+                <Text style={st.footerText}>{t('library.views_label')}</Text>
               </View>
             </View>
           </View>
@@ -255,7 +255,7 @@ export default function LibraryScreen() {
                 </View>
                 <Text style={st.articleTitle}>{selectedArticle?.title}</Text>
                 <View style={st.divider} />
-                <Text style={st.articleDesc}>{selectedArticle?.description || "Nội dung đang được cập nhật..."}</Text>
+                <Text style={st.articleDesc}>{selectedArticle?.description || t('library.content_updating')}</Text>
               </View>
               <View style={{ height: 40 }} />
             </ScrollView>

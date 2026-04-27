@@ -95,7 +95,35 @@ interface GameState {
   setHasSeenTutorial: (val: boolean) => void;
 }
 
-const GROWTH_DURATION_MS = 3600000; 
+const GROWTH_DURATION_MS = 3600000;
+
+/** Canonical Vietnamese labels persisted for pots / API — map to i18n via translatePotStage */
+const POT_STAGE_TO_I18N: Record<string, string> = {
+  "Hạt cà phê": "garden.stage_bean",
+  "Nảy mầm": "garden.stage_sprout",
+  "Cây non": "garden.stage_seedling",
+  "Cây trưởng thành": "garden.stage_mature_tree",
+  "Trưởng thành": "garden.stage_mature_alt",
+  "Ra hoa": "garden.stage_flowering",
+  "Kết trái": "garden.stage_fruit",
+};
+
+export function translatePotStage(
+  stage: string,
+  t: (path: string, params?: Record<string, unknown>) => unknown
+): string {
+  const pathKey = POT_STAGE_TO_I18N[stage];
+  return pathKey ? String(t(pathKey)) : stage;
+}
+
+const WATER_FERTILIZE_STAGE_ORDER = [
+  "Hạt cà phê",
+  "Nảy mầm",
+  "Cây non",
+  "Cây trưởng thành",
+  "Ra hoa",
+  "Kết trái",
+] as const;
 
 const generateInitialPots = (): PotData[] => {
   const defaultPots: PotData[] = [];
@@ -127,6 +155,7 @@ const useGameStore = create<GameState>((set, get) => ({
   userId: 0,
   userName: "",
   fullName: "",
+  dob: "",
   userRole: 'farmer',
   avatarUrl: "",
   coverUrl: "",
@@ -146,7 +175,7 @@ const useGameStore = create<GameState>((set, get) => ({
   language: 'vi',
   setLanguage: (lang) => set({ language: lang }),
   t: (path, params) => {
-    const lang = 'vi';
+    const lang = get().language;
     const keys = path.split('.');
     let result: any = (translations as any)[lang];
     
@@ -197,7 +226,7 @@ const useGameStore = create<GameState>((set, get) => ({
         coins: state.coins - price,
         seeds: state.seeds + 1 
       }));
-      get().showToast("Mua hạt giống thành công! 🌟", 'success');
+      get().showToast(get().t('garden.toast_buy_seed_success'), 'success');
       get().syncStats();
       get().syncGarden();
       return true;
@@ -209,7 +238,7 @@ const useGameStore = create<GameState>((set, get) => ({
   plantSeed: (potId) => {
     const state = get();
     if (state.seeds <= 0) {
-      state.showToast("Bạn đã hết hạt giống! Hãy vào Cửa hàng để mua thêm.", 'error');
+      state.showToast(state.t('garden.toast_no_seeds_shop'), 'error');
       return;
     }
     
@@ -224,7 +253,7 @@ const useGameStore = create<GameState>((set, get) => ({
         growingUntil: 0,
       } : pot)
     }));
-    get().showToast("Đã gieo hạt giống thành công! 🌱", 'success');
+    get().showToast(get().t('garden.toast_plant_success'), 'success');
     debouncedGardenSync(() => get().syncGarden());
   },
 
@@ -239,13 +268,17 @@ const useGameStore = create<GameState>((set, get) => ({
         let newFertilizerFinal = pot.fertilizerLevel;
 
         if (newWater >= 0.99 && pot.fertilizerLevel >= 0.99) {
-          const stages = ["Hạt cà phê", "Cây non", "Cây trưởng thành", "Ra hoa", "Kết trái"];
-          const idx = stages.indexOf(pot.growthStage);
-          if (idx < stages.length - 1) {
+          const stages = WATER_FERTILIZE_STAGE_ORDER;
+          const idx = stages.indexOf(pot.growthStage as (typeof stages)[number]);
+          if (idx >= 0 && idx < stages.length - 1) {
             newStage = stages[idx + 1];
             newWaterFinal = 0;
             newFertilizerFinal = 0;
-            get().showToast(`🌿 Cây cà phê đã lớn lên: ${newStage}!`, 'success');
+            const tt = get().t;
+            get().showToast(
+              tt('garden.toast_stage_advanced', { stage: translatePotStage(newStage, tt as any) }),
+              'success'
+            );
           }
         }
         return { ...pot, waterLevel: newWaterFinal, fertilizerLevel: newFertilizerFinal, growthStage: newStage };
@@ -265,13 +298,17 @@ const useGameStore = create<GameState>((set, get) => ({
         let newFertilizerFinal = newFertilizer;
 
         if (pot.waterLevel >= 0.99 && newFertilizer >= 0.99) {
-          const stages = ["Hạt cà phê", "Cây non", "Cây trưởng thành", "Ra hoa", "Kết trái"];
-          const idx = stages.indexOf(pot.growthStage);
-          if (idx < stages.length - 1) {
+          const stages = WATER_FERTILIZE_STAGE_ORDER;
+          const idx = stages.indexOf(pot.growthStage as (typeof stages)[number]);
+          if (idx >= 0 && idx < stages.length - 1) {
             newStage = stages[idx + 1];
             newWaterFinal = 0;
             newFertilizerFinal = 0;
-            get().showToast(`🌿 Cây cà phê đã lớn lên: ${newStage}!`, 'success');
+            const tt = get().t;
+            get().showToast(
+              tt('garden.toast_stage_advanced', { stage: translatePotStage(newStage, tt as any) }),
+              'success'
+            );
           }
         }
         return { ...pot, waterLevel: newWaterFinal, fertilizerLevel: newFertilizerFinal, growthStage: newStage };
@@ -287,11 +324,16 @@ const useGameStore = create<GameState>((set, get) => ({
         
         const stages = ["Nảy mầm", "Cây non", "Cây trưởng thành", "Ra hoa", "Kết trái"];
         const currentIndex = stages.indexOf(pot.growthStage);
-        if (currentIndex < stages.length - 1) {
-          get().showToast(`🎉 Một cây đã phát triển thành: ${stages[currentIndex + 1]}!`, 'success');
+        if (currentIndex >= 0 && currentIndex < stages.length - 1) {
+          const nextStage = stages[currentIndex + 1];
+          const tt = get().t;
+          get().showToast(
+            tt('garden.toast_stage_developed', { stage: translatePotStage(nextStage, tt as any) }),
+            'success'
+          );
           return {
             ...pot,
-            growthStage: stages[currentIndex + 1],
+            growthStage: nextStage,
             waterLevel: 0,
             fertilizerLevel: 0,
             growingUntil: 0
@@ -306,7 +348,7 @@ const useGameStore = create<GameState>((set, get) => ({
   harvestPot: (potId) => {
     const pot = get().pots.find(p => p.id === potId);
     if (!pot || pot.growthStage !== "Kết trái") {
-      get().showToast("Cây chưa ra quả!", 'error');
+      get().showToast(get().t('garden.toast_not_fruit_yet'), 'error');
       return;
     }
     
@@ -325,7 +367,7 @@ const useGameStore = create<GameState>((set, get) => ({
       try {
         await userService.updateStats(userId, { coins, seeds } as any);
       } catch (error) {
-        console.error("Lỗi khi đồng bộ dữ liệu:", error);
+        console.error("syncStats failed:", error);
       }
     }
   },
@@ -336,7 +378,7 @@ const useGameStore = create<GameState>((set, get) => ({
       try {
         await gardenService.savePots(userId, pots, seeds);
       } catch (error) {
-        console.error("Lỗi khi đồng bộ khu vườn:", error);
+        console.error("syncGarden failed:", error);
       }
     }
   },
@@ -357,7 +399,7 @@ const useGameStore = create<GameState>((set, get) => ({
         avatarUrl: data.avatar_url,
         coverUrl: data.cover_url,
         bio: data.bio || "",
-        location: data.location || "Chưa cập nhật",
+        location: data.location || get().t('common.not_updated'),
         createdAt: data.created_at || "",
         userStats: data.stats || { tasksCompleted: 0, redemptions: 0 }
       });
@@ -394,7 +436,7 @@ const useGameStore = create<GameState>((set, get) => ({
         }
       } catch (e) { console.log("Garden load error:", e); }
     } catch (error) {
-      console.error("Lỗi khi lấy dữ liệu người dùng:", error);
+      console.error("fetchUserData failed:", error);
     }
   },
 
@@ -438,7 +480,7 @@ const useGameStore = create<GameState>((set, get) => ({
         avatarUrl: data.avatar_url,
         coverUrl: data.cover_url,
         bio: data.bio || "",
-        location: data.location || "Chưa cập nhật",
+        location: data.location || get().t('common.not_updated'),
         createdAt: data.created_at || "",
         userStats: data.stats || { tasksCompleted: 0, redemptions: 0 }
       });
@@ -480,8 +522,8 @@ const useGameStore = create<GameState>((set, get) => ({
       get().registerPushToken();
       return data;
     } catch (error: any) {
-      console.error("Lỗi đăng nhập:", error);
-      get().showToast(error.message || "Lỗi đăng nhập", 'error');
+      console.error("login failed:", error);
+      get().showToast(error.message || get().t('auth.login_failed'), 'error');
       return false;
     }
   },
@@ -491,13 +533,13 @@ const useGameStore = create<GameState>((set, get) => ({
     if (!userId || coins < price) return false;
     try {
       const data: any = await shopService.buyItem(userId, itemId, price);
-      get().showToast(data.message || "Đổi quà thành công! 🎁", 'success');
+      get().showToast(data.message || get().t('shop.redeem_success'), 'success');
       set({ coins: data.remainingCoins });
       get().fetchRedemptions();
       return data;
     } catch (error: any) {
       console.error("Buy item error:", error);
-      get().showToast(error.message || "Lỗi mua đồ", 'error');
+      get().showToast(error.message || get().t('shop.redeem_error'), 'error');
       return false;
     }
   },
@@ -531,8 +573,8 @@ const useGameStore = create<GameState>((set, get) => ({
       await Notifications.cancelAllScheduledNotificationsAsync();
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: "🌱 Cây đã lớn xong!",
-          body: "Cây trong vườn đã phát triển! Vào tưới nước và bón phân để cây tiếp tục lớn nhé!",
+          title: String(get().t('notifications.plant_ready_title')),
+          body: String(get().t('notifications.plant_ready_body')),
           sound: true,
         },
         trigger: {
@@ -561,13 +603,13 @@ const useGameStore = create<GameState>((set, get) => ({
           bio: updatedData.bio,
           location: updatedData.location
         });
-        get().showToast("Cập nhật trang cá nhân thành công!", 'success');
+        get().showToast(get().t('profile.toast_saved'), 'success');
         return updatedData;
       }
       return false;
     } catch (error: any) {
       console.error("Update profile error:", error);
-      get().showToast(error.message || "Lỗi cập nhật", 'error');
+      get().showToast(error.message || get().t('profile.toast_save_failed'), 'error');
       return false;
     }
   },
@@ -577,6 +619,7 @@ const useGameStore = create<GameState>((set, get) => ({
       userId: 0,
       userName: "",
       fullName: "",
+      dob: "",
       userRole: 'farmer',
       avatarUrl: "",
       coverUrl: "",

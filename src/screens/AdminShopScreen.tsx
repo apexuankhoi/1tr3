@@ -48,7 +48,7 @@ export default function AdminShopScreen() {
 
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return Alert.alert(t('common.error'), t('profile.privacy'));
+    if (status !== 'granted') return Alert.alert(t('common.error'), t('report.perm_library'));
 
     const result = await ImagePicker.launchImageLibraryAsync({
       allowsEditing: true,

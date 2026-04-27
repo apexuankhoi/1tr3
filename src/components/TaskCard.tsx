@@ -1,8 +1,10 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useGameStore } from "../store/useGameStore";
 
 export default function TaskCard({ title, reward, description, iconName, isPrimary, onPress }: any) {
+  const t = useGameStore(s => s.t);
   return (
     <View style={st.card}>
       <View style={st.iconWrap}>
@@ -11,7 +13,7 @@ export default function TaskCard({ title, reward, description, iconName, isPrima
       <Text style={st.title}>{title}</Text>
       <View style={st.rewardPill}>
         <MaterialCommunityIcons name="star-four-points" size={16} color="#fff" />
-        <Text style={st.rewardText}>+{reward} xu</Text>
+        <Text style={st.rewardText}>+{reward} {t('common.coin_unit')}</Text>
       </View>
       <Text style={st.desc}>{description}</Text>
       <TouchableOpacity 
@@ -20,7 +22,7 @@ export default function TaskCard({ title, reward, description, iconName, isPrima
         activeOpacity={0.85}
       >
         <Text style={[st.btnText, isPrimary ? st.btnTextPrimary : st.btnTextSecondary]}>
-          Thực hiện
+          {t('common.action')}
         </Text>
       </TouchableOpacity>
     </View>

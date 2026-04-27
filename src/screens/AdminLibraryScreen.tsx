@@ -48,7 +48,7 @@ export default function AdminLibraryScreen() {
 
   const handlePickMedia = async (mediaType: 'image' | 'video' = 'image') => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return Alert.alert(t('common.error'), t('profile.privacy'));
+    if (status !== 'granted') return Alert.alert(t('common.error'), t('report.perm_library'));
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: mediaType === 'video' ? ImagePicker.MediaTypeOptions.Videos : ImagePicker.MediaTypeOptions.Images,

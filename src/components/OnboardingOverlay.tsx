@@ -14,42 +14,32 @@ import { useNavigation } from "@react-navigation/native";
 
 const { width, height } = Dimensions.get("window");
 
-const STEPS = [
+const STEP_META = [
   {
     id: "welcome",
-    title: "Chào cháu nhé!",
-    text: "Bác là Bác Sáu, rất vui được dẫn dắt cháu tham gia Nông Nghiệp Xanh. Để bác chỉ cháu cách kiếm tiền từ khu vườn này nhé!",
     position: "center",
     tab: "Home"
   },
   {
     id: "plant",
-    title: "Bước 1: Gieo hạt",
-    text: "Đầu tiên, cháu hãy chọn một 'đám mây' trống và nhấn nút 'Gieo hạt'. Cháu sẽ dùng 1 hạt giống để bắt đầu trồng một cái cây mới đấy.",
     position: "top",
     arrow: "up",
     tab: "Home"
   },
   {
     id: "care",
-    title: "Bước 2: Chăm sóc cây",
-    text: "Nhấn vào chậu cây đang lớn, cháu sẽ thấy thanh Độ ẩm và Dinh dưỡng. Cháu phải nhấn 'Tưới nước' và 'Bón phân' thường xuyên để cây lớn nhanh hơn nhé!",
     position: "top",
     arrow: "up",
     tab: "Home"
   },
   {
     id: "harvest",
-    title: "Bước 3: Thu hoạch Xu",
-    text: "Khi cây ra quả chín, cháu hãy nhấn 'Thu hoạch'. Cháu sẽ nhận được Xu vàng. Càng chăm sóc tốt, cháu càng nhận được nhiều Xu đấy!",
     position: "top",
     arrow: "up",
     tab: "Home"
   },
   {
     id: "tasks",
-    title: "Bước 4: Làm nhiệm vụ",
-    text: "Nếu hết hạt giống, cháu hãy vào đây. Chụp ảnh vườn rau sạch nhà cháu để bác duyệt và tặng thưởng hạt giống nhé!",
     position: "bottom",
     arrow: "down",
     tab: "Tasks",
@@ -57,8 +47,6 @@ const STEPS = [
   },
   {
     id: "shop",
-    title: "Bước 5: Đổi quà thật",
-    text: "Có Xu rồi thì vào đây! Cháu có thể đổi Xu lấy Thẻ cào điện thoại 50k, 100k hoặc các vật phẩm hữu ích. Quà thật 100%!",
     position: "bottom",
     arrow: "down",
     tab: "Shop",
@@ -66,8 +54,6 @@ const STEPS = [
   },
   {
     id: "library",
-    title: "Bước 6: Học hỏi",
-    text: "Cuối cùng, cháu vào đây xem video hướng dẫn của các kỹ sư nếu muốn biết kỹ thuật xịn hơn. Chúc cháu có một khu vườn rực rỡ!",
     position: "bottom",
     arrow: "down",
     tab: "Library",
@@ -77,10 +63,15 @@ const STEPS = [
 
 export function OnboardingOverlay() {
   const navigation = useNavigation<any>();
-  const { hasSeenTutorial, setHasSeenTutorial, userRole } = useGameStore();
+  const { hasSeenTutorial, setHasSeenTutorial, userRole, t } = useGameStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [visible, setVisible] = useState(false);
   const [displayText, setDisplayText] = useState("");
+  const steps = STEP_META.map((step) => ({
+    ...step,
+    title: t(`tutorial.${step.id}_title` as any),
+    text: t(`tutorial.${step.id}_desc` as any),
+  }));
 
   const floatAnim = useSharedValue(0);
   const pulseAnim = useSharedValue(1);
@@ -103,7 +94,7 @@ export function OnboardingOverlay() {
     if (visible) {
       let i = 0;
       setDisplayText("");
-      const fullText = STEPS[currentStep].text;
+      const fullText = steps[currentStep].text;
       const interval = setInterval(() => {
         setDisplayText(fullText.slice(0, i));
         i++;
@@ -115,8 +106,8 @@ export function OnboardingOverlay() {
 
   const nextStep = () => {
     const nextIdx = currentStep + 1;
-    if (nextIdx < STEPS.length) {
-      const nextTab = STEPS[nextIdx].tab;
+    if (nextIdx < steps.length) {
+      const nextTab = steps[nextIdx].tab;
       try {
         if (nextTab) navigation.navigate(nextTab);
       } catch (e) {}
@@ -142,7 +133,7 @@ export function OnboardingOverlay() {
 
   if (!visible) return null;
 
-  const step = STEPS[currentStep];
+  const step = steps[currentStep];
   const tabWidth = width / 5;
 
   return (
@@ -184,13 +175,13 @@ export function OnboardingOverlay() {
 
             <View style={st.footer}>
               <TouchableOpacity onPress={finish} style={st.skipBtn}>
-                <Text style={st.skipText}>Bỏ qua</Text>
+                <Text style={st.skipText}>{t('tutorial.skip')}</Text>
               </TouchableOpacity>
               
               <TouchableOpacity onPress={nextStep} style={st.nextBtnWrap}>
                 <LinearGradient colors={["#154212", "#2d5a27"]} start={{x:0, y:0}} end={{x:1, y:1}} style={st.nextBtn}>
                   <Text style={st.nextText}>
-                    {currentStep === STEPS.length - 1 ? "Bắt đầu thôi!" : "Tiếp theo"}
+                    {currentStep === steps.length - 1 ? t('tutorial.start_now') : t('common.next')}
                   </Text>
                   <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
                 </LinearGradient>

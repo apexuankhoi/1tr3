@@ -25,7 +25,7 @@ export default function QRModal({ visible, qrCode, itemName, onClose }: QRModalP
           </Text>
 
           <View style={st.qrBox}>
-            <QRCode value={qrCode || "Empty"} size={200} color="#154212" />
+            <QRCode value={qrCode || t('qr.empty_placeholder')} size={200} color="#154212" />
           </View>
 
           <View style={st.infoBox}>

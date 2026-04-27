@@ -1,8 +1,10 @@
 import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useGameStore } from "../store/useGameStore";
 
 export default function ShopCard({ title, price, description, imageUri, onBuy }: any) {
+  const t = useGameStore((state) => state.t);
   return (
     <View style={st.card}>
       <View style={st.imgWrap}>
@@ -17,7 +19,7 @@ export default function ShopCard({ title, price, description, imageUri, onBuy }:
         <Text style={st.desc} numberOfLines={2}>{description}</Text>
         <TouchableOpacity style={st.btn} onPress={onBuy} activeOpacity={0.85}>
           <MaterialCommunityIcons name="cart" size={20} color="#fff" />
-          <Text style={st.btnText}>Đổi thưởng ngay</Text>
+          <Text style={st.btnText}>{t('shop.buy')}</Text>
         </TouchableOpacity>
       </View>
     </View>

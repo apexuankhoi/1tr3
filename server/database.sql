@@ -237,7 +237,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `username` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `full_name` varchar(255) NOT NULL DEFAULT '',
+  `full_name` varchar(255) DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
   `dob` varchar(50) DEFAULT NULL,
   `role` enum('farmer','buyer','moderator','admin') DEFAULT 'farmer',

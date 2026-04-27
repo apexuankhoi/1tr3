@@ -12,7 +12,7 @@ const SHADOW = Platform.select({
 
 export default function CommunityScreen() {
   const insets = useSafeAreaInsets();
-  const { t } = useGameStore();
+  const { t, language } = useGameStore();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<{ projects: any[], farmers: any[], feed: any[] }>({
@@ -23,10 +23,10 @@ export default function CommunityScreen() {
 
   const fetchData = async () => {
     try {
-      const res = await communityService.getCommunityData();
-      setData(res);
+      const res: any = await communityService.getCommunityData();
+      setData(res?.data ?? res);
     } catch (err) {
-      console.error("Lỗi lấy dữ liệu cộng đồng:", err);
+      console.error(t('common.error'), err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -54,10 +54,11 @@ export default function CommunityScreen() {
     const date = new Date(timeStr);
     const diff = Date.now() - date.getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `${mins} phút trước`;
+    if (mins < 60) return t('community.minutes_ago', { count: mins });
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours} giờ trước`;
-    return date.toLocaleDateString('vi-VN');
+    if (hours < 24) return t('community.hours_ago', { count: hours });
+    const locale = language === 'en' ? 'en-US' : 'vi-VN';
+    return date.toLocaleDateString(locale);
   };
 
   return (
@@ -88,7 +89,7 @@ export default function CommunityScreen() {
             <Text style={st.cardDesc}>{project.description}</Text>
             
             <View style={st.progressWrap}>
-              <Text style={st.progressLabel}>Tiến độ dự án</Text>
+              <Text style={st.progressLabel}>{t('community.project_progress')}</Text>
               <View style={st.progressBarBg}>
                 <View style={[st.progressBarFill, { width: `${Math.min(100, (project.current_value / project.target_value) * 100)}%` }]} />
               </View>
@@ -117,14 +118,14 @@ export default function CommunityScreen() {
               <Text style={st.farmerName} numberOfLines={1}>{farmer.name}</Text>
               <View style={st.rankBadge}>
                 <MaterialCommunityIcons name="star-circle" size={14} color="#fbbf24" />
-                <Text style={st.rankText}>Level {farmer.level}</Text>
+                <Text style={st.rankText}>{t('community.level_label', { level: farmer.level })}</Text>
               </View>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
         {/* Feed */}
-        <Text style={[st.sectionTitle, { paddingHorizontal: 24, marginBottom: 16 }]}>Hoạt động mới nhất</Text>
+        <Text style={[st.sectionTitle, { paddingHorizontal: 24, marginBottom: 16 }]}>{t('community.latest_activity')}</Text>
         
         <View style={st.feedCard}>
           {data.feed.length > 0 ? data.feed.map((item, idx) => (
@@ -133,13 +134,15 @@ export default function CommunityScreen() {
                 <MaterialCommunityIcons name="bell-ring" size={20} color="#154212" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={st.feedText}><Text style={st.feedUser}>{item.user}</Text> vừa hoàn thành: {item.action}</Text>
+                <Text style={st.feedText}>
+                  <Text style={st.feedUser}>{item.user}</Text> {t('community.feed_item', { action: item.action })}
+                </Text>
                 <Text style={st.feedTime}>{formatTime(item.time)}</Text>
               </View>
             </View>
           )) : (
             <View style={{ padding: 40, alignItems: 'center' }}>
-              <Text style={{ color: '#94a3b8', fontFamily: 'Nunito_600SemiBold' }}>Chưa có hoạt động nào.</Text>
+              <Text style={{ color: '#94a3b8', fontFamily: 'Nunito_600SemiBold' }}>{t('community.no_activity')}</Text>
             </View>
           )}
         </View>

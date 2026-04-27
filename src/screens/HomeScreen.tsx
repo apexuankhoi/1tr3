@@ -14,7 +14,7 @@ import {
   Modal,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useGameStore, PotData } from "../store/useGameStore";
+import { useGameStore, PotData, translatePotStage } from "../store/useGameStore";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   FadeInDown,
@@ -283,20 +283,27 @@ export default function HomeScreen({ navigation }: any) {
 
   const getPlantSize = (pot: PotData): number => {
     switch (pot.growthStage) {
-      case "Nảy mầm":      return 110;
-      case "Cây non":      return 120;
-      case "Trưởng thành": return 130;
-      case "Kết trái":     return 140;
-      default:             return 110;
+      case "Hạt cà phê":         return 100;
+      case "Nảy mầm":            return 110;
+      case "Cây non":            return 120;
+      case "Cây trưởng thành":
+      case "Trưởng thành":       return 130;
+      case "Ra hoa":             return 135;
+      case "Kết trái":           return 140;
+      default:                   return 110;
     }
   };
 
   const getTreeImage = (pot: PotData) => {
     if (!pot.hasPlant) return null;
     switch (pot.growthStage) {
-      case "Hạt cà phê": return require("../../assets/1.png");
+      case "Hạt cà phê":
+      case "Nảy mầm":
+        return require("../../assets/1.png");
       case "Cây non": return require("../../assets/2.png");
-      case "Cây trưởng thành": return require("../../assets/3.png");
+      case "Cây trưởng thành":
+      case "Trưởng thành":
+        return require("../../assets/3.png");
       case "Ra hoa": return require("../../assets/4.png");
       case "Kết trái": return require("../../assets/5.png");
       default: return require("../../assets/1.png");
@@ -357,10 +364,10 @@ export default function HomeScreen({ navigation }: any) {
 
       <View style={st.floorSwitcher}>
         <TouchableOpacity onPress={() => setActiveFloor(1)} style={[st.floorBtn, activeFloor === 1 && st.floorBtnActive]}>
-          <Text style={[st.floorBtnText, activeFloor === 1 && st.floorBtnTextActive]}>Tầng 1</Text>
+          <Text style={[st.floorBtnText, activeFloor === 1 && st.floorBtnTextActive]}>{t('home.floor_label', { floor: 1 })}</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setActiveFloor(2)} style={[st.floorBtn, activeFloor === 2 && st.floorBtnActive]}>
-          <Text style={[st.floorBtnText, activeFloor === 2 && st.floorBtnTextActive]}>Tầng 2</Text>
+          <Text style={[st.floorBtnText, activeFloor === 2 && st.floorBtnTextActive]}>{t('home.floor_label', { floor: 2 })}</Text>
         </TouchableOpacity>
       </View>
 
@@ -431,7 +438,7 @@ export default function HomeScreen({ navigation }: any) {
                 <Text style={st.panelTitle}>{t('garden.growing')}</Text>
                 <View style={st.statusBadge}>
                   <MaterialCommunityIcons name="leaf" size={14} color="#0284C7" />
-                  <Text style={st.statusBadgeText}>{selectedPot.growthStage}</Text>
+                  <Text style={st.statusBadgeText}>{translatePotStage(selectedPot.growthStage, t)}</Text>
                 </View>
               </View>
               <View style={st.progressItem}>

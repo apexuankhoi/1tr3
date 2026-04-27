@@ -16,36 +16,39 @@ const Tab = createBottomTabNavigator();
 
 export default function TabNavigator() {
   const userRole = useGameStore((state) => state.userRole);
+  /** Cùng subscribe `language` để đổi ngôn ngữ thì thanh tab re-render (chỉ `t` thì ref không đổi → nhãn bị kẹt). */
+  const language = useGameStore((state) => state.language);
+  const t = useGameStore((state) => state.t);
 
   const renderTabs = () => {
     if (userRole === 'admin') {
       return (
         <>
-          <Tab.Screen name="AdminDashboard" component={require("../screens/AdminDashboard").default} options={{ tabBarLabel: "Quản trị" }} />
-          <Tab.Screen name="AdminTasks" component={require("../screens/AdminTasksScreen").default} options={{ tabBarLabel: "Nhiệm vụ" }} />
-          <Tab.Screen name="AdminLibrary" component={require("../screens/AdminLibraryScreen").default} options={{ tabBarLabel: "Thư viện" }} />
-          <Tab.Screen name="AdminMap" component={require("../screens/MapScreen").default} options={{ tabBarLabel: "Bản đồ" }} />
-          <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: "Hồ sơ" }} />
+          <Tab.Screen name="AdminDashboard" component={require("../screens/AdminDashboard").default} options={{ tabBarLabel: t('profile.admin') }} />
+          <Tab.Screen name="AdminTasks" component={require("../screens/AdminTasksScreen").default} options={{ tabBarLabel: t('tabs.tasks') }} />
+          <Tab.Screen name="AdminLibrary" component={require("../screens/AdminLibraryScreen").default} options={{ tabBarLabel: t('tabs.library') }} />
+          <Tab.Screen name="AdminMap" component={require("../screens/MapScreen").default} options={{ tabBarLabel: t('tabs.map') }} />
+          <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: t('tabs.profile') }} />
         </>
       );
     } else if (userRole === 'moderator') {
       return (
         <>
-          <Tab.Screen name="ModDashboard" component={ModeratorDashboard} options={{ tabBarLabel: "Duyệt bài" }} />
-          <Tab.Screen name="Map" component={require("../screens/MapScreen").default} options={{ tabBarLabel: "Bản đồ" }} />
-          <Tab.Screen name="QR" component={QRScannerScreen} options={{ tabBarLabel: "Quét QR" }} />
-          <Tab.Screen name="Ranking" component={RankingScreen} options={{ tabBarLabel: "Xếp hạng" }} />
-          <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: "Hồ sơ" }} />
+          <Tab.Screen name="ModDashboard" component={ModeratorDashboard} options={{ tabBarLabel: t('profile.verify') }} />
+          <Tab.Screen name="Map" component={require("../screens/MapScreen").default} options={{ tabBarLabel: t('tabs.map') }} />
+          <Tab.Screen name="QR" component={QRScannerScreen} options={{ tabBarLabel: t('tabs.qr') }} />
+          <Tab.Screen name="Ranking" component={RankingScreen} options={{ tabBarLabel: t('tabs.ranking') }} />
+          <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: t('tabs.profile') }} />
         </>
       );
     } else {
       return (
         <>
-          <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: "Trang chủ" }} />
-          <Tab.Screen name="Tasks" component={TasksScreen} options={{ tabBarLabel: "Nhiệm vụ" }} />
-          <Tab.Screen name="Shop" component={ShopScreen} options={{ tabBarLabel: "Cửa hàng" }} />
-          <Tab.Screen name="Library" component={LibraryScreen} options={{ tabBarLabel: "Thư viện" }} />
-          <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: "Hồ sơ" }} />
+          <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: t('tabs.home') }} />
+          <Tab.Screen name="Tasks" component={TasksScreen} options={{ tabBarLabel: t('tabs.tasks') }} />
+          <Tab.Screen name="Shop" component={ShopScreen} options={{ tabBarLabel: t('tabs.shop') }} />
+          <Tab.Screen name="Library" component={LibraryScreen} options={{ tabBarLabel: t('tabs.library') }} />
+          <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: t('tabs.profile') }} />
         </>
       );
     }

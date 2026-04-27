@@ -47,7 +47,7 @@ export default function ReportScreen({ navigation, route }: any) {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(t('common.error'), t('profile.privacy'));
+        Alert.alert(t('report.perm_req'), t('report.gps_perm_denied'));
         return;
       }
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
@@ -120,7 +120,7 @@ export default function ReportScreen({ navigation, route }: any) {
       setPopup({
         visible: true, type: "success",
         title: t('common.success'),
-        message: isReport ? "Tọa độ đã được ghi nhận lên bản đồ!" : t('tasks.status_approved'),
+        message: isReport ? t('report.submit_success_report') : t('tasks.status_approved'),
       });
     } catch (err: any) {
       console.error("Upload error:", err);
@@ -162,7 +162,7 @@ export default function ReportScreen({ navigation, route }: any) {
           {needsGps && (
             <View style={st.gpsBanner}>
               <MaterialCommunityIcons name="map-marker" size={16} color="#7c3aed" />
-              <Text style={st.gpsBannerText}>{t('home.map')} GPS</Text>
+              <Text style={st.gpsBannerText}>{t('report.gps_required_label')}</Text>
             </View>
           )}
         </View>
@@ -215,13 +215,13 @@ export default function ReportScreen({ navigation, route }: any) {
                 <LinearGradient colors={gradientColors} style={st.photoBtnGrad}>
                   <MaterialCommunityIcons name="camera" size={28} color="#fff" />
                 </LinearGradient>
-                <Text style={[st.photoBtnLabel, { color: accent }]}>{t('profile.verify')}</Text>
+                <Text style={[st.photoBtnLabel, { color: accent }]}>{t('report.photo_take')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[st.photoBtn, { borderColor: "#9ca3af" }]} onPress={() => pickPhoto(false)}>
                 <View style={[st.photoBtnGrad, { backgroundColor: "#f3f4f6" }]}>
                   <MaterialCommunityIcons name="image-multiple" size={28} color="#6b7280" />
                 </View>
-                <Text style={[st.photoBtnLabel, { color: "#6b7280" }]}>{t('library.title')}</Text>
+                <Text style={[st.photoBtnLabel, { color: "#6b7280" }]}>{t('report.photo_library')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -253,7 +253,7 @@ export default function ReportScreen({ navigation, route }: any) {
             ? <ActivityIndicator size="small" color="#fff" />
             : <LinearGradient colors={gradientColors} style={st.submitGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                 <MaterialCommunityIcons name="send" size={20} color="#fff" />
-                <Text style={st.submitText}>{isReport ? "Ghi nhận tọa độ" : t('tasks.submit')}</Text>
+                <Text style={st.submitText}>{isReport ? t('report.submit_report_label') : t('tasks.submit')}</Text>
               </LinearGradient>}
         </TouchableOpacity>
 
