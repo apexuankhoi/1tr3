@@ -148,18 +148,16 @@ export function OnboardingOverlay() {
   return (
     <Modal transparent visible={visible} animationType="fade">
       <View style={st.overlay}>
-        <Animated.View entering={FadeIn} exiting={FadeOut} style={st.dim} />
+        <View style={st.dim} />
 
         {step.highlightIdx !== undefined && (
           <View style={[st.highlightContainer, { left: tabWidth * step.highlightIdx + tabWidth/2 - 35 }]}>
-            <Animated.View style={[st.pulseRing, highlightStyle]} />
             <View style={st.solidRing} />
           </View>
         )}
 
-        <Animated.View 
+        <View 
           key={step.id}
-          entering={FadeIn.duration(400)}
           style={[
             st.boxContainer,
             step.position === 'center' ? st.posCenter : (step.position === 'top' ? st.posTop : st.posBottom)
@@ -171,9 +169,9 @@ export function OnboardingOverlay() {
 
           <View style={st.card}>
             <View style={st.cardHeader}>
-              <Animated.View style={[st.avatarBox, teacherStyle]}>
-                <Image source={require("../../assets/teacher.png")} style={st.avatar} />
-              </Animated.View>
+              <View style={st.avatarBox}>
+                <MaterialCommunityIcons name="account-tie-voice" size={50} color="#154212" />
+              </View>
               <View style={st.titleBox}>
                 <Text style={st.title}>{step.title}</Text>
                 <View style={st.titleLine} />
@@ -203,7 +201,7 @@ export function OnboardingOverlay() {
           {step.arrow === 'down' && (
             <MaterialCommunityIcons name="chevron-double-down" size={40} color="#fbbf24" style={{ marginTop: 10 }} />
           )}
-        </Animated.View>
+        </View>
       </View>
     </Modal>
   );

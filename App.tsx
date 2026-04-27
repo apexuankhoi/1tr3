@@ -61,18 +61,21 @@ export default function App() {
   }));
 
   if (!fontsLoaded) {
-    return <View style={{ flex: 1, backgroundColor: '#fff' }} />;
+    return (
+      <View style={{ flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' }}>
+        <View style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 3, borderColor: '#154212', borderTopColor: 'transparent' }} />
+      </View>
+    );
   }
 
   return (
     <SafeAreaProvider>
-      <Animated.View style={animatedStyle}>
+      <View style={{ flex: 1, backgroundColor: '#fff' }}>
         <NavigationContainer>
           <StatusBar style="dark" />
           <RootStack />
         </NavigationContainer>
-      </Animated.View>
-      <GlobalToast />
+      </View>
     </SafeAreaProvider>
   );
 }

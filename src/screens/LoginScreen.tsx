@@ -1,165 +1,186 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Dimensions, Image, StyleSheet } from "react-native";
-import { useGameStore } from "../store/useGameStore";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ImageBackground,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  Alert,
+  TouchableWithoutFeedback,
+  Keyboard
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useGameStore } from "../store/useGameStore";
+import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, { FadeInDown, FadeOutUp, useSharedValue, useAnimatedStyle, withRepeat, withTiming } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withSpring, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
-function PillInput({ label, icon, value, onChangeText, secureTextEntry, keyboardType, placeholder, ...props }: any) {
-  return (
-    <View style={st.inputBox}>
-      <Text style={st.inputLabel}>{label}</Text>
-      <View style={st.inputWrapper}>
-        <MaterialCommunityIcons name={icon} size={20} color="#4b5563" />
-        <TextInput
-          style={st.input}
-          value={value}
-          onChangeText={onChangeText}
-          secureTextEntry={secureTextEntry}
-          keyboardType={keyboardType || "default"}
-          autoCapitalize="none"
-          placeholder={placeholder}
-          placeholderTextColor="#6b7280"
-          {...props}
-        />
-      </View>
-    </View>
-  );
-}
-
-export default function LoginScreen({ navigation, route }: any) {
-  const login = useGameStore((state) => state.login);
-  const showToast = useGameStore((state) => state.showToast);
-  const t = useGameStore((state) => state.t);
-  const [username, setUsername] = useState("");
+export default function LoginScreen() {
+  const navigation = useNavigation<any>();
+  const { login, t } = useGameStore();
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [showError, setShowError] = useState(false);
+  const [showPass, setShowPass] = useState(false);
 
-  React.useEffect(() => {
-    if (route.params?.prefilledPhone) {
-      setUsername(route.params.prefilledPhone);
-    }
-  }, [route.params?.prefilledPhone]);
+  // Captcha State
+  const [captchaCode, setCaptchaCode] = useState("");
+  const [userCaptcha, setUserCaptcha] = useState("");
+
+  useEffect(() => {
+    generateCaptcha();
+  }, []);
+
+  const generateCaptcha = () => {
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    setCaptchaCode(code);
+    setUserCaptcha("");
+  };
 
   const handleLogin = async () => {
-    if (!username) {
-      showToast(t('common.error'));
+    if (!phone) {
+      Alert.alert(t('common.error'), "Vui lòng nhập số điện thoại");
       return;
     }
+
+    if (userCaptcha !== captchaCode) {
+      Alert.alert("Bảo mật", "Mã kiểm tra không đúng. Vui lòng nhập lại!");
+      generateCaptcha();
+      return;
+    }
+
     setLoading(true);
-    const success = await login({ username: username.trim() });
-    setLoading(false);
-    if (!success) {
-      setShowError(true);
-      showToast(t('auth.login') + " " + t('common.error'));
+    try {
+      const res = await login(phone);
+      if (!res.full_name && !res.fullName) {
+        navigation.navigate("RegisterInfo", { phone });
+      }
+    } catch (error: any) {
+      Alert.alert(t('common.error'), error.message || "Đăng nhập thất bại");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={st.root}>
-      <ScrollView contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={st.container}>
-          
-          <View style={st.header}>
-            <View style={st.logoWrap}>
-              <Image source={require("../../assets/logo.png")} style={st.logo} resizeMode="contain" />
-            </View>
-            <Text style={st.subtitle}>Mùa Rẫy Không Khói</Text>
-          </View>
-
-          <View style={st.form}>
-            <PillInput 
-              label={t('auth.phone')} 
-              icon="phone" 
-              placeholder="Nhập số điện thoại (ví dụ: 0912345678)" 
-              value={username} 
-              onChangeText={(text: string) => { 
-                // Chỉ cho phép nhập số
-                const cleaned = text.replace(/[^0-9]/g, '');
-                setUsername(cleaned); 
-                if (showError) setShowError(false); 
-              }} 
-              keyboardType="phone-pad" 
-              maxLength={10}
-            />
-
-            {/* Chỉ hiện nút khi nhập đúng định dạng 10 số bắt đầu bằng 0 */}
-            {username.length === 10 && /^0[0-9]{9}$/.test(username) && (
-              <Animated.View entering={FadeInDown.duration(400)} style={st.loginBtnWrap}>
-                <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.9}>
-                  <LinearGradient colors={["#154212", "#2d5a27"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={st.loginBtn}>
-                    {loading ? <ActivityIndicator color="white" /> : <Text style={st.loginBtnText}>{t('auth.login')}</Text>}
-                  </LinearGradient>
-                </TouchableOpacity>
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+      <ImageBackground
+        source={{ uri: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800" }}
+        style={st.bg}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <LinearGradient colors={["rgba(0,0,0,0.3)", "rgba(21,66,18,0.95)"]} style={st.overlay}>
+            <View style={st.container}>
+              
+              <Animated.View entering={FadeInUp.delay(200)} style={st.logoContainer}>
+                <View style={st.logoCircle}>
+                  <MaterialCommunityIcons name="leaf" size={50} color="#4ade80" />
+                </View>
+                <Text style={st.appTitle}>Nông Nghiệp Xanh</Text>
+                <Text style={st.appSub}>Hệ sinh thái nông nghiệp bền vững</Text>
               </Animated.View>
-            )}
 
-            {username.length > 0 && username.length < 10 && (
-              <Text style={st.hintText}>Vui lòng nhập đủ 10 chữ số</Text>
-            )}
-          </View>
+              <Animated.View entering={FadeInDown.delay(400)} style={st.formCard}>
+                <Text style={st.formTitle}>Chào mừng bạn trở lại</Text>
 
-        </View>
-      </ScrollView>
+                <View style={st.inputGroup}>
+                  <MaterialCommunityIcons name="phone-outline" size={20} color="#64748b" style={st.inputIcon} />
+                  <TextInput
+                    style={st.input}
+                    placeholder="Số điện thoại"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="phone-pad"
+                    value={phone}
+                    onChangeText={setPhone}
+                  />
+                </View>
+
+                {/* Captcha Section */}
+                <View style={st.captchaContainer}>
+                  <View style={st.captchaBox}>
+                    <Text style={st.captchaText}>{captchaCode}</Text>
+                  </View>
+                  <TouchableOpacity onPress={generateCaptcha} style={st.refreshBtn}>
+                    <MaterialCommunityIcons name="refresh" size={24} color="#154212" />
+                  </TouchableOpacity>
+                  <TextInput
+                    style={st.captchaInput}
+                    placeholder="Nhập 4 số"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    value={userCaptcha}
+                    onChangeText={setUserCaptcha}
+                  />
+                </View>
+                <Text style={st.captchaLabel}>Xác minh bạn không phải robot</Text>
+
+                <TouchableOpacity
+                  style={[st.loginBtn, loading && { opacity: 0.7 }]}
+                  onPress={handleLogin}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <Text style={st.loginBtnText}>Đăng Nhập</Text>
+                      <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                {/* <View style={st.footer}>
+                  <Text style={st.footerText}>Chưa có tài khoản?</Text>
+                  <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+                    <Text style={st.registerLink}> Đăng ký ngay</Text>
+                  </TouchableOpacity>
+                </View> */}
+              </Animated.View>
+
+            </View>
+          </LinearGradient>
+        </TouchableWithoutFeedback>
+      </ImageBackground>
     </KeyboardAvoidingView>
   );
 }
 
-function AnimatedPulseText({ text }: { text: string }) {
-  const scale = useSharedValue(1);
-
-  React.useEffect(() => {
-    scale.value = withRepeat(withTiming(1.08, { duration: 800 }), -1, true);
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
-  return (
-    <Animated.Text style={[animatedStyle, st.registerText]}>
-      {text}
-    </Animated.Text>
-  );
-}
-
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#fff" },
-  scrollContent: { flexGrow: 1, paddingHorizontal: 40 },
-  container: { flex: 1, justifyContent: "center", paddingVertical: 40 },
-  
-  header: { alignItems: "center", marginBottom: 40 },
-  logoWrap: { width: 96, height: 96, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", marginBottom: 16, borderRadius: 20, overflow: 'hidden' },
-  logo: { width: '100%', height: '100%' },
-  subtitle: { fontFamily: "Nunito_600SemiBold", color: "#6b7280" },
+  bg: { width, height },
+  overlay: { flex: 1, justifyContent: "center" },
+  container: { paddingHorizontal: 30 },
 
-  form: { marginTop: 16 },
-  inputBox: { marginBottom: 24 },
-  inputLabel: { fontFamily: "Nunito_800ExtraBold", color: "#374151", marginBottom: 12, marginLeft: 4 },
-  inputWrapper: { backgroundColor: "#e5e7eb", borderWidth: 1, borderColor: "#d1d5db", borderRadius: 28, height: 56, flexDirection: "row", alignItems: "center", paddingHorizontal: 24 },
-  input: { flex: 1, marginLeft: 12, fontFamily: "Nunito_600SemiBold", fontSize: 16, color: "#111827" },
+  logoContainer: { alignItems: "center", marginBottom: 40 },
+  logoCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
+  appTitle: { fontSize: 32, fontFamily: "Nunito_800ExtraBold", color: "#fff", marginTop: 15 },
+  appSub: { fontSize: 14, fontFamily: "Nunito_600SemiBold", color: "#bcf0ae", marginTop: 5 },
 
-  optionsRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 32, marginTop: -10 },
-  rememberWrap: { flexDirection: "row", alignItems: "center", marginLeft: 8 },
-  rememberText: { marginLeft: 8, fontFamily: "Nunito_600SemiBold", color: "#6b7280", fontSize: 14 },
-  forgotText: { color: "#154212", fontFamily: "Nunito_800ExtraBold", fontSize: 14, marginRight: 8 },
+  formCard: { backgroundColor: "#fff", borderRadius: 32, padding: 30, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 20, elevation: 15 },
+  formTitle: { fontSize: 20, fontFamily: "Nunito_800ExtraBold", color: "#1e293b", marginBottom: 25, textAlign: "center" },
 
-  loginBtnWrap: { marginTop: 8 },
-  loginBtn: { height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center" },
-  loginBtnText: { color: "#fff", fontFamily: "Nunito_800ExtraBold", fontSize: 18 },
+  inputGroup: { flexDirection: "row", alignItems: "center", backgroundColor: "#f8fafc", borderRadius: 16, paddingHorizontal: 15, height: 56, marginBottom: 15, borderWidth: 1, borderColor: "#e2e8f0" },
+  inputIcon: { marginRight: 12 },
+  input: { flex: 1, fontSize: 16, fontFamily: "Nunito_600SemiBold", color: "#1e293b" },
 
-  dividerWrap: { flexDirection: "row", alignItems: "center", marginVertical: 40 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: "#e5e7eb" },
-  dividerText: { marginHorizontal: 16, fontFamily: "Nunito_600SemiBold", color: "#9ca3af" },
+  captchaContainer: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 10 },
+  captchaBox: { backgroundColor: "#154212", paddingHorizontal: 15, paddingVertical: 10, borderRadius: 12, width: 80, alignItems: "center" },
+  captchaText: { color: "#fff", fontSize: 20, fontFamily: "Nunito_800ExtraBold", letterSpacing: 2 },
+  refreshBtn: { padding: 5 },
+  captchaInput: { flex: 1, backgroundColor: "#f1f5f9", height: 48, borderRadius: 12, paddingHorizontal: 15, fontSize: 16, fontFamily: "Nunito_800ExtraBold", color: "#154212", textAlign: "center" },
+  captchaLabel: { fontSize: 12, fontFamily: "Nunito_600SemiBold", color: "#64748b", marginTop: 8, marginBottom: 20, textAlign: "center" },
 
-  socialWrap: { gap: 16 },
-  socialBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", height: 56, borderRadius: 28, borderWidth: 1, borderColor: "#e5e7eb", backgroundColor: "#fff" },
-  socialText: { marginLeft: 12, fontFamily: "Nunito_700Bold", color: "#374151" },
+  loginBtn: { height: 60, backgroundColor: "#154212", borderRadius: 18, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, shadowColor: "#154212", shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
+  loginBtnText: { color: "#fff", fontSize: 18, fontFamily: "Nunito_800ExtraBold" },
 
-  footer: { flexDirection: "row", justifyContent: "center", marginTop: 48, marginBottom: 24, alignItems: "center" },
-  footerText: { fontFamily: "Nunito_600SemiBold", color: "#6b7280" },
-  registerText: { fontFamily: "Nunito_800ExtraBold", color: "#154212", fontSize: 18, textDecorationLine: "underline", marginLeft: 4 },
-  hintText: { textAlign: "center", color: "#9ca3af", marginTop: 8, fontSize: 12, fontFamily: "Nunito_600SemiBold" },
+  footer: { flexDirection: "row", justifyContent: "center", marginTop: 25 },
+  footerText: { color: "#64748b", fontFamily: "Nunito_600SemiBold" },
+  registerLink: { color: "#154212", fontFamily: "Nunito_800ExtraBold" }
 });

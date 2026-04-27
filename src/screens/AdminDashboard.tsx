@@ -83,7 +83,7 @@ export default function AdminDashboard() {
         
         <TouchableOpacity 
           style={st.menuItem} 
-          onPress={() => navigation.navigate("AdminTasks" as any)}
+          onPress={() => navigation.navigate("AdminTasks" as never)}
         >
           <LinearGradient colors={['#154212', '#2d5a27']} style={st.menuIcon}>
             <MaterialCommunityIcons name="format-list-checks" size={24} color="#fff" />
@@ -97,7 +97,7 @@ export default function AdminDashboard() {
 
         <TouchableOpacity 
           style={st.menuItem} 
-          onPress={() => navigation.navigate("AdminLibrary" as any)}
+          onPress={() => navigation.navigate("AdminLibrary" as never)}
         >
           <LinearGradient colors={['#d97706', '#b45309']} style={st.menuIcon}>
             <MaterialCommunityIcons name="library-shelves" size={24} color="#fff" />
@@ -111,7 +111,7 @@ export default function AdminDashboard() {
 
         <TouchableOpacity 
           style={st.menuItem} 
-          onPress={() => navigation.navigate("ModDashboard" as any)}
+          onPress={() => navigation.navigate("ModDashboard" as never)}
         >
           <LinearGradient colors={['#2563eb', '#1d4ed8']} style={st.menuIcon}>
             <MaterialCommunityIcons name="check-decagram" size={24} color="#fff" />
@@ -125,7 +125,7 @@ export default function AdminDashboard() {
 
         <TouchableOpacity 
           style={st.menuItem} 
-          onPress={() => navigation.navigate("AdminShop" as any)}
+          onPress={() => navigation.navigate("AdminShop" as never)}
         >
           <LinearGradient colors={['#8b5cf6', '#6d28d9']} style={st.menuIcon}>
             <MaterialCommunityIcons name="storefront" size={24} color="#fff" />
@@ -139,7 +139,7 @@ export default function AdminDashboard() {
 
         <TouchableOpacity 
           style={st.menuItem} 
-          onPress={() => navigation.navigate("AdminUsers" as any)}
+          onPress={() => navigation.navigate("AdminUsers" as never)}
         >
           <LinearGradient colors={['#374151', '#111827']} style={st.menuIcon}>
             <MaterialCommunityIcons name="account-cog" size={24} color="#fff" />

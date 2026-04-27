@@ -99,6 +99,7 @@ export const userService = {
   updateProfile: async (userId: number, data: { fullName?: string; email?: string; avatarUrl?: string; coverUrl?: string; bio?: string; location?: string }) => {
     return await api.patch(`user/profile/${userId}`, data);
   },
+  getProfile: () => api.get('/user/profile'),
 };
 
 export const shopService = {

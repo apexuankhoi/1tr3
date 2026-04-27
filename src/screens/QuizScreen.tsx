@@ -146,7 +146,7 @@ export default function QuizScreen({ navigation, route }: any) {
               onPress={() => handleSelect(opt)}
               activeOpacity={0.82}
               disabled={quizState !== "idle"}
-              style={getOptionStyle(opt)}
+              style={[getOptionStyle(opt), { opacity: quizState !== "idle" ? 0.6 : 1 }]}
             >
               <View style={[st.optionKey, {
                 backgroundColor: quizState !== "idle" && getOptionKey(opt) === correctAnswer ? "#10b981" :
@@ -182,24 +182,26 @@ export default function QuizScreen({ navigation, route }: any) {
         )}
 
         {isWrong && (
-          <View style={[st.resultBanner, st.resultWrong]}>
-            <Text style={st.resultEmoji}>😔</Text>
-            <View>
-              <Text style={[st.resultTitle, { color: "#991b1b" }]}>{t('common.error')}</Text>
-              <Text style={[st.resultSub, { color: "#991b1b" }]}>{t('tasks.status_rejected')}</Text>
+          <View style={[st.resultBanner, st.resultWrong, { backgroundColor: "#f3f4f6", borderColor: "#d1d5db" }]}>
+            <Text style={st.resultEmoji}>😕</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[st.resultTitle, { color: "#4b5563" }]}>Bạn đã trả lời chưa đúng</Text>
+              <Text style={[st.resultSub, { color: "#6b7280" }]}>Vui lòng xem kỹ giải thích và quay lại sau.</Text>
             </View>
           </View>
         )}
         
         {/* Explanation Section */}
-        {quizState !== "idle" && !!explanation && (
-          <Animated.View entering={FadeInDown.delay(300).duration(500)} style={st.explanationCard}>
+        {quizState !== "idle" && (
+          <View style={[st.explanationCard, isWrong && { borderLeftColor: "#9ca3af", backgroundColor: "#f8fafc" }]}>
             <View style={st.explanationHeader}>
-              <MaterialCommunityIcons name="lightbulb-on" size={20} color="#7c3aed" />
-              <Text style={st.explanationTitle}>Giải thích từ chuyên gia</Text>
+              <MaterialCommunityIcons name="lightbulb-on" size={20} color={isCorrect ? "#7c3aed" : "#9ca3af"} />
+              <Text style={[st.explanationTitle, isWrong && { color: "#64748b" }]}>Giải thích từ chuyên gia</Text>
             </View>
-            <Text style={st.explanationText}>{explanation}</Text>
-          </Animated.View>
+            <Text style={[st.explanationText, isWrong && { color: "#64748b" }]}>
+              {explanation || "Đáp án đúng là " + correctAnswer + ". Hãy tìm hiểu thêm kiến thức trong Thư viện để trả lời đúng vào lần tới nhé!"}
+            </Text>
+          </View>
         )}
 
         {/* Action Button */}

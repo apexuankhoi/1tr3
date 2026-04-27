@@ -7,13 +7,15 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
+import { useGameStore } from "../store/useGameStore";
 import { shopService, adminService, uploadImage } from "../services/api";
 
 export default function AdminShopScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const t = useGameStore(s => s.t);
+  const t = useGameStore((s: any) => s.t);
   const [items, setItems] = useState<any[]>([]);
+  const [originalItems, setOriginalItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [stockModalVisible, setStockModalVisible] = useState(false);
@@ -27,10 +29,11 @@ export default function AdminShopScreen() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const shopItems = await shopService.getShopItems();
-      const stockData = await adminService.getStocks();
-      setItems(shopItems);
-      setStocks(stockData);
+      const shopItems: any = await shopService.getShopItems();
+      const stockData: any = await adminService.getStocks();
+      setItems(shopItems || []);
+      setOriginalItems(shopItems || []);
+      setStocks(stockData || []);
     } catch (err) {
       console.error("Lỗi tải dữ liệu:", err);
     } finally {
@@ -209,7 +212,7 @@ export default function AdminShopScreen() {
                     style={st.stockInput}
                     keyboardType="numeric"
                     defaultValue={s.quantity.toString()}
-                    onBlur={(e) => updateStock(s.id, e.nativeEvent.text)}
+                    onEndEditing={(e: any) => updateStock(s.id, e.nativeEvent.text)}
                   />
                 </View>
               ))}

@@ -28,7 +28,7 @@ export default function ModeratorDashboard() {
 
   const fetchSubmissions = async () => {
     try {
-      const data = await api.get("/admin/submissions");
+      const data: any = await adminService.getPendingSubmissions();
       setSubmissions(data || []);
     } catch (error) {
       console.error(error);
@@ -44,7 +44,7 @@ export default function ModeratorDashboard() {
   const handleApprove = async (id: number) => {
     setActionLoadingId(id);
     try {
-      await api.post("/admin/approve", { submissionId: id });
+      await adminService.approveSubmission(id);
       Alert.alert("Thành công", "Đã duyệt và cộng xu cho người dùng.");
       fetchSubmissions();
     } catch (error) {
@@ -57,7 +57,7 @@ export default function ModeratorDashboard() {
   const handleReject = async (id: number) => {
     setActionLoadingId(id);
     try {
-      await api.post("/admin/reject", { submissionId: id });
+      await adminService.rejectSubmission(id);
       Alert.alert("Đã từ chối", "Yêu cầu đã bị hủy.");
       fetchSubmissions();
     } catch (error) {

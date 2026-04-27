@@ -230,12 +230,16 @@ export default function ReportScreen({ navigation, route }: any) {
         {/* Tips */}
         <View style={st.tipsCard}>
           <Text style={st.tipsTitle}>💡 {t('report.tips_title')}</Text>
-          {(t('report.tips') as string[]).map((tip, i) => (
-            <View key={i} style={st.tipRow}>
-              <View style={st.tipDot} />
-              <Text style={st.tipText}>{tip}</Text>
-            </View>
-          ))}
+          {(() => {
+            const tips = (t('report.tips') as any);
+            const tipsArray = Array.isArray(tips) ? tips : [];
+            return tipsArray.map((tip: string, i: number) => (
+              <View key={i} style={st.tipRow}>
+                <View style={st.tipDot} />
+                <Text style={st.tipText}>{tip}</Text>
+              </View>
+            ));
+          })()}
         </View>
 
         {/* Submit */}

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Image, Dimensions, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { useGameStore } from "../store/useGameStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { taskService } from "../services/api";
 import * as haptics from "expo-haptics";

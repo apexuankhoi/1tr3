@@ -179,11 +179,24 @@ function TutorialOverlay({ visible, onFinish, t }: any) {
 }
 
 export default function HomeScreen({ navigation }: any) {
-  const {
-    userId, userRole, fullName, coins, level, exp, pots, seeds, avatarUrl,
-    plantSeed, waterPot, fertilizePot, harvestPot, advancePotStage, t, showToast,
-    hasSeenTutorial, setHasSeenTutorial
-  } = useGameStore();
+  const userId = useGameStore(s => s.userId);
+  const userRole = useGameStore(s => s.userRole);
+  const fullName = useGameStore(s => s.fullName);
+  const coins = useGameStore(s => s.coins);
+  const level = useGameStore(s => s.level);
+  const exp = useGameStore(s => s.exp);
+  const pots = useGameStore(s => s.pots);
+  const seeds = useGameStore(s => s.seeds);
+  const avatarUrl = useGameStore(s => s.avatarUrl);
+  const plantSeed = useGameStore(s => s.plantSeed);
+  const waterPot = useGameStore(s => s.waterPot);
+  const fertilizePot = useGameStore(s => s.fertilizePot);
+  const harvestPot = useGameStore(s => s.harvestPot);
+  const advancePotStage = useGameStore(s => s.advancePotStage);
+  const t = useGameStore(s => s.t);
+  const showToast = useGameStore(s => s.showToast);
+  const hasSeenTutorial = useGameStore(s => s.hasSeenTutorial);
+  const setHasSeenTutorial = useGameStore(s => s.setHasSeenTutorial);
 
   const [refreshing, setRefreshing] = useState(false);
   const [popup, setPopup] = useState({ visible: false, type: "success" as any, title: "", message: "" });
@@ -209,8 +222,10 @@ export default function HomeScreen({ navigation }: any) {
             }
           };
 
-          report();
-          interval = setInterval(report, 30000);
+          if (!interval) {
+            report();
+            interval = setInterval(report, 60000); // Tăng lên 1 phút một lần
+          }
         } catch (err) {
           console.error(err);
         }
@@ -321,6 +336,12 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={{fontSize: 18}}>⭐</Text>
             <Text style={st.statBadgeText}>{coins}</Text>
           </TouchableOpacity>
+          <TouchableOpacity 
+            style={[st.statBadge, { backgroundColor: '#FCD34D', borderWidth: 1, borderColor: '#F59E0B', elevation: 5, shadowColor: '#B45309', shadowOpacity: 0.3, shadowRadius: 5 }]} 
+            onPress={() => navigation.navigate("Ranking")}
+          >
+            <MaterialCommunityIcons name="ladder" size={22} color="#B45309" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -359,7 +380,7 @@ export default function HomeScreen({ navigation }: any) {
             const isSelected = selectedPotId === pot.id;
             const treeImg = getTreeImage(pot);
             return (
-              <TouchableOpacity key={pot.id} activeOpacity={0.9} onPress={() => {
+              <TouchableOpacity key={`pot-${pot.id}-${index}`} activeOpacity={0.9} onPress={() => {
                 if (isLocked) return showToast(t('home.need_level', { level: Math.floor(globalIndex / 2) }), 'error');
                 setSelectedPotId(pot.id);
                 haptics.selectionAsync();

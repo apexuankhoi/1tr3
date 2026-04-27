@@ -225,9 +225,10 @@ CREATE TABLE IF NOT EXISTS `user_pots` (
   `growing_until` bigint(20) DEFAULT 0,
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_user_pot` (`user_id`, `pot_id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `user_pots_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=23929 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Dumping data for table app01.user_pots: ~0 rows (approximately)
 

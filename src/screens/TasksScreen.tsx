@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity,
   ActivityIndicator, StatusBar, StyleSheet,
-  RefreshControl, Platform, Dimensions,
+  RefreshControl, Platform, Dimensions, Alert
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -47,8 +47,8 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string; ico
 
 // ── MOCK fallback tasks ────────────────────────────────────────────────────────
 const MOCK_TASKS = [
-  { id: 1, title: "Ủ phân vỏ cà phê", reward: 60, category: "Action", description: "Chụp ảnh quá trình ủ vỏ cà phê bằng men vi sinh tại rẫy.", icon: "shoveler", task_group: "action", task_type: "photo", needs_gps: false, needs_moderator: true, submissionStatus: "none" },
-  { id: 2, title: "Làm quiz nông nghiệp", reward: 40, category: "Quiz", description: "Trả lời câu hỏi trắc nghiệm về kỹ thuật canh tác cà phê xanh.", icon: "brain", task_group: "learn", task_type: "quiz", needs_gps: false, needs_moderator: false, quiz_options: ["A. 1 tuần", "B. 30-45 ngày", "C. 3 tháng", "D. 1 năm"], quiz_answer: "B", submissionStatus: "none" },
+  { id: 1, title: "Ủ phân vỏ cà phê", reward: 60, category: "Action", description: "Chụp ảnh quá trình ủ vỏ cà phê bằng men vi sinh tại rẫy.", icon: "shovel", task_group: "action", task_type: "photo", needs_gps: false, needs_moderator: true, submissionStatus: "none" },
+  { id: 2, title: "Làm quiz nông nghiệp", reward: 40, category: "Quiz", description: "Trả lời câu hỏi trắc nghiệm về kỹ thuật canh tác cà phê xanh.", icon: "brain", task_group: "learn", task_type: "quiz", needs_gps: false, needs_moderator: false, quiz_options: ["A. 1 tuần", "B. 30-45 ngày", "C. 3 tháng", "D. 1 năm"], quiz_answer: "B", quiz_explanation: "Theo quy trình kỹ thuật, vỏ cà phê cần được ủ với men vi sinh trong khoảng 30-45 ngày để phân hủy hoàn toàn các chất hữu cơ khó tiêu thành dinh dưỡng dễ hấp thụ cho cây trồng.", submissionStatus: "none" },
   { id: 3, title: "Báo cáo đốt rẫy", reward: 0, category: "Report", description: "Chụp ảnh và lấy tọa độ GPS điểm đang có khói bụi/đốt rẫy.", icon: "fire-alert", task_group: "report", task_type: "photo", needs_gps: true, needs_moderator: false, submissionStatus: "none" },
 ];
 
@@ -65,10 +65,27 @@ export default function TasksScreen({ navigation }: any) {
   const [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({});
 
   const fetchWeekly = useCallback(async () => {
-    setTasks(MOCK_TASKS);
-    setWeekNum(1);
-    setLoading(false);
-    setRefreshing(false);
+    if (!userId) return;
+    setLoading(true);
+    try {
+      const res: any = await taskService.getWeeklyTasks(userId);
+      if (res && res.tasks && Array.isArray(res.tasks)) {
+        setTasks(res.tasks);
+        setWeekNum(res.weekNum || 1);
+      } else if (Array.isArray(res)) {
+        setTasks(res);
+        setWeekNum(1);
+      } else {
+        setTasks(MOCK_TASKS);
+        setWeekNum(1);
+      }
+    } catch (error) {
+      console.error("Lỗi lấy nhiệm vụ:", error);
+      setTasks(MOCK_TASKS);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, [userId]);
 
   useEffect(() => { fetchWeekly(); }, []);
@@ -83,8 +100,9 @@ export default function TasksScreen({ navigation }: any) {
   const byGroup: Record<string, any[]> = { action: [], report: [], learn: [] };
   for (const t of tasks) { if (byGroup[t.task_group]) byGroup[t.task_group].push(t); }
 
-  const handleAction = (task: any) => {
-    if (task.submissionStatus === "approved") return;
+  const handleAction = async (task: any) => {
+    const status = (task.submissionStatus || "none").toLowerCase();
+    if (status === "approved" || status === "pending") return;
     if (task.task_type === "quiz") {
       navigation.navigate("Quiz", {
         taskId: task.id,
@@ -108,12 +126,18 @@ export default function TasksScreen({ navigation }: any) {
       });
     } else {
       // checkin / media / streak → auto-complete
-      taskService.submitTask(userId || 1, task.id, "auto").then((res) => {
-        if (res && res.autoApproved && res.reward) {
+      try {
+        const res: any = await taskService.submitTask(userId || 1, task.id, "auto");
+        if (res?.autoApproved) {
           addCoins(res.reward);
+          Alert.alert("Thành công!", `Bạn nhận được ${res.reward} xu.`);
+        } else {
+          Alert.alert("Đã nộp bài", "Chờ Moderator duyệt để nhận xu nhé!");
         }
         fetchWeekly();
-      });
+      } catch (err: any) {
+        Alert.alert("Lỗi", err.message || "Không thể nộp bài");
+      }
     }
   };
 
@@ -121,13 +145,12 @@ export default function TasksScreen({ navigation }: any) {
     if (quizAnswers[task.id]) return;
     setQuizAnswers(prev => ({ ...prev, [task.id]: answer }));
     if (answer === task.quiz_answer) {
-      setTimeout(() => {
-        taskService.submitTask(userId || 1, task.id, "quiz-correct").then((res) => {
-          if (res && res.autoApproved && res.reward) {
-            addCoins(res.reward);
-          }
-          fetchWeekly();
-        });
+      setTimeout(async () => {
+        const res = await taskService.submitTask(userId || 1, task.id, "quiz-correct");
+        if (res.data?.autoApproved) {
+          addCoins(res.data.reward);
+        }
+        fetchWeekly();
       }, 800);
     }
   };
@@ -208,8 +231,8 @@ export default function TasksScreen({ navigation }: any) {
               </View>
 
               {groupTasks.map((task, ti) => {
-                const status = task.submissionStatus || "none";
-                const statusCfg = STATUS_CFG[status];
+                const status = (task.submissionStatus || "none").toLowerCase();
+                const statusCfg = STATUS_CFG[status] || STATUS_CFG.none;
                 const isApproved = status === "approved";
                 const isPending = status === "pending";
                 const isQuiz = task.task_type === "quiz";
@@ -223,18 +246,18 @@ export default function TasksScreen({ navigation }: any) {
                     key={task.id} 
                     entering={FadeInDown.delay(gi * 120 + ti * 80).duration(400)}
                   >
-                    <Animated.View style={[st.card, isApproved && st.cardDone]}>
+                    <View style={[st.card, (isApproved || isPending) && st.cardDone]}>
                     {/* Left stripe */}
                     <LinearGradient colors={cfg.gradient} style={st.stripe} />
 
                     <View style={st.cardInner}>
                       {/* Header */}
                       <View style={st.cardHead}>
-                        <View style={[st.cardIconWrap, { backgroundColor: cfg.bg }]}>
-                          <MaterialCommunityIcons name={(task.icon || cfg.icon) as any} size={20} color={cfg.accent} />
+                        <View style={[st.cardIconWrap, { backgroundColor: (isApproved || isPending) ? "#f3f4f6" : cfg.bg }]}>
+                          <MaterialCommunityIcons name={(task.icon || cfg.icon) as any} size={20} color={(isApproved || isPending) ? "#9ca3af" : cfg.accent} />
                         </View>
                         <View style={{ flex: 1, marginLeft: 12 }}>
-                          <Text style={[st.cardTitle, isApproved && { color: "#9ca3af", textDecorationLine: "line-through" }]} numberOfLines={2}>
+                          <Text style={[st.cardTitle, (isApproved || isPending) && { color: "#9ca3af", textDecorationLine: "line-through" }]} numberOfLines={2}>
                             {task.title}
                           </Text>
                           <View style={st.metaRow}>
@@ -243,7 +266,7 @@ export default function TasksScreen({ navigation }: any) {
                             {!!task.needs_moderator && <View style={st.modPill}><Text style={st.modText}>{t('tasks.status_pending')}</Text></View>}
                           </View>
                         </View>
-                        {isApproved && <MaterialCommunityIcons name="check-decagram" size={22} color="#10b981" />}
+                        {(isApproved || isPending) && <MaterialCommunityIcons name={isApproved ? "check-decagram" : "clock-fast"} size={22} color={isApproved ? "#10b981" : "#9ca3af"} />}
                       </View>
 
                       {/* Description */}
@@ -264,6 +287,7 @@ export default function TasksScreen({ navigation }: any) {
                                 style={[st.quizOpt,
                                   isChosen && isCorrect && st.quizCorrect,
                                   isChosen && isWrong && st.quizWrong,
+                                  (isApproved || isPending) && { opacity: 0.6 },
                                   !myAnswer && { borderColor: cfg.accent + "44" },
                                 ]}
                               >
@@ -308,9 +332,9 @@ export default function TasksScreen({ navigation }: any) {
                         </TouchableOpacity>
                       )}
                     </View>
-                    </Animated.View>
-                  </Animated.View>
-                );
+                  </View>
+                </Animated.View>
+              );
               })}
             </Animated.View>
           );
@@ -332,6 +356,9 @@ const st = StyleSheet.create({
   loaderText: { marginTop: 12, fontFamily: "Nunito_600SemiBold", fontSize: 14, color: "#9ca3af" },
 
   topBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingHorizontal: 22, paddingBottom: 14, backgroundColor: "#f7f8fa" },
+  inlineExplanation: { backgroundColor: "#fff", borderRadius: 18, padding: 18, marginTop: 10, marginBottom: 20, borderWidth: 1, borderColor: "#ede9fe", borderLeftWidth: 5, borderLeftColor: "#7c3aed" },
+  inlineExplanationTitle: { fontSize: 14, fontFamily: "Nunito_800ExtraBold", color: "#7c3aed", textTransform: "uppercase", marginBottom: 8 },
+  inlineExplanationText: { fontSize: 14, fontFamily: "Nunito_600SemiBold", color: "#4b5563", lineHeight: 22 },
   heading: { fontSize: 24, fontFamily: "Nunito_800ExtraBold", color: "#111827" },
   subHeading: { fontSize: 12, fontFamily: "Nunito_600SemiBold", color: "#6b7280", marginTop: 2 },
   badges: { flexDirection: "row", gap: 8 },

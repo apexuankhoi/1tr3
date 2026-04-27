@@ -133,9 +133,7 @@ export default function CommunityScreen() {
                 <MaterialCommunityIcons name="bell-ring" size={20} color="#154212" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={st.feedText}>
-                  <Text style={st.feedUser}>{item.user}</Text> vừa hoàn thành: {item.action}
-                </Text>
+                <Text style={st.feedText}><Text style={st.feedUser}>{item.user}</Text> vừa hoàn thành: {item.action}</Text>
                 <Text style={st.feedTime}>{formatTime(item.time)}</Text>
               </View>
             </View>

@@ -35,31 +35,47 @@ export default function LibraryScreen() {
 
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState("ủ phân");
+  const [selectedCategory, setSelectedCategory] = useState("Tất cả");
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<any | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const categories = [
-    { id: "ủ phân", label: "Ủ phân vỏ cà phê" },
-    { id: "quiz", label: "Làm quiz" },
-    { id: "báo cáo", label: "Báo cáo đốt rẫy" },
-  ];
+  const fetchLibrary = async () => {
+    setLoading(true);
+    try {
+      const res: any = await libraryService.getLibrary();
+      // Handle standardized response structure
+      const data = res?.data || res;
+      setItems(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Lỗi nạp thư viện:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchLibrary();
+  };
 
   useEffect(() => {
     fetchLibrary();
   }, []);
 
-  const fetchLibrary = async () => {
-    const mockData = [
-      { id: 1, title: "Kỹ thuật ủ vỏ cà phê hiệu quả", category: "ủ phân", image_url: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=800", description: "Hướng dẫn chi tiết cách tận dụng vỏ cà phê sau thu hoạch để làm phân bón hữu cơ.", type: 'article' },
-      { id: 2, title: "Kiểm tra kiến thức nông nghiệp xanh", category: "quiz", image_url: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800", description: "Cùng làm bài trắc nghiệm ngắn để nhận thêm xu và củng cố kiến thức canh tác.", type: 'article' },
-      { id: 3, title: "Cách báo cáo đốt rẫy trên bản đồ", category: "báo cáo", image_url: "https://images.unsplash.com/photo-1524350876685-274059332603?w=800", description: "Hướng dẫn sử dụng tính năng chụp ảnh khói bụi để bảo vệ bầu không khí buôn làng.", type: 'article' },
-    ];
-    setItems(mockData);
-    setLoading(false);
-  };
+  // Dynamic categories
+  const dynamicCategories = [
+    { id: "Tất cả", label: "Tất cả" },
+    ...Array.from(new Set(items.map(i => i.category))).filter(Boolean).map(cat => ({
+      id: cat,
+      label: cat
+    }))
+  ];
 
-  const filteredItems = items.filter(i => i.category === selectedCategory);
+  const filteredItems = selectedCategory === "Tất cả" 
+    ? items 
+    : items.filter(i => i.category === selectedCategory);
 
   const getYoutubeId = (url: string) => {
     if (!url) return null;
@@ -139,7 +155,7 @@ export default function LibraryScreen() {
         <View style={st.badges}>
           {userRole === 'admin' && (
             <TouchableOpacity 
-              onPress={() => navigation.navigate("AdminLibrary" as any)} 
+              onPress={() => navigation.navigate("AdminLibrary" as never)} 
               style={[st.badge, { backgroundColor: "#154212" }]}
             >
               <MaterialCommunityIcons name="plus" size={16} color="#fff" />
@@ -150,7 +166,7 @@ export default function LibraryScreen() {
 
       <View style={st.categoryContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
-          {categories.map((cat) => (
+          {dynamicCategories.map((cat) => (
             <TouchableOpacity 
               key={cat.id} 
               onPress={() => setSelectedCategory(cat.id)}
@@ -260,14 +276,6 @@ const st = StyleSheet.create({
   badge: { backgroundColor: "#fff", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#f3f4f6", ...SHADOW },
   badgeText: { marginLeft: 4, fontSize: 13, fontFamily: "Nunito_800ExtraBold", color: "#374151" },
 
-  categoryContainer: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  categoryScroll: { paddingHorizontal: 20, paddingVertical: 12, gap: 10 },
-  catBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f3f4f6' },
-  catBtnActive: { backgroundColor: '#154212' },
-  catBtnText: { fontSize: 13, fontFamily: "Nunito_700Bold", color: "#6b7280" },
-  catBtnTextActive: { color: "#fff" },
-
-  listContent: { padding: 20 },
   loadingWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
 
   card: { backgroundColor: "#fff", borderRadius: 20, marginBottom: 20, overflow: 'hidden', ...SHADOW },
@@ -309,4 +317,14 @@ const st = StyleSheet.create({
   articleTitle: { fontSize: 22, fontFamily: 'Nunito_800ExtraBold', color: '#111827', lineHeight: 28 },
   divider: { height: 2, backgroundColor: '#f3f4f6', marginVertical: 20, width: 60 },
   articleDesc: { fontSize: 16, fontFamily: 'Nunito_600SemiBold', color: '#4b5563', lineHeight: 26 },
+
+  categoryContainer: { backgroundColor: '#fff', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  categoryButton: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f3f4f6', marginRight: 10, borderWidth: 1, borderColor: 'transparent' },
+  categoryButtonActive: { backgroundColor: '#154212', borderColor: '#154212' },
+  categoryButtonText: { fontSize: 13, fontFamily: 'Nunito_700Bold', color: '#6b7280' },
+  categoryButtonTextActive: { color: '#fff' },
+
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 60 },
+  loadingText: { marginTop: 12, fontSize: 14, fontFamily: 'Nunito_600SemiBold', color: '#9ca3af' },
+  listContent: { paddingHorizontal: 20, paddingTop: 20 },
 });

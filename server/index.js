@@ -17,6 +17,15 @@ app.use(express.static('public'));
 app.get('/api/health', async (req, res) => {
     try {
         await db.query('SELECT 1');
+        console.log('[DB] Connected successfully');
+        
+        // Ensure dob column exists
+        try {
+            await db.query('ALTER TABLE users ADD COLUMN dob DATE DEFAULT NULL');
+        } catch (e) {
+            // Column already exists or other error
+        }
+
         res.json({ status: 'ok', database: 'connected', timestamp: new Date() });
     } catch (err) {
         res.status(500).json({ status: 'error', database: 'disconnected', error: err.message });
@@ -218,7 +227,7 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
         }
         console.log('[Upload] Buffer size:', req.file.size);
         const uploadStream = cloudinary.uploader.upload_stream(
-            { folder: 'nong_nghiep_xanh' },
+            { folder: 'nong_nghiep_xanh', resource_type: 'auto' },
             (error, result) => {
                 if (error) {
                     console.error('[Upload] Cloudinary error:', error);
@@ -244,7 +253,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
     try {
         let [rows] = await db.query(
-            'SELECT id, username, full_name, role, is_locked, coins, avatar_url, created_at FROM users WHERE username = ?',
+            'SELECT id, username, full_name, dob, role, is_locked, coins, avatar_url, created_at FROM users WHERE username = ?',
             [username]
         );
 
@@ -252,11 +261,11 @@ app.post('/api/auth/login', async (req, res) => {
         if (rows.length === 0) {
             // Tự động đăng ký
             const [result] = await db.query(
-                'INSERT INTO users (username, password, role, full_name, village_name) VALUES (?, ?, ?, ?, ?)',
-                [username, 'no-pass', 'farmer', `Nông dân ${username.slice(-4)}`, 'Buôn Làng']
+                'INSERT INTO users (username, password, role, full_name, dob, village_name) VALUES (?, ?, ?, ?, ?, ?)',
+                [username, 'no-pass', 'farmer', null, null, 'Buôn Làng']
             );
             const [newRows] = await db.query(
-                'SELECT id, username, full_name, role, is_locked, coins, avatar_url, created_at FROM users WHERE id = ?',
+                'SELECT id, username, full_name, dob, role, is_locked, coins, avatar_url, created_at FROM users WHERE id = ?',
                 [result.insertId]
             );
             user = newRows[0];
@@ -302,13 +311,16 @@ app.get('/api/user/:id', async (req, res) => {
 
 // Update Profile
 app.patch('/api/user/profile/:id', async (req, res) => {
-    const { fullName, email, avatarUrl, coverUrl, bio, location } = req.body;
+    const { fullName, dob, email, avatarUrl, coverUrl, bio, location } = req.body;
     try {
         await db.query(
-            'UPDATE users SET full_name = COALESCE(?, full_name), email = COALESCE(?, email), avatar_url = COALESCE(?, avatar_url), cover_url = COALESCE(?, cover_url), bio = COALESCE(?, bio), location = COALESCE(?, location) WHERE id = ?',
-            [fullName, email, avatarUrl, coverUrl, bio, location, req.params.id]
+            'UPDATE users SET full_name = COALESCE(?, full_name), dob = COALESCE(?, dob), email = COALESCE(?, email), avatar_url = COALESCE(?, avatar_url), cover_url = COALESCE(?, cover_url), bio = COALESCE(?, bio), location = COALESCE(?, location) WHERE id = ?',
+            [fullName, dob, email, avatarUrl, coverUrl, bio, location, req.params.id]
         );
-        return sendResponse(res, true, null, 'Cập nhật hồ sơ thành công');
+        
+        // Return updated user data
+        const [rows] = await db.query('SELECT * FROM users WHERE id = ?', [req.params.id]);
+        return sendResponse(res, true, rows[0], 'Cập nhật hồ sơ thành công');
     } catch (err) {
         return sendResponse(res, false, null, err.message, 500);
     }
@@ -580,7 +592,7 @@ async function seedAllTasks() {
     await db.query('TRUNCATE TABLE tasks');
     
     const tasks = [
-        ['Ủ phân vỏ cà phê', 60, 'Action', 'Chụp ảnh quá trình ủ vỏ cà phê bằng men vi sinh tại rẫy.', 'shoveler', 'action', 'photo', 'weekly', 0, 1, null, null, null],
+        ['Ủ phân vỏ cà phê', 60, 'Action', 'Chụp ảnh quá trình ủ vỏ cà phê bằng men vi sinh tại rẫy.', 'shovel', 'action', 'photo', 'weekly', 0, 1, null, null, null],
         ['Báo cáo đốt rẫy', 0, 'Report', 'Chụp ảnh và lẩy tọa độ GPS điểm đang có khói bụi/đốt rẫy.', 'fire-alert', 'report', 'photo', 'daily', 1, 0, null, null, null],
         
         // 10 New Quiz Questions

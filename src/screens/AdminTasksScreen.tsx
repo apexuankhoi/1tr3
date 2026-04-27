@@ -24,8 +24,8 @@ export default function AdminTasksScreen() {
 
   const fetchTasks = async () => {
     try {
-      const data = await taskService.getTasks();
-      setTasks(data);
+      const data: any = await taskService.getTasks();
+      setTasks(data || []);
     } catch (err) {
       console.error("Lỗi tải tasks:", err);
     } finally {
