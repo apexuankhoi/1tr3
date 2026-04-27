@@ -393,6 +393,16 @@ async function initDatabase() {
     await ensureTaskColumns();
     await ensureShopTables();
     await ensureGardenTables();
+    
+    // Force Reset Leaderboard Users (Dọn dẹp để nạp đúng Nguyễn Văn A và K'sor H'Bia)
+    await db.query('DELETE FROM users WHERE username IN ("0123456789", "0987654321")');
+    await db.query(`
+        INSERT INTO users (username, password, role, full_name, coins, village_name) 
+        VALUES 
+        ('0123456789', 'no-pass', 'farmer', 'Nguyễn Văn A', 1200, 'Buôn Làng'),
+        ('0987654321', 'no-pass', 'farmer', "K'sor H'Bia", 900, 'Buôn Làng')
+    `);
+    
     console.log("2. Cấu trúc Database đã sẵn sàng!");
 }
 
@@ -781,6 +791,9 @@ async function ensureTaskColumns() {
 }
 
 async function seedAllTasks() {
+    // Xóa sạch nhiệm vụ cũ để nạp đúng 3 nhiệm vụ mới
+    await db.query('TRUNCATE TABLE tasks');
+    
     const tasks = [
         ['Ủ phân vỏ cà phê', 60, 'Action', 'Chụp ảnh quá trình ủ vỏ cà phê bằng men vi sinh tại rẫy.', 'shoveler', 'action', 'photo', 'weekly', 0, 1, null, null],
         ['Làm quiz nông nghiệp', 40, 'Quiz', 'Trả lời câu hỏi trắc nghiệm về kỹ thuật canh tác cà phê xanh.', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["A. 1 tuần","B. 30-45 ngày","C. 3 tháng","D. 1 năm"]', 'B'],
@@ -789,7 +802,7 @@ async function seedAllTasks() {
 
     for (const t of tasks) {
         await db.query(
-            `INSERT IGNORE INTO tasks (title, reward, category, description, icon, task_group, task_type, frequency, needs_gps, needs_moderator, quiz_options, quiz_answer)
+            `INSERT INTO tasks (title, reward, category, description, icon, task_group, task_type, frequency, needs_gps, needs_moderator, quiz_options, quiz_answer)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             t
         );
@@ -810,16 +823,16 @@ async function seedAllTasks() {
     `);
 
     // 7. Seed Initial Library Data
-    const [libItems] = await db.query('SELECT COUNT(*) as count FROM library');
-    if (libItems[0].count === 0) {
-        const seedLibrary = [
-            ["Kỹ thuật ủ phân hữu cơ", "KỸ THUẬT", "5:20", "Hướng dẫn chi tiết cách ủ phân từ rác thải sinh hoạt và phụ phẩm nông nghiệp.", "https://images.unsplash.com/photo-1592724212522-88806a03c136?w=800", "#154212"],
-            ["Phân loại rác tại nguồn", "MÔI TRƯỜNG", "3:45", "Tại sao nông dân cần phân loại rác và cách thực hiện đúng chuẩn 3R.", "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=800", "#d97706"],
-            ["Bảo vệ nguồn nước buôn làng", "SINH HOẠT", "4:12", "Các biện pháp bảo vệ giếng nước và hệ thống thủy lợi khỏi ô nhiễm thuốc trừ sâu.", "https://images.unsplash.com/photo-1548504769-900b700126a1?w=800", "#2563eb"]
-        ];
-        await db.query('INSERT INTO library (title, category, duration, description, image_url, category_color) VALUES ?', [seedLibrary]);
-    }
-
+    // Xóa sạch thư viện cũ để nạp đúng 3 bài viết mới
+    await db.query('TRUNCATE TABLE library');
+    
+    const seedLibrary = [
+        ["Kỹ thuật ủ vỏ cà phê hiệu quả", "Ủ PHÂN", "5:20", "Hướng dẫn chi tiết cách tận dụng vỏ cà phê sau thu hoạch để làm phân bón hữu cơ.", "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=800", "#154212"],
+        ["Kiểm tra kiến thức nông nghiệp xanh", "QUIZ", "3:45", "Cùng làm bài trắc nghiệm ngắn để nhận thêm xu và củng cố kiến thức canh tác.", "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800", "#d97706"],
+        ["Cách báo cáo đốt rẫy trên bản đồ", "BÁO CÁO", "4:12", "Hướng dẫn sử dụng tính năng chụp ảnh khói bụi để bảo vệ bầu không khí buôn làng.", "https://images.unsplash.com/photo-1524350876685-274059332603?w=800", "#2563eb"]
+    ];
+    await db.query('INSERT INTO library (title, category, duration, description, image_url, category_color) VALUES ?', [seedLibrary]);
+    
     console.log('✅ Database tables verified and seeded.');
 }
 
