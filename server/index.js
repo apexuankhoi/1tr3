@@ -780,6 +780,7 @@ async function ensureTaskColumns() {
         { col: 'needs_moderator', sql: "ALTER TABLE tasks ADD COLUMN needs_moderator BOOLEAN DEFAULT TRUE" },
         { col: 'quiz_options',    sql: "ALTER TABLE tasks ADD COLUMN quiz_options JSON NULL" },
         { col: 'quiz_answer',     sql: "ALTER TABLE tasks ADD COLUMN quiz_answer VARCHAR(10) NULL" },
+        { col: 'quiz_explanation', sql: "ALTER TABLE tasks ADD COLUMN quiz_explanation TEXT NULL" },
     ];
     for (const c of checks) {
         const [cols] = await db.query(`SHOW COLUMNS FROM tasks LIKE '${c.col}'`);
@@ -795,15 +796,26 @@ async function seedAllTasks() {
     await db.query('TRUNCATE TABLE tasks');
     
     const tasks = [
-        ['Ủ phân vỏ cà phê', 60, 'Action', 'Chụp ảnh quá trình ủ vỏ cà phê bằng men vi sinh tại rẫy.', 'shoveler', 'action', 'photo', 'weekly', 0, 1, null, null],
-        ['Làm quiz nông nghiệp', 40, 'Quiz', 'Trả lời câu hỏi trắc nghiệm về kỹ thuật canh tác cà phê xanh.', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["A. 1 tuần","B. 30-45 ngày","C. 3 tháng","D. 1 năm"]', 'B'],
-        ['Báo cáo đốt rẫy', 0, 'Report', 'Chụp ảnh và lẩy tọa độ GPS điểm đang có khói bụi/đốt rẫy.', 'fire-alert', 'report', 'photo', 'daily', 1, 0, null, null],
+        ['Ủ phân vỏ cà phê', 60, 'Action', 'Chụp ảnh quá trình ủ vỏ cà phê bằng men vi sinh tại rẫy.', 'shoveler', 'action', 'photo', 'weekly', 0, 1, null, null, null],
+        ['Báo cáo đốt rẫy', 0, 'Report', 'Chụp ảnh và lẩy tọa độ GPS điểm đang có khói bụi/đốt rẫy.', 'fire-alert', 'report', 'photo', 'daily', 1, 0, null, null, null],
+        
+        // 10 New Quiz Questions
+        ['Quiz: Hạt bụi nguy hiểm', 40, 'Quiz', 'Khói bụi sinh ra từ việc đốt vỏ cà phê và rơm rạ trên rẫy chứa loại hạt nào đặc biệt nguy hiểm cho đường hô hấp của con người?', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["A. Bụi mịn PM2.5", "B. Khí Oxi trong lành", "C. Hơi nước tinh khiết", "D. Khí hiếm"]', 'A', 'Khói đốt rác thải nông nghiệp chứa lượng lớn bụi mịn PM2.5, loại bụi siêu nhỏ này có thể xâm nhập sâu vào phổi và máu, làm tăng nguy cơ mắc các bệnh về hô hấp.'],
+        ['Quiz: Hậu quả đốt rác', 40, 'Quiz', 'Nhiều người cho rằng đốt vỏ cà phê lấy tro sẽ tốt cho rẫy. Tuy nhiên, sức nóng từ việc đốt rác ngay trên mặt đất thực chất gây ra hậu quả gì?', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["A. Tiêu diệt hệ vi sinh vật có lợi và làm đất chai cứng.", "B. Làm đất tơi xốp và nhiều giun đất hơn.", "C. Giúp nấm bệnh phát triển tốt hơn.", "D. Tăng cường độ ẩm cho đất."]', 'A', 'Nhiệt độ cao từ ngọn lửa thiêu rụi chất mùn và giết chết các sinh vật có lợi dưới lớp đất mặt (như giun, dế, vi khuẩn tơi xốp), khiến đất đỏ bazan ngày càng bạc màu, chai cứng.'],
+        ['Quiz: Men vi sinh phổ biến', 40, 'Quiz', 'Loại men vi sinh (chế phẩm sinh học) nào thường được sử dụng phổ biến nhất để trộn vào vỏ cà phê giúp đẩy nhanh quá trình phân hủy?', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["A. Nấm đối kháng Trichoderma", "B. Men tiêu hóa", "C. Thuốc trừ sâu sinh học", "D. Nước muối pha loãng"]', 'A', 'Trichoderma là loại nấm có lợi, vừa giúp phân hủy nhanh lớp vỏ cà phê cứng cáp, vừa tiêu diệt các loại nấm bệnh gây hại cho rễ cây.'],
+        ['Quiz: Tại sao cần che bạt?', 40, 'Quiz', 'Trong quy trình ủ phân vi sinh, vì sao bà con cần phải che đậy bạt thật kín lên đống ủ?', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["A. Để giữ ẩm, duy trì nhiệt độ tối ưu và tránh mưa rửa trôi.", "B. Để ngăn chim chóc ăn mất vỏ cà phê.", "C. Để phân không bị bốc mùi bay sang nhà hàng xóm.", "D. Để ánh nắng mặt trời làm khô phân nhanh hơn."]', 'A', 'Che bạt tạo ra một "lồng ấp" lý tưởng (đủ nhiệt độ và độ ẩm) giúp vi sinh vật Trichoderma sinh sôi và phân hủy bã cà phê với tốc độ nhanh nhất.'],
+        ['Quiz: Thời gian ủ phân', 40, 'Quiz', 'Thông thường, một đống ủ vỏ cà phê với men vi sinh cần thời gian bao lâu để phân hủy hoàn toàn thành "vàng đen"?', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["A. Khoảng 2 đến 3 tháng", "B. Chỉ sau 1 tuần", "C. Cần ít nhất 1 năm", "D. Khoảng 3 đến 5 ngày"]', 'A', '2 đến 3 tháng là khoảng thời gian chuẩn kỹ thuật để vỏ cà phê được vi sinh vật phân giải hoàn toàn thành mùn tơi xốp, giàu dinh dưỡng, sẵn sàng đem bón cho gốc cà phê.'],
+        ['Quiz: Dấu hiệu phân chín', 40, 'Quiz', 'Dấu hiệu nào cho thấy mẻ phân ủ hữu cơ từ vỏ cà phê đã hoàn thành, đạt chất lượng và sẵn sàng đem bón cho rẫy?', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["A. Phân có màu nâu đen, tơi xốp và không có mùi hôi.", "B. Phân vẫn còn nguyên hình dạng vỏ cà phê cứng.", "C. Phân có mùi chua gắt và rỉ nhiều nước.", "D. Đống ủ đang nóng ran và bốc khói."]', 'A', 'Màu nâu đen (vàng đen) và độ tơi xốp chứng tỏ chất hữu cơ đã hoai mục hoàn toàn. Mùi hôi biến mất do hệ vi sinh có lợi đã khử mùi triệt để.'],
+        ['Quiz: Lợi ích kinh tế', 40, 'Quiz', 'Việc tận dụng vỏ cà phê làm phân bón tại chỗ mang lại lợi ích kinh tế nào thiết thực nhất cho bà con nông dân?', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["A. Tiết kiệm đáng kể chi phí mua phân bón vô cơ (hóa học).", "B. Tăng giá bán hạt cà phê trên thị trường.", "C. Giúp thời gian thu hoạch cà phê nhanh hơn.", "D. Giúp rẫy hoàn toàn không bao giờ có cỏ dại."]', 'A', 'Phân hữu cơ tự ủ giúp đất phục hồi độ màu mỡ, từ đó giúp gia đình giảm được một khoản tiền rất lớn để mua phân bón hóa học mỗi năm.'],
+        ['Quiz: Kiểm tra độ ẩm', 40, 'Quiz', 'Bằng mắt và tay không, cách nào sau đây giúp bà con nhận biết đống ủ đạt độ ẩm chuẩn?', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["A. Nắm chặt một nắm bã ủ, thấy rỉ nước nhẹ ở kẽ tay là đạt.", "B. Nhìn bằng mắt thấy vỏ cà phê bay bụi là đạt.", "C. Giẫm chân lên thấy lún sâu rập rềnh là đạt.", "D. Đưa tay vào thấy lạnh buốt là đạt."]', 'A', 'Đây là mẹo kỹ thuật chuẩn xác được các cán bộ khuyến nông hướng dẫn: nước rỉ nhẹ ra kẽ tay nhưng không chảy ròng ròng cho thấy độ ẩm đạt khoảng 60%, mức lý tưởng nhất cho đống ủ.'],
+        ['Quiz: Nguyên liệu kết hợp', 40, 'Quiz', 'Ngoài vỏ cà phê, bà con có thể kết hợp thêm nguyên liệu nào sau đây để mẻ phân ủ đạt chất lượng tốt nhất?', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["A. Phân chuồng (bò, gà, heo) và rơm rạ.", "B. Bao bì nilon và chai nhựa.", "C. Gạch đá vụn và xà bần.", "D. Pin cũ và thiết bị điện tử hỏng."]', 'A', 'Phân chuồng cung cấp đạm, rơm rạ cung cấp carbon. Khi kết hợp cùng vỏ cà phê sẽ tạo ra nguồn dinh dưỡng toàn diện và cân bằng nhất cho cây trồng.'],
+        ['Quiz: Bảo vệ buôn làng', 40, 'Quiz', 'Hành động từ bỏ thói quen đốt rẫy sang ủ phân hữu cơ góp phần trực tiếp bảo vệ đối tượng yếu thế nào nhất trong buôn làng?', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["A. Sức khỏe đường hô hấp của trẻ em và người già.", "B. Sự phát triển của đàn gia súc.", "C. Hệ thống điện lưới của địa phương.", "D. Giao thông đường bộ của xã."]', 'A', 'Trẻ em và người già có hệ hô hấp rất yếu và nhạy cảm. Việc giảm khói đốt rẫy chính là hành động trực tiếp và thiết thực nhất để bảo vệ lá phổi của họ.'],
     ];
 
     for (const t of tasks) {
         await db.query(
-            `INSERT INTO tasks (title, reward, category, description, icon, task_group, task_type, frequency, needs_gps, needs_moderator, quiz_options, quiz_answer)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO tasks (title, reward, category, description, icon, task_group, task_type, frequency, needs_gps, needs_moderator, quiz_options, quiz_answer, quiz_explanation)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             t
         );
     }

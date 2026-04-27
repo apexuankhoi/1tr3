@@ -29,6 +29,7 @@ export default function QuizScreen({ navigation, route }: any) {
   const taskReward: number = route?.params?.taskReward ?? 50;
   const rawOptions: any = route?.params?.quiz_options ?? ["A. 1 tuần", "B. 30-45 ngày", "C. 3 tháng", "D. 1 năm"];
   const correctAnswer: string = route?.params?.quiz_answer ?? "B";
+  const explanation: string = route?.params?.quiz_explanation ?? "";
 
   const options: string[] = typeof rawOptions === "string" ? JSON.parse(rawOptions) : rawOptions;
 
@@ -189,6 +190,17 @@ export default function QuizScreen({ navigation, route }: any) {
             </View>
           </View>
         )}
+        
+        {/* Explanation Section */}
+        {quizState !== "idle" && !!explanation && (
+          <Animated.View entering={FadeInDown.delay(300).duration(500)} style={st.explanationCard}>
+            <View style={st.explanationHeader}>
+              <MaterialCommunityIcons name="lightbulb-on" size={20} color="#7c3aed" />
+              <Text style={st.explanationTitle}>Giải thích từ chuyên gia</Text>
+            </View>
+            <Text style={st.explanationText}>{explanation}</Text>
+          </Animated.View>
+        )}
 
         {/* Action Button */}
         {quizState === "idle" ? (
@@ -270,4 +282,9 @@ const st = StyleSheet.create({
   confirmDisabled: { opacity: 0.4 },
   confirmGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 16, gap: 10 },
   confirmText: { fontSize: 16, fontFamily: "Nunito_800ExtraBold", color: "#fff" },
+
+  explanationCard: { backgroundColor: "#fff", borderRadius: 18, padding: 18, marginTop: 10, marginBottom: 20, borderWidth: 1, borderColor: "#ede9fe", borderLeftWidth: 5, borderLeftColor: "#7c3aed", ...SHADOW },
+  explanationHeader: { flexDirection: "row", alignItems: "center", marginBottom: 8, gap: 8 },
+  explanationTitle: { fontSize: 14, fontFamily: "Nunito_800ExtraBold", color: "#7c3aed", textTransform: "uppercase" },
+  explanationText: { fontSize: 14, fontFamily: "Nunito_600SemiBold", color: "#4b5563", lineHeight: 22 },
 });

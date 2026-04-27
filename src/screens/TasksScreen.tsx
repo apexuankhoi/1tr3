@@ -93,6 +93,7 @@ export default function TasksScreen({ navigation }: any) {
         taskReward: task.reward,
         quiz_options: task.quiz_options,
         quiz_answer: task.quiz_answer,
+        quiz_explanation: task.quiz_explanation,
       });
       return;
     }
@@ -275,6 +276,13 @@ export default function TasksScreen({ navigation }: any) {
                               </TouchableOpacity>
                             );
                           })}
+                          
+                          {!!myAnswer && !!task.quiz_explanation && (
+                            <View style={st.inlineExplanation}>
+                              <Text style={st.inlineExplanationTitle}>💡 Giải thích:</Text>
+                              <Text style={st.inlineExplanationText}>{task.quiz_explanation}</Text>
+                            </View>
+                          )}
                         </View>
                       )}
 
