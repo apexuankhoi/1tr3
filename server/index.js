@@ -191,6 +191,12 @@ async function ensureUserColumns() {
     if (bioCols.length === 0) {
         await db.query("ALTER TABLE users ADD COLUMN bio TEXT AFTER cover_url, ADD COLUMN location VARCHAR(255) AFTER bio");
     }
+
+    // Level and EXP system
+    const [lvlCols] = await db.query("SHOW COLUMNS FROM users LIKE 'level'");
+    if (lvlCols.length === 0) {
+        await db.query("ALTER TABLE users ADD COLUMN level INT DEFAULT 1 AFTER role, ADD COLUMN exp INT DEFAULT 0 AFTER level");
+    }
 }
 
 // ── Ensure Garden tables (user_pots + push_tokens) ──────────────────────────
@@ -272,7 +278,13 @@ async function ensureGardenTables() {
         )
     `);
 
-    console.log('✅ Garden + Push + AI + Library tables verified.');
+    // Add exp_reward to tasks if not exists
+    const [taskExpCols] = await db.query("SHOW COLUMNS FROM tasks LIKE 'exp_reward'");
+    if (taskExpCols.length === 0) {
+        await db.query("ALTER TABLE tasks ADD COLUMN exp_reward INT DEFAULT 20 AFTER reward");
+    }
+
+    console.log('✅ Garden + Push + AI + Library + Tasks verified.');
 }
 
 async function performPreStartChecks() {
@@ -895,7 +907,7 @@ app.get('/api/tasks/submissions/:userId', async (req, res) => {
 app.post('/api/tasks/submit', async (req, res) => {
     const { userId, taskId, imageUrl } = req.body;
     try {
-        const [tasks] = await db.query('SELECT title, description, needs_moderator, reward, task_type FROM tasks WHERE id = ?', [taskId]);
+        const [tasks] = await db.query('SELECT title, description, needs_moderator, reward, exp_reward, task_type FROM tasks WHERE id = ?', [taskId]);
         if (tasks.length === 0) return res.status(404).json({ message: 'Task not found' });
         
         const task = tasks[0];
@@ -939,10 +951,13 @@ app.post('/api/tasks/submit', async (req, res) => {
             });
         } else if (!task.needs_moderator) {
             await db.query('UPDATE users SET coins = coins + ? WHERE id = ?', [task.reward, userId]);
+            const { level, leveledUp } = await awardExp(userId, task.exp_reward || 20);
             res.json({ 
                 message: 'Task completed and reward granted', 
                 autoApproved: true, 
                 reward: task.reward,
+                level,
+                leveledUp,
                 aiVerified: aiResult ? aiResult.verified : null,
                 aiConfidence: aiResult ? aiResult.confidence : null
             });
@@ -979,13 +994,32 @@ app.get('/api/admin/submissions', async (req, res) => {
     }
 });
 
+// Level Up Helper
+async function awardExp(userId, expAmount) {
+    const [users] = await db.query('SELECT level, exp FROM users WHERE id = ?', [userId]);
+    if (users.length === 0) return { level: 1, exp: 0 };
+    
+    let { level, exp } = users[0];
+    exp += expAmount;
+    
+    // Level up formula: Level * 100
+    let leveledUp = false;
+    while (exp >= level * 100) {
+        exp -= level * 100;
+        level += 1;
+        leveledUp = true;
+    }
+    
+    await db.query('UPDATE users SET level = ?, exp = ? WHERE id = ?', [level, exp, userId]);
+    return { level, exp, leveledUp };
+}
+
 // Approve Submission
 app.post('/api/admin/approve', async (req, res) => {
     const { submissionId } = req.body;
     try {
-        // 1. Get submission details with reward
         const [submissions] = await db.query(`
-            SELECT ts.*, t.reward 
+            SELECT ts.*, t.reward, t.exp_reward 
             FROM task_submissions ts 
             JOIN tasks t ON ts.task_id = t.id 
             WHERE ts.id = ?
@@ -1000,10 +1034,12 @@ app.post('/api/admin/approve', async (req, res) => {
         // 2. Update status
         await db.query('UPDATE task_submissions SET status = "approved" WHERE id = ?', [submissionId]);
 
-        // 3. Add coins to user
+        // 3. Add coins and exp
         await db.query('UPDATE users SET coins = coins + ? WHERE id = ?', [sub.reward, sub.user_id]);
+        
+        const { level, leveledUp } = await awardExp(sub.user_id, sub.exp_reward || 20);
 
-        return sendResponse(res, true, null, 'Đã duyệt nhiệm vụ và cộng xu thành công');
+        return sendResponse(res, true, { level, leveledUp }, 'Đã duyệt nhiệm vụ và cộng thưởng');
     } catch (err) {
         return sendResponse(res, false, null, err.message, 500);
     }
@@ -1033,7 +1069,7 @@ app.get('/api/library', async (req, res) => {
 // ── Get rankings ────────────────────────────────────────────────────────────
 app.get('/api/rankings', async (req, res) => {
     try {
-        const [users] = await db.query('SELECT id, full_name as name, coins as points, avatar_url as imageUri FROM users ORDER BY coins DESC LIMIT 20');
+        const [users] = await db.query('SELECT id, full_name as name, coins as points, avatar_url as imageUri, level FROM users ORDER BY coins DESC LIMIT 20');
         return sendResponse(res, true, users, 'Lấy bảng xếp hạng thành công');
     } catch (err) {
         return sendResponse(res, false, null, err.message, 500);

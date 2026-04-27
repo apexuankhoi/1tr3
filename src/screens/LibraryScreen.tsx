@@ -31,15 +31,21 @@ const SHADOW = Platform.select({
 export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const { userRole, seeds, coins } = useGameStore();
+  const { userRole, seeds, coins, t } = useGameStore();
 
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState("Tất cả");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<any | null>(null);
 
-  const categories = ["Tất cả", "Trồng trọt", "Bảo vệ đất", "Nước sạch", "Phân bón", "Khác"];
+  const categories = [
+    { id: "all", label: t('library.cat_all') },
+    { id: t('library.cat_planting'), label: t('library.cat_planting') },
+    { id: t('library.cat_soil'), label: t('library.cat_soil') },
+    { id: t('library.cat_water'), label: t('library.cat_water') },
+    { id: t('library.cat_fertilizer'), label: t('library.cat_fertilizer') },
+  ];
 
   useEffect(() => {
     fetchLibrary();
@@ -56,7 +62,7 @@ export default function LibraryScreen() {
     }
   };
 
-  const filteredItems = selectedCategory === "Tất cả" 
+  const filteredItems = selectedCategory === "all" 
     ? items 
     : items.filter(i => i.category === selectedCategory);
 
@@ -144,30 +150,29 @@ export default function LibraryScreen() {
               <MaterialCommunityIcons name="plus" size={16} color="#fff" />
             </TouchableOpacity>
           )}
-          <View style={st.badge}>
-            <MaterialCommunityIcons name="leaf" size={16} color="#4ade80" />
-            <Text style={st.badgeText}>{seeds}</Text>
-          </View>
         </View>
       </View>
 
       <View style={st.categoryContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.categoryScroll}>
-          {categories.map((cat, i) => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
+          {categories.map((cat) => (
             <TouchableOpacity 
-              key={i} 
-              onPress={() => setSelectedCategory(cat)}
-              style={[st.catBtn, selectedCategory === cat && st.catBtnActive]}
+              key={cat.id} 
+              onPress={() => setSelectedCategory(cat.id)}
+              style={[st.categoryButton, selectedCategory === cat.id && st.categoryButtonActive]}
             >
-              <Text style={[st.catBtnText, selectedCategory === cat && st.catBtnTextActive]}>{cat}</Text>
+              <Text style={[st.categoryButtonText, selectedCategory === cat.id && st.categoryButtonTextActive]}>
+                {cat.label}
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
 
       {loading ? (
-        <View style={st.loadingWrap}>
-          <ActivityIndicator color="#154212" size="large" />
+        <View style={st.loadingContainer}>
+          <ActivityIndicator size="large" color="#154212" />
+          <Text style={st.loadingText}>{t('common.loading')}</Text>
         </View>
       ) : (
         <ScrollView 

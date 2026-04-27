@@ -19,9 +19,9 @@ export default function QRScannerScreen() {
   if (!permission.granted) {
     return (
       <View style={[st.container, st.center]}>
-        <Text style={st.permissionText}>Chúng tôi cần quyền truy cập camera để quét mã QR</Text>
+        <Text style={st.permissionText}>{t('common.error')}: Camera</Text>
         <TouchableOpacity onPress={requestPermission} style={st.permissionBtn}>
-          <Text style={st.permissionBtnText}>Cấp quyền Camera</Text>
+          <Text style={st.permissionBtnText}>{t('profile.verify')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -36,13 +36,13 @@ export default function QRScannerScreen() {
     try {
       const res = await api.post("/moderator/collect", { qrCode: data, moderatorId: userId });
       haptics.notificationAsync(haptics.NotificationFeedbackType.Success);
-      Alert.alert("Thành công", res.data.message || "Đổi quà thành công!", [
-        { text: "Tiếp tục quét", onPress: () => setScanned(false) }
+      Alert.alert(t('common.success'), res.data.message || t('shop.buy_success'), [
+        { text: t('common.close'), onPress: () => setScanned(false) }
       ]);
     } catch (error: any) {
       haptics.notificationAsync(haptics.NotificationFeedbackType.Error);
-      Alert.alert("Thất bại", error.response?.data?.message || "Mã QR không hợp lệ", [
-        { text: "Quét lại", onPress: () => setScanned(false) }
+      Alert.alert(t('common.error'), error.response?.data?.message || t('common.error'), [
+        { text: t('common.close'), onPress: () => setScanned(false) }
       ]);
     }
   };
@@ -58,7 +58,7 @@ export default function QRScannerScreen() {
       <View style={st.overlay}>
         <View style={st.scanFrame} />
         <Text style={st.helperText}>
-          Di chuyển camera để quét mã QR đổi quà của nông dân
+          {t('profile.verify')} QR
         </Text>
       </View>
 

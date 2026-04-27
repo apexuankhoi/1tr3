@@ -52,13 +52,13 @@ export default function ShopScreen() {
 
   const handleBuy = async (item: any) => {
     if (coins < item.price) {
-      Alert.alert("Không đủ xu", "Bạn cần làm thêm nhiệm vụ để kiếm thêm xu nhé!");
+      Alert.alert(t('shop.not_enough_coins'), t('shop.not_enough_coins'));
       return;
     }
 
     Alert.alert(
-      "Xác nhận đổi quà",
-      `Bạn có muốn dùng ${item.price} xu để đổi lấy "${item.name}" không?`,
+      t('shop.buy'),
+      `${t('shop.price')}: ${item.price} xu. ${t('shop.buy')} "${item.name}"?`,
       [
         { text: "Hủy", style: "cancel" },
         { 
@@ -110,14 +110,14 @@ export default function ShopScreen() {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={st.content} showsVerticalScrollIndicator={false}>
         <View style={st.titleBox}>
-          <Text style={st.title}>Cửa hàng Đổi quà</Text>
-          <Text style={st.subtitle}>Dùng xu tích lũy để đổi lấy vật tư nông nghiệp thiết thực.</Text>
+          <Text style={st.title}>{t('shop.title')}</Text>
+          <Text style={st.subtitle}>{t('home.balance')}</Text>
         </View>
 
         {loading ? (
           <View style={st.loader}>
             <ActivityIndicator size="large" color="#154212" />
-            <Text style={st.loaderText}>Đang tải danh sách quà...</Text>
+            <Text style={st.loaderText}>{t('common.loading')}</Text>
           </View>
         ) : (
           items.map((item, index) => (
@@ -147,7 +147,7 @@ export default function ShopScreen() {
                     ) : (
                       <>
                         <MaterialCommunityIcons name="gift-outline" size={20} color="white" />
-                        <Text style={st.buyBtnText}>Đổi quà ngay</Text>
+                        <Text style={st.buyBtnText}>{t('shop.buy')}</Text>
                       </>
                     )}
                   </TouchableOpacity>

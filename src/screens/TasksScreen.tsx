@@ -56,7 +56,7 @@ const MOCK_TASKS = [
 
 export default function TasksScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
-  const { seeds, coins, userId, addCoins } = useGameStore();
+  const { seeds, coins, userId, addCoins, t } = useGameStore();
 
   const [weekNum, setWeekNum] = useState(0);
   const [tasks, setTasks] = useState<any[]>([]);
@@ -144,7 +144,7 @@ export default function TasksScreen({ navigation }: any) {
     return (
       <View style={[st.root, { justifyContent: "center", alignItems: "center" }]}>
         <ActivityIndicator size="large" color="#154212" />
-        <Text style={st.loaderText}>Đang tải nhiệm vụ tuần này...</Text>
+        <Text style={st.loaderText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -169,11 +169,11 @@ export default function TasksScreen({ navigation }: any) {
       <Animated.View entering={FadeInDown.duration(400)} style={st.progressCard}>
         <LinearGradient colors={["#154212", "#2a5c24"]} style={st.progressGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
           <View style={st.progressStats}>
-            <View style={st.pStat}><Text style={st.pNum}>{tasks.length}</Text><Text style={st.pLbl}>Nhiệm vụ</Text></View>
+            <View style={st.pStat}><Text style={st.pNum}>{tasks.length}</Text><Text style={st.pLbl}>{t('profile.tasks_completed')}</Text></View>
             <View style={st.pDivider} />
-            <View style={st.pStat}><Text style={st.pNum}>{completedCount}</Text><Text style={st.pLbl}>Hoàn thành</Text></View>
+            <View style={st.pStat}><Text style={st.pNum}>{completedCount}</Text><Text style={st.pLbl}>{t('tasks.status_approved')}</Text></View>
             <View style={st.pDivider} />
-            <View style={st.pStat}><Text style={st.pNum}>+{totalReward}⭐</Text><Text style={st.pLbl}>Xu kiếm</Text></View>
+            <View style={st.pStat}><Text style={st.pNum}>+{totalReward}⭐</Text><Text style={st.pLbl}>{t('profile.coins_earned')}</Text></View>
           </View>
           {/* Progress bar */}
           <View style={st.barBg}>
@@ -203,7 +203,7 @@ export default function TasksScreen({ navigation }: any) {
                   <Text style={{ fontSize: 16 }}>{cfg.emoji}</Text>
                 </LinearGradient>
                 <View style={{ flex: 1 }}>
-                  <Text style={st.groupTitle}>Nhóm {cfg.label}</Text>
+                  <Text style={st.groupTitle}>{group === 'action' ? t('tasks.filter_action') : group === 'report' ? t('tasks.filter_report') : t('tasks.filter_quiz')}</Text>
                   <Text style={st.groupSub}>
                     {group === "action" ? "Cần chụp ảnh · Moderator duyệt" :
                      group === "report" ? "Cần GPS + ảnh · Moderator duyệt" :
@@ -248,7 +248,7 @@ export default function TasksScreen({ navigation }: any) {
                           <View style={st.metaRow}>
                             <Text style={[st.rewardChip, { color: cfg.accent }]}>+{task.reward} xu</Text>
                             {!!task.needs_gps && <View style={st.gpsPill}><MaterialCommunityIcons name="map-marker" size={10} color="#7c3aed" /><Text style={st.gpsText}>GPS</Text></View>}
-                            {!!task.needs_moderator && <View style={st.modPill}><Text style={st.modText}>Cần duyệt</Text></View>}
+                            {!!task.needs_moderator && <View style={st.modPill}><Text style={st.modText}>{t('tasks.status_pending')}</Text></View>}
                           </View>
                         </View>
                         {isApproved && <MaterialCommunityIcons name="check-decagram" size={22} color="#10b981" />}
@@ -298,12 +298,12 @@ export default function TasksScreen({ navigation }: any) {
                           {!isPending && !isApproved ? (
                             <LinearGradient colors={cfg.gradient} style={st.actionGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                               <MaterialCommunityIcons name={statusCfg.icon as any} size={16} color="#fff" />
-                              <Text style={[st.actionText, { color: "#fff" }]}>{statusCfg.label}</Text>
+                              <Text style={[st.actionText, { color: "#fff" }]}>{status === 'rejected' ? t('common.edit') : t('tasks.submit')}</Text>
                             </LinearGradient>
                           ) : (
                             <View style={st.actionInner}>
                               <MaterialCommunityIcons name={statusCfg.icon as any} size={16} color={statusCfg.color} />
-                              <Text style={[st.actionText, { color: statusCfg.color }]}>{statusCfg.label}</Text>
+                              <Text style={[st.actionText, { color: statusCfg.color }]}>{isApproved ? t('tasks.status_approved') : t('tasks.status_pending')}</Text>
                             </View>
                           )}
                         </TouchableOpacity>

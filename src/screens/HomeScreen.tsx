@@ -145,8 +145,8 @@ function Bee({ startX, startY, delay }: { startX: number; startY: number; delay:
 
 export default function HomeScreen({ navigation }: any) {
   const {
-    userId, userRole, fullName, coins, pots, seeds, avatarUrl,
-    plantSeed, waterPot, fertilizePot, harvestPot, advancePotStage, t
+    userId, userRole, fullName, coins, level, exp, pots, seeds, avatarUrl,
+    plantSeed, waterPot, fertilizePot, harvestPot, advancePotStage, t, showToast
   } = useGameStore();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -309,7 +309,7 @@ export default function HomeScreen({ navigation }: any) {
           </View>
           <View style={st.userInfo}>
             <Text style={st.subText}>{t('home.garden_of')}</Text>
-            <Text style={st.name}>{fullName || "Nông dân"}</Text>
+            <Text style={st.name}>{fullName || t('auth.fullname')}</Text>
           </View>
         </View>
         <View style={st.stats}>
@@ -321,6 +321,17 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={{fontSize: 18}}>⭐</Text>
             <Text style={st.statBadgeText}>{coins}</Text>
           </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Level Progress Bar */}
+      <View style={st.levelContainer}>
+        <View style={st.levelBadge}>
+          <Text style={st.levelText}>{t('home.level')}.{level}</Text>
+        </View>
+        <View style={st.expTrack}>
+          <LinearGradient colors={['#FCD34D', '#F59E0B']} start={{x:0, y:0}} end={{x:1, y:0}} style={[st.expFill, { width: `${Math.min(100, (exp / (level * 100)) * 100)}%` }]} />
+          <Text style={st.expText}>{exp} / {level * 100} {t('home.exp')}</Text>
         </View>
       </View>
 
@@ -376,7 +387,9 @@ export default function HomeScreen({ navigation }: any) {
           onStartShouldSetResponder={() => true}
           onResponderGrant={() => setSelectedPotId(null)}
         >
-          {pots.map((pot) => {
+          {pots.map((pot, index) => {
+            const maxPlots = 2 + level;
+            const isLocked = index >= maxPlots;
             const isSelected = selectedPotId === pot.id;
             const treeImg = getTreeImage(pot);
             return (
@@ -384,13 +397,16 @@ export default function HomeScreen({ navigation }: any) {
                 key={pot.id}
                 activeOpacity={0.9}
                 onPress={() => {
+                  if (isLocked) return showToast(t('home.need_level', { level: index - 1 }), 'error');
                   setSelectedPotId(pot.id);
                   haptics.selectionAsync();
                 }}
                 style={st.gridItem}
               >
-                <View style={[st.cloudSlot, isSelected && { transform: [{scale: 1.05}] }]}>
-                  {pot.hasPlant ? (
+                <View style={[st.cloudSlot, isSelected && { transform: [{scale: 1.05}] }, isLocked && { opacity: 0.6 }]}>
+                  {isLocked ? (
+                    <MaterialCommunityIcons name="lock" size={32} color="#64748b" style={{ position: 'absolute', bottom: 35, zIndex: 10 }} />
+                  ) : pot.hasPlant ? (
                     <Image source={treeImg} style={[st.plantImg, { width: getPlantSize(pot), height: getPlantSize(pot) }]} resizeMode="contain" />
                   ) : (
                     <View style={st.addBtnWrap}>
@@ -418,26 +434,26 @@ export default function HomeScreen({ navigation }: any) {
       <Animated.View entering={FadeInUp.duration(400)}>
         <View style={st.actionPanel}>
         {!selectedPot ? (
-          <Text style={{textAlign: 'center', color: '#8D9999'}}>Chọn chậu cây để chăm sóc</Text>
+          <Text style={{textAlign: 'center', color: '#8D9999'}}>{t('home.locked_plot')}</Text>
         ) : !selectedPot.hasPlant ? (
           <View style={st.emptyStateContainer}>
             <View style={st.emptyStateIconWrap}>
               <MaterialCommunityIcons name="seed-outline" size={48} color="#10B981" />
             </View>
-            <Text style={st.emptyStateTitle}>CHẬU ĐANG TRỐNG</Text>
-            <Text style={st.emptyStateSub}>Bạn đang có {seeds} hạt giống trong kho</Text>
+            <Text style={st.emptyStateTitle}>{t('garden.empty_plot')}</Text>
+            <Text style={st.emptyStateSub}>{t('home.balance')}: {seeds} {t('garden.plant')}</Text>
             
             <TouchableOpacity onPress={() => handleAction('plant')} activeOpacity={0.8} style={st.btnPlantWrap}>
               <LinearGradient colors={['#4ADE80', '#22C55E']} start={{x: 0, y: 0}} end={{x: 1, y: 0}} style={st.btnPlant}>
                 <MaterialCommunityIcons name="seed" size={20} color="#fff" />
-                <Text style={st.btnPlantText}>Gieo hạt ngay</Text>
+                <Text style={st.btnPlantText}>{t('garden.plant')}</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
         ) : (
           <>
             <View style={st.panelHeader}>
-              <Text style={st.panelTitle}>CHẬU ĐANG CHỌN</Text>
+              <Text style={st.panelTitle}>{t('garden.growing')}</Text>
               <View style={st.statusBadge}>
                 <MaterialCommunityIcons name="leaf" size={14} color="#0284C7" />
                 <Text style={st.statusBadgeText}>{selectedPot.growthStage}</Text>
@@ -446,7 +462,7 @@ export default function HomeScreen({ navigation }: any) {
 
             <View style={st.progressItem}>
               <View style={st.progressHeader}>
-                <Text style={st.progressLabel}>Độ ẩm</Text>
+                <Text style={st.progressLabel}>{t('garden.water')}</Text>
                 <Text style={[st.progressValue, st.blueText]}>{currentWaterPct}%</Text>
               </View>
               <View style={st.progressTrack}>
@@ -456,7 +472,7 @@ export default function HomeScreen({ navigation }: any) {
 
             <View style={[st.progressItem, {marginBottom: 0}]}>
               <View style={st.progressHeader}>
-                <Text style={st.progressLabel}>Dinh dưỡng</Text>
+                <Text style={st.progressLabel}>{t('garden.fertilize')}</Text>
                 <Text style={[st.progressValue, st.greenText]}>{currentFertilizerPct}%</Text>
               </View>
               <View style={st.progressTrack}>
@@ -469,7 +485,7 @@ export default function HomeScreen({ navigation }: any) {
               <View style={st.buttonGroup}>
                 <TouchableOpacity onPress={() => handleAction('harvest')} activeOpacity={0.8} style={{flex: 1, shadowColor: '#f59e0b', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: {width:0, height: 4}}}>
                   <LinearGradient colors={['#fbbf24', '#f59e0b']} style={st.btn}>
-                    <Text style={st.btnText}>🌟 Thu hoạch</Text>
+                    <Text style={st.btnText}>🌟 {t('garden.harvest')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
@@ -480,8 +496,8 @@ export default function HomeScreen({ navigation }: any) {
                     <MaterialCommunityIcons name="timer-sand" size={26} color="#8b5cf6" />
                   </View>
                   <View style={st.growingStateTextWrap}>
-                    <Text style={st.growingStateTitle}>Cây đang lớn...</Text>
-                    <Text style={st.growingStateTime}>Còn {formatTime(remainingTime)}</Text>
+                    <Text style={st.growingStateTitle}>{t('garden.growing')}...</Text>
+                    <Text style={st.growingStateTime}>{t('common.loading')} {formatTime(remainingTime)}</Text>
                   </View>
                   <MaterialCommunityIcons name="star-four-points" size={24} color="#fcd34d" style={{marginRight: 5}} />
                 </View>
@@ -491,14 +507,14 @@ export default function HomeScreen({ navigation }: any) {
                 <TouchableOpacity onPress={() => handleAction('water')} activeOpacity={0.8} style={st.btnWaterWrap}>
                   <LinearGradient colors={['#7DD3FC', '#3B82F6']} style={st.btn}>
                     <MaterialCommunityIcons name="water" size={20} color="#fff" />
-                    <Text style={st.btnText}>Tưới nước</Text>
+                    <Text style={st.btnText}>{t('garden.water')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={() => handleAction('fertilize')} activeOpacity={0.8} style={st.btnFertWrap}>
                   <LinearGradient colors={['#86EFAC', '#22C55E']} style={st.btn}>
                     <MaterialCommunityIcons name="leaf" size={20} color="#fff" />
-                    <Text style={st.btnText}>Bón phân</Text>
+                    <Text style={st.btnText}>{t('garden.fertilize')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
@@ -529,6 +545,13 @@ const st = StyleSheet.create({
   stats: { flexDirection: 'row', gap: 10 },
   statBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, gap: 6, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: {width:0, height:4} },
   statBadgeText: { color: '#1a1a1a', fontSize: 15, fontFamily: 'Nunito_800ExtraBold' },
+
+  levelContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginTop: 10, gap: 10 },
+  levelBadge: { backgroundColor: '#154212', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  levelText: { color: '#fff', fontSize: 12, fontFamily: 'Nunito_800ExtraBold' },
+  expTrack: { flex: 1, height: 20, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 10, overflow: 'hidden', justifyContent: 'center' },
+  expFill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 10 },
+  expText: { textAlign: 'center', fontSize: 10, fontFamily: 'Nunito_800ExtraBold', color: '#154212' },
 
   pageTitle: {
     textAlign: 'center', color: '#fff', fontSize: 26, fontFamily: 'Nunito_800ExtraBold', 

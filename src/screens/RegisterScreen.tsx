@@ -36,6 +36,7 @@ function StaticInput({ label, icon, value, onChangeText, secureTextEntry, keyboa
 
 export default function RegisterScreen({ navigation }: any) {
   const showToast = useGameStore((state) => state.showToast);
+  const t = useGameStore((state) => state.t);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -65,9 +66,9 @@ export default function RegisterScreen({ navigation }: any) {
           <View style={st.dateOverlay}>
             <View style={st.dateContent}>
               <View style={st.dateHeader}>
-                <Text style={st.dateTitle}>Chọn ngày sinh</Text>
+                <Text style={st.dateTitle}>{t('auth.fullname')}</Text>
                 <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                  <Text style={st.dateDoneBtn}>Xong</Text>
+                  <Text style={st.dateDoneBtn}>{t('common.close')}</Text>
                 </TouchableOpacity>
               </View>
               <DateTimePicker value={date} mode="date" display="spinner" onChange={handleDateChange} maximumDate={new Date()} textColor="black" />
@@ -80,9 +81,9 @@ export default function RegisterScreen({ navigation }: any) {
   };
 
   const handleRegister = async () => {
-    if (!fullName || !phone || !password || !email || !dob) return showToast("Vui lòng điền đầy đủ thông tin");
-    if (!agreed) return setShowTermsModal(true), showToast("Bạn cần đọc và đồng ý với điều khoản");
-    if (password.length < 6) return showToast("Mật khẩu phải có ít nhất 6 ký tự");
+    if (!fullName || !phone || !password || !email || !dob) return showToast(t('common.error'));
+    if (!agreed) return setShowTermsModal(true), showToast(t('profile.privacy'));
+    if (password.length < 6) return showToast(t('auth.password'));
     
     const today = new Date();
     let age = today.getFullYear() - date.getFullYear();
@@ -101,10 +102,10 @@ export default function RegisterScreen({ navigation }: any) {
         dob: dob.trim(), 
         role: "farmer",
       });
-      showToast("Đăng ký thành công!", 'success');
+      showToast(t('common.success'), 'success');
       setTimeout(() => navigation.navigate("Login", { prefilledPhone: phone.trim() }), 1500);
     } catch (error: any) {
-      showToast(error.response?.data?.message || "Đăng ký thất bại");
+      showToast(error.response?.data?.message || t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -123,7 +124,7 @@ export default function RegisterScreen({ navigation }: any) {
         <View style={st.modalOverlay}>
           <View style={st.modalContent}>
             <View style={st.modalHeader}>
-              <Text style={st.modalTitle}>Điều khoản sử dụng</Text>
+              <Text style={st.modalTitle}>{t('profile.privacy')}</Text>
               <TouchableOpacity onPress={() => setShowTermsModal(false)}>
                 <MaterialCommunityIcons name="close" size={24} color="#9ca3af" />
               </TouchableOpacity>
@@ -170,21 +171,21 @@ export default function RegisterScreen({ navigation }: any) {
             <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
               <MaterialCommunityIcons name="arrow-left" size={26} color="#154212" />
             </TouchableOpacity>
-            <Text style={st.headerTitle}>Đăng ký tài khoản</Text>
+            <Text style={st.headerTitle}>{t('auth.register')}</Text>
           </View>
           <View>
-            <Text style={st.welcome}>Chào mừng,</Text>
-            <Text style={st.subtitle}>Vui lòng điền thông tin để tạo tài khoản mới.</Text>
+            <Text style={st.welcome}>{t('home.welcome')}</Text>
+            <Text style={st.subtitle}>{t('auth.register')}</Text>
           </View>
         </View>
 
         <View style={st.form}>
-          <StaticInput label="Họ và tên" icon="account-outline" value={fullName} onChangeText={setFullName} placeholder="Nguyễn Văn A" />
-          <StaticInput label="Ngày sinh" icon="calendar-month-outline" value={dob} editable={false} onPress={() => setShowDatePicker(true)} placeholder="Chọn ngày sinh của bạn" />
+          <StaticInput label={t('auth.fullname')} icon="account-outline" value={fullName} onChangeText={setFullName} placeholder="Nguyễn Văn A" />
+          <StaticInput label={t('auth.fullname')} icon="calendar-month-outline" value={dob} editable={false} onPress={() => setShowDatePicker(true)} placeholder="01/01/1990" />
           {renderDatePicker()}
           <StaticInput label="Email" icon="email-outline" value={email} onChangeText={setEmail} placeholder="example@gmail.com" keyboardType="email-address" />
-          <StaticInput label="Số điện thoại" icon="phone-outline" value={phone} onChangeText={setPhone} placeholder="09xxxxxxxx" keyboardType="phone-pad" />
-          <StaticInput label="Mật khẩu" icon="lock-outline" value={password} onChangeText={setPassword} secureTextEntry placeholder="••••••••" />
+          <StaticInput label={t('auth.phone')} icon="phone-outline" value={phone} onChangeText={setPhone} placeholder="09xxxxxxxx" keyboardType="phone-pad" />
+          <StaticInput label={t('auth.password')} icon="lock-outline" value={password} onChangeText={setPassword} secureTextEntry placeholder="••••••••" />
 
           <TouchableOpacity onPress={() => setShowTermsModal(true)} activeOpacity={0.7} style={st.agreeWrap}>
             <MaterialCommunityIcons name={agreed ? "checkbox-marked" : "checkbox-blank-outline"} size={24} color={agreed ? "#154212" : "#9ca3af"} />
@@ -195,7 +196,7 @@ export default function RegisterScreen({ navigation }: any) {
 
           <TouchableOpacity onPress={handleRegister} disabled={loading} activeOpacity={0.8}>
             <LinearGradient colors={["#154212", "#2d5a27"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={st.regBtn}>
-              {loading ? <ActivityIndicator color="white" /> : <Text style={st.regBtnText}>Đăng ký ngay</Text>}
+              {loading ? <ActivityIndicator color="white" /> : <Text style={st.regBtnText}>{t('auth.register')}</Text>}
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -218,9 +219,9 @@ export default function RegisterScreen({ navigation }: any) {
         </View>
 
         <View style={st.footer}>
-          <Text style={st.footerText}>Đã có tài khoản? </Text>
+          <Text style={st.footerText}>{t('auth.has_account')} </Text>
           <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-            <Text style={st.footerLink}>Đăng nhập</Text>
+            <Text style={st.footerLink}>{t('auth.login')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

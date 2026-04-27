@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   `email` varchar(255) DEFAULT NULL,
   `dob` varchar(50) DEFAULT NULL,
   `role` enum('farmer','buyer','moderator','admin') DEFAULT 'farmer',
+  `level` int(11) DEFAULT 1,
+  `exp` int(11) DEFAULT 0,
   `coins` int(11) DEFAULT 0,
   `seeds` int(11) DEFAULT 2,
   `water_level` float DEFAULT 0,
@@ -44,6 +46,7 @@ CREATE TABLE IF NOT EXISTS `tasks` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `title` varchar(255) NOT NULL,
   `reward` int(11) NOT NULL,
+  `exp_reward` int(11) DEFAULT 20,
   `category` varchar(100) DEFAULT NULL,
   `description` text DEFAULT NULL,
   `icon` varchar(100) DEFAULT NULL,
@@ -184,9 +187,9 @@ CREATE TABLE IF NOT EXISTS `push_tokens` (
 SET FOREIGN_KEY_CHECKS=0;
 
 -- Dumping data for table users
-INSERT IGNORE INTO `users` (`id`, `username`, `password`, `full_name`, `email`, `dob`, `role`, `coins`, `seeds`, `water_level`, `energy_level`, `growth_stage`, `growing_until`, `last_lat`, `last_lng`, `last_seen`, `avatar_url`, `cover_url`, `bio`, `location`, `created_at`) VALUES
-	(1, '0899321716', '123456', 'Nguyễn Xuân Khởi', 'alexuankhoi@gmail.com', '26/04/2000', 'farmer', 30, 2, NULL, NULL, NULL, 0, 10.7768883, 106.70098, '2026-04-26 20:51:10', 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777233698/nong_nghiep_xanh/jndovetm3495fd80irxr.png', 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777232393/nong_nghiep_xanh/qdjxnfkc3j4mw0lcwifl.jpg', 'Tôi tên là khởi người kinh', 'H. Đan Phượng, Thành Phố Hà Nội', '2026-04-26 18:21:41'),
-	(2, '0123456', '123456', 'Nguyen Xuan Khoi', 'hehe@gmail.com', '16/04/2006', 'farmer', 0, 2, 0, 1, 'Nảy mầm', 0, 10.7768883, 106.70098, '2026-04-27 03:26:38', NULL, NULL, NULL, NULL, '2026-04-26 20:56:54');
+INSERT IGNORE INTO `users` (`id`, `username`, `password`, `full_name`, `email`, `dob`, `role`, `level`, `exp`, `coins`, `seeds`, `water_level`, `energy_level`, `growth_stage`, `growing_until`, `last_lat`, `last_lng`, `last_seen`, `avatar_url`, `cover_url`, `bio`, `location`, `created_at`) VALUES
+	(1, '0899321716', '123456', 'Nguyễn Xuân Khởi', 'alexuankhoi@gmail.com', '26/04/2000', 'farmer', 1, 0, 30, 2, NULL, NULL, NULL, 0, 10.7768883, 106.70098, '2026-04-26 20:51:10', 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777233698/nong_nghiep_xanh/jndovetm3495fd80irxr.png', 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777232393/nong_nghiep_xanh/qdjxnfkc3j4mw0lcwifl.jpg', 'Tôi tên là khởi người kinh', 'H. Đan Phượng, Thành Phố Hà Nội', '2026-04-26 18:21:41'),
+	(2, '0123456', '123456', 'Nguyen Xuan Khoi', 'hehe@gmail.com', '16/04/2006', 'farmer', 1, 0, 0, 2, 0, 1, 'Nảy mầm', 0, 10.7768883, 106.70098, '2026-04-27 03:26:38', NULL, NULL, NULL, NULL, '2026-04-26 20:56:54');
 
 -- Dumping data for table shop_items
 INSERT IGNORE INTO `shop_items` (`id`, `name`, `price`, `description`, `image_url`) VALUES

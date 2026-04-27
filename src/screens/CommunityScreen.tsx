@@ -10,14 +10,15 @@ const SHADOW = Platform.select({
 
 export default function CommunityScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useGameStore();
   
   return (
     <View style={st.root}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       
       <View style={[st.header, { paddingTop: insets.top + 20 }]}>
-        <Text style={st.headerTitle}>Cộng Đồng Eco</Text>
-        <Text style={st.headerSub}>Cùng nhau xây dựng nền nông nghiệp bền vững.</Text>
+        <Text style={st.headerTitle}>{t('tabs.ranking')}</Text>
+        <Text style={st.headerSub}>{t('ranking.sub')}</Text>
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={st.content} showsVerticalScrollIndicator={false}>
@@ -46,9 +47,9 @@ export default function CommunityScreen() {
 
         {/* Featured Farmers */}
         <View style={st.sectionHeader}>
-          <Text style={st.sectionTitle}>Nông dân tiêu biểu</Text>
+          <Text style={st.sectionTitle}>{t('ranking.tab_user')}</Text>
           <TouchableOpacity>
-            <Text style={st.seeAllBtn}>Xem thêm</Text>
+            <Text style={st.seeAllBtn}>{t('common.save')}</Text>
           </TouchableOpacity>
         </View>
 

@@ -141,11 +141,11 @@ export default function MapScreen() {
           <MaterialCommunityIcons name="arrow-left" size={24} color="#154212" />
         </TouchableOpacity>
         <View style={st.titleBox}>
-          <Text style={st.title}>Bản đồ Buôn Làng</Text>
+          <Text style={st.title}>{t('home.map')}</Text>
           <View style={st.statusRow}>
             <View style={st.dot} />
             <Text style={st.statusText}>
-              {mapData?.users?.filter((u: any) => u.isOnline).length || 0} online / {mapData?.users?.length || 0} vị trí
+              {mapData?.users?.filter((u: any) => u.isOnline).length || 0} online / {mapData?.users?.length || 0} {t('home.map')}
             </Text>
           </View>
         </View>
@@ -194,25 +194,25 @@ export default function MapScreen() {
             </View>
 
             <View style={st.miniInfo}>
-              <Text style={st.miniName}>{selectedUser.full_name || "Nông dân"}</Text>
-              <Text style={st.miniRole}>@{selectedUser.username} • {selectedUser.role === 'farmer' ? 'Nông dân' : selectedUser.role}</Text>
+              <Text style={st.miniName}>{selectedUser.full_name || t('auth.fullname')}</Text>
+              <Text style={st.miniRole}>@{selectedUser.username} • {selectedUser.role === 'farmer' ? t('tabs.profile') : selectedUser.role}</Text>
               
               {selectedUser.bio ? <Text style={st.miniBio} numberOfLines={2}>{selectedUser.bio}</Text> : null}
 
               <View style={st.miniStats}>
                 <View style={st.miniStatItem}>
                   <Text style={st.statVal}>{selectedUser.tasksCompleted || 0}</Text>
-                  <Text style={st.statLab}>Nhiệm vụ</Text>
+                  <Text style={st.statLab}>{t('profile.tasks_completed')}</Text>
                 </View>
                 <View style={st.statDivider} />
                 <View style={st.miniStatItem}>
                   <Text style={st.statVal}>{selectedUser.coins || 0}</Text>
-                  <Text style={st.statLab}>Xu tích lũy</Text>
+                  <Text style={st.statLab}>{t('profile.coins_earned')}</Text>
                 </View>
               </View>
 
               <TouchableOpacity style={st.viewProfileBtn} onPress={() => setSelectedUser(null)}>
-                <Text style={st.viewProfileTxt}>Đóng</Text>
+                <Text style={st.viewProfileTxt}>{t('common.close')}</Text>
               </TouchableOpacity>
             </View>
           </View>

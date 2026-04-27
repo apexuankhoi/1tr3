@@ -17,7 +17,9 @@
 - **Nhiệm vụ Thực tế:** Tham gia các chiến dịch trồng rừng, thu gom rác thải nông nghiệp và nộp minh chứng qua ảnh.
 - **Bản đồ Buôn Làng:** Hệ thống định vị GPS giúp kết nối cộng đồng, xem vị trí và hồ sơ của hàng xóm.
 - **Cửa hàng Đổi thưởng:** Tích lũy Xu (Coins) từ việc làm nhiệm vụ để đổi lấy phân bón, hạt giống và các phần quà giá trị.
-- **Đa ngôn ngữ:** Hỗ trợ Tiếng Việt, Tiếng Anh và **Tiếng Ê đê**, giúp bà con dân tộc dễ dàng tiếp cận.
+- **Hệ thống Cấp độ (Leveling):** Tích lũy EXP từ các hoạt động thực tế để thăng cấp. Mỗi cấp độ mới sẽ mở khóa thêm 1 ô **Vườn Mây** để trồng trọt nhiều hơn.
+- **Bảng Vàng Thành Tích:** Tôn vinh những cá nhân và buôn làng có đóng góp tích cực nhất trong chiến dịch xanh hóa.
+- **Đa ngôn ngữ:** Hệ thống ngôn ngữ linh hoạt hỗ trợ Tiếng Việt, Tiếng Anh và **Tiếng Ê-đê**, giúp bà con dân tộc dễ dàng tiếp cận và sử dụng.
 
 ### 🛡️ Dành cho Người quản lý (Moderator/Admin)
 - **Kiểm duyệt AI:** Tích hợp **Google Gemini 2.0** để tự động phân tích ảnh minh chứng, phát hiện gian lận và đánh giá chất lượng nhiệm vụ.

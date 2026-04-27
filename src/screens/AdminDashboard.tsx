@@ -9,10 +9,12 @@ import { useNavigation } from "@react-navigation/native";
 import { adminService } from "../services/api";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import { useGameStore } from "../store/useGameStore";
 
 export default function AdminDashboard() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const { t } = useGameStore();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -66,18 +68,18 @@ export default function AdminDashboard() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <View style={st.header}>
-          <Text style={st.headerTitle}>Hệ Thống Quản Trị</Text>
-          <Text style={st.headerSub}>Tổng quan hoạt động ứng dụng</Text>
+          <Text style={st.headerTitle}>{t('profile.admin')}</Text>
+          <Text style={st.headerSub}>{t('admin_dash.stats')}</Text>
         </View>
 
         <View style={st.statsGrid}>
-          <StatCard title="Người dùng" value={stats?.userCount || 0} icon="account-group" color="#3b82f6" delay={0} />
-          <StatCard title="Nhiệm vụ" value={stats?.taskCount || 0} icon="clipboard-list" color="#10b981" delay={100} />
-          <StatCard title="Chờ duyệt" value={stats?.pendingSubmissions || 0} icon="clock-outline" color="#f59e0b" delay={200} />
-          <StatCard title="Sản phẩm" value={stats?.itemCount || 0} icon="storefront" color="#8b5cf6" delay={300} />
+          <StatCard title={t('admin_users.title')} value={stats?.userCount || 0} icon="account-group" color="#3b82f6" delay={0} />
+          <StatCard title={t('tabs.tasks')} value={stats?.taskCount || 0} icon="clipboard-list" color="#10b981" delay={100} />
+          <StatCard title={t('tasks.status_pending')} value={stats?.pendingSubmissions || 0} icon="clock-outline" color="#f59e0b" delay={200} />
+          <StatCard title={t('shop.title')} value={stats?.itemCount || 0} icon="storefront" color="#8b5cf6" delay={300} />
         </View>
 
-        <Text style={st.sectionTitle}>Quản Lý Nội Dung</Text>
+        <Text style={st.sectionTitle}>{t('profile.mgmt')}</Text>
         
         <TouchableOpacity 
           style={st.menuItem} 
@@ -87,8 +89,8 @@ export default function AdminDashboard() {
             <MaterialCommunityIcons name="format-list-checks" size={24} color="#fff" />
           </LinearGradient>
           <View style={st.menuText}>
-            <Text style={st.menuTitle}>Nhiệm vụ & Quiz</Text>
-            <Text style={st.menuSub}>Chỉnh sửa nội dung và câu hỏi</Text>
+            <Text style={st.menuTitle}>{t('tabs.tasks')}</Text>
+            <Text style={st.menuSub}>{t('common.edit')}</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={24} color="#d1d5db" />
         </TouchableOpacity>
@@ -101,8 +103,8 @@ export default function AdminDashboard() {
             <MaterialCommunityIcons name="library-shelves" size={24} color="#fff" />
           </LinearGradient>
           <View style={st.menuText}>
-            <Text style={st.menuTitle}>Thư viện kiến thức</Text>
-            <Text style={st.menuSub}>Quản lý bài viết và video</Text>
+            <Text style={st.menuTitle}>{t('library.title')}</Text>
+            <Text style={st.menuSub}>{t('library.mgmt')}</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={24} color="#d1d5db" />
         </TouchableOpacity>
@@ -115,8 +117,8 @@ export default function AdminDashboard() {
             <MaterialCommunityIcons name="check-decagram" size={24} color="#fff" />
           </LinearGradient>
           <View style={st.menuText}>
-            <Text style={st.menuTitle}>Duyệt bài báo cáo</Text>
-            <Text style={st.menuSub}>Xác nhận minh chứng từ người dùng</Text>
+            <Text style={st.menuTitle}>{t('profile.verify')}</Text>
+            <Text style={st.menuSub}>{t('admin_dash.pending_tasks')}</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={24} color="#d1d5db" />
         </TouchableOpacity>

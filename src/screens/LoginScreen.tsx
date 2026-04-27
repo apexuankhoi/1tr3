@@ -31,6 +31,7 @@ function PillInput({ label, icon, value, onChangeText, secureTextEntry, keyboard
 export default function LoginScreen({ navigation, route }: any) {
   const login = useGameStore((state) => state.login);
   const showToast = useGameStore((state) => state.showToast);
+  const t = useGameStore((state) => state.t);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -45,7 +46,7 @@ export default function LoginScreen({ navigation, route }: any) {
 
   const handleLogin = async () => {
     if (!username || !password) {
-      showToast("Vui lòng nhập đầy đủ thông tin");
+      showToast(t('common.error'));
       return;
     }
     setLoading(true);
@@ -53,7 +54,7 @@ export default function LoginScreen({ navigation, route }: any) {
     setLoading(false);
     if (!success) {
       setShowError(true);
-      showToast("Sai số điện thoại hoặc mật khẩu");
+      showToast(t('auth.login') + " " + t('common.error'));
     }
   };
 
@@ -66,15 +67,15 @@ export default function LoginScreen({ navigation, route }: any) {
             <View style={st.logoWrap}>
               <Image source={require("../../assets/logo.png")} style={st.logo} resizeMode="contain" />
             </View>
-            <Text style={st.subtitle}>Chào mừng bạn trở lại</Text>
+            <Text style={st.subtitle}>{t('home.welcome')}</Text>
           </View>
 
           <View style={st.form}>
-            <PillInput label="Số điện thoại" icon="phone" placeholder="Nhập số điện thoại của bạn" value={username} onChangeText={(text: string) => { setUsername(text); if (showError) setShowError(false); }} keyboardType="phone-pad" />
+            <PillInput label={t('auth.phone')} icon="phone" placeholder={t('auth.phone')} value={username} onChangeText={(text: string) => { setUsername(text); if (showError) setShowError(false); }} keyboardType="phone-pad" />
 
             {username.length > 0 && (
               <Animated.View entering={FadeInDown.duration(400)} exiting={FadeOutUp}>
-                <PillInput label="Mật khẩu" icon="lock-outline" placeholder="Nhập mật khẩu" value={password} onChangeText={(text: string) => { setPassword(text); if (showError) setShowError(false); }} secureTextEntry />
+                <PillInput label={t('auth.password')} icon="lock-outline" placeholder={t('auth.password')} value={password} onChangeText={(text: string) => { setPassword(text); if (showError) setShowError(false); }} secureTextEntry />
                 
                 <View style={st.optionsRow}>
                   <TouchableOpacity onPress={() => setRememberMe(!rememberMe)} style={st.rememberWrap}>
@@ -92,7 +93,7 @@ export default function LoginScreen({ navigation, route }: any) {
 
             <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.9} style={st.loginBtnWrap}>
               <LinearGradient colors={["#154212", "#2d5a27"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={st.loginBtn}>
-                {loading ? <ActivityIndicator color="white" /> : <Text style={st.loginBtnText}>Đăng Nhập</Text>}
+                {loading ? <ActivityIndicator color="white" /> : <Text style={st.loginBtnText}>{t('auth.login')}</Text>}
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -115,9 +116,9 @@ export default function LoginScreen({ navigation, route }: any) {
           </View>
 
           <View style={st.footer}>
-            <Text style={st.footerText}>Chưa có tài khoản? </Text>
+            <Text style={st.footerText}>{t('auth.no_account')} </Text>
             <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-              <AnimatedPulseText />
+              <AnimatedPulseText text={t('auth.register')} />
             </TouchableOpacity>
           </View>
 
@@ -127,7 +128,7 @@ export default function LoginScreen({ navigation, route }: any) {
   );
 }
 
-function AnimatedPulseText() {
+function AnimatedPulseText({ text }: { text: string }) {
   const scale = useSharedValue(1);
 
   React.useEffect(() => {
@@ -138,7 +139,7 @@ function AnimatedPulseText() {
 
   return (
     <Animated.Text style={[animatedStyle, st.registerText]}>
-      Đăng ký ngay
+      {text}
     </Animated.Text>
   );
 }

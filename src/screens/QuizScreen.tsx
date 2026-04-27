@@ -21,7 +21,7 @@ type QuizState = "idle" | "correct" | "wrong" | "submitted";
 
 export default function QuizScreen({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
-  const { userId, addCoins } = useGameStore();
+  const { userId, addCoins, t } = useGameStore();
 
   const taskId: number = route?.params?.taskId ?? 1;
   const taskTitle: string = route?.params?.taskTitle ?? "Quiz Nông nghiệp";
@@ -115,7 +115,7 @@ export default function QuizScreen({ navigation, route }: any) {
           <MaterialCommunityIcons name="arrow-left" size={22} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 14 }}>
-          <Text style={st.headerLabel}>🎓 Nhiệm vụ Học tập</Text>
+          <Text style={st.headerLabel}>🎓 {t('tasks.filter_quiz')}</Text>
           <Text style={st.headerTitle} numberOfLines={1}>{taskTitle}</Text>
         </View>
         <View style={st.rewardBadge}>
@@ -174,8 +174,8 @@ export default function QuizScreen({ navigation, route }: any) {
           <Animated.View style={[st.resultBanner, st.resultCorrect, { opacity: coinAnim, transform: [{ translateY: coinAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
             <Text style={st.resultEmoji}>🎉</Text>
             <View>
-              <Text style={[st.resultTitle, { color: "#065f46" }]}>Chính xác!</Text>
-              <Text style={[st.resultSub, { color: "#065f46" }]}>+{taskReward} xu đang được ghi nhận</Text>
+              <Text style={[st.resultTitle, { color: "#065f46" }]}>{t('common.success')}</Text>
+              <Text style={[st.resultSub, { color: "#065f46" }]}>+{taskReward} {t('profile.coins_earned')}</Text>
             </View>
           </Animated.View>
         )}
@@ -184,8 +184,8 @@ export default function QuizScreen({ navigation, route }: any) {
           <View style={[st.resultBanner, st.resultWrong]}>
             <Text style={st.resultEmoji}>😔</Text>
             <View>
-              <Text style={[st.resultTitle, { color: "#991b1b" }]}>Chưa đúng rồi!</Text>
-              <Text style={[st.resultSub, { color: "#991b1b" }]}>Đáp án đúng đã được hiển thị trên</Text>
+              <Text style={[st.resultTitle, { color: "#991b1b" }]}>{t('common.error')}</Text>
+              <Text style={[st.resultSub, { color: "#991b1b" }]}>{t('tasks.status_rejected')}</Text>
             </View>
           </View>
         )}
@@ -199,7 +199,7 @@ export default function QuizScreen({ navigation, route }: any) {
             style={[st.confirmBtn, !selected && st.confirmDisabled]}
           >
             <LinearGradient colors={["#7c3aed", "#9d5cef"]} style={st.confirmGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-              <Text style={st.confirmText}>Xác nhận đáp án</Text>
+              <Text style={st.confirmText}>{t('common.confirm')}</Text>
               <MaterialCommunityIcons name="arrow-right-circle" size={20} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
@@ -215,7 +215,7 @@ export default function QuizScreen({ navigation, route }: any) {
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
             >
-              <Text style={st.confirmText}>{isCorrect ? "Hoàn thành 🎊" : "Về trang nhiệm vụ"}</Text>
+              <Text style={st.confirmText}>{isCorrect ? t('common.success') : t('common.back')}</Text>
               <MaterialCommunityIcons name="arrow-right-circle" size={20} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>

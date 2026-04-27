@@ -5,9 +5,10 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import api from "../services/api";
+import { adminService } from "../services/api";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import { useGameStore } from "../store/useGameStore";
 import { useNavigation } from "@react-navigation/native";
 
 const SHADOW = Platform.select({
@@ -18,6 +19,7 @@ const SHADOW = Platform.select({
 export default function ModeratorDashboard() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const { t } = useGameStore();
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
@@ -76,8 +78,8 @@ export default function ModeratorDashboard() {
       {/* Header */}
       <View style={[st.header, { paddingTop: insets.top + 20 }]}>
         <View style={{ flex: 1 }}>
-          <Text style={st.headerTitle}>Bảng Kiểm Duyệt</Text>
-          <Text style={st.headerSubtitle}>Phê duyệt minh chứng từ buôn làng</Text>
+          <Text style={st.headerTitle}>{t('profile.verify')}</Text>
+          <Text style={st.headerSubtitle}>{t('admin_dash.pending_tasks')}</Text>
         </View>
         <TouchableOpacity onPress={handleQRScan} style={st.qrBtn}>
           <MaterialCommunityIcons name="qrcode-scan" size={20} color="#154212" />
@@ -91,7 +93,7 @@ export default function ModeratorDashboard() {
             style={[st.filterPill, filterGroup === 'all' && st.filterPillActive]} 
             onPress={() => setFilterGroup('all')}
           >
-            <Text style={[st.filterLabel, filterGroup === 'all' && st.filterLabelActive]}>Tất cả</Text>
+            <Text style={[st.filterLabel, filterGroup === 'all' && st.filterLabelActive]}>{t('library.cat_all')}</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[st.filterPill, filterGroup === 'action' && st.filterPillActive]} 

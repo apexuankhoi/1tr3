@@ -19,7 +19,7 @@ const SHADOW = Platform.select({
 
 export default function ReportScreen({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
-  const { userId } = useGameStore();
+  const { userId, t } = useGameStore();
 
   const taskId: number = route?.params?.taskId ?? 1;
   const needsGps: boolean = !!route?.params?.needsGps;
@@ -47,7 +47,7 @@ export default function ReportScreen({ navigation, route }: any) {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Cần quyền GPS", "Vui lòng cho phép ứng dụng truy cập vị trí.");
+        Alert.alert(t('common.error'), t('profile.privacy'));
         return;
       }
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
@@ -119,15 +119,15 @@ export default function ReportScreen({ navigation, route }: any) {
       await taskService.submitTask(userId || 1, taskId, evidence);
       setPopup({
         visible: true, type: "success",
-        title: "Đã gửi báo cáo! 🎉",
-        message: `Bằng chứng của bạn đã được gửi lên hệ thống. Moderator sẽ xem xét và cộng +${taskReward} xu cho bạn!`,
+        title: t('common.success'),
+        message: t('tasks.status_approved'),
       });
     } catch (err: any) {
       console.error("Upload error:", err);
       setPopup({
         visible: true, type: "error",
-        title: "Gửi thất bại",
-        message: err.response?.data?.message || "Không thể tải ảnh lên Cloudinary. Kiểm tra kết nối mạng.",
+        title: t('common.error'),
+        message: err.response?.data?.message || t('common.error'),
       });
     } finally {
       setSubmitting(false);
@@ -142,7 +142,7 @@ export default function ReportScreen({ navigation, route }: any) {
           <MaterialCommunityIcons name="arrow-left" size={22} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 14 }}>
-          <Text style={st.headerLabel}>{isReport ? "Nhiệm vụ Báo cáo" : "Nhiệm vụ Hành động"}</Text>
+          <Text style={st.headerLabel}>{isReport ? t('tasks.filter_report') : t('tasks.filter_action')}</Text>
           <Text style={st.headerTitle} numberOfLines={1}>{taskTitle}</Text>
         </View>
         <View style={st.rewardBadge}>
@@ -157,12 +157,12 @@ export default function ReportScreen({ navigation, route }: any) {
           <View style={[st.cardIcon, { backgroundColor: accent + "18" }]}>
             <MaterialCommunityIcons name={isReport ? "map-marker-alert" : "camera-outline"} size={26} color={accent} />
           </View>
-          <Text style={st.cardTitle}>Yêu cầu nhiệm vụ</Text>
+          <Text style={st.cardTitle}>{t('tasks.submit')}</Text>
           <Text style={st.cardDesc}>{taskDesc}</Text>
           {needsGps && (
             <View style={st.gpsBanner}>
               <MaterialCommunityIcons name="map-marker" size={16} color="#7c3aed" />
-              <Text style={st.gpsBannerText}>Nhiệm vụ này yêu cầu xác nhận vị trí GPS</Text>
+              <Text style={st.gpsBannerText}>{t('home.map')} GPS</Text>
             </View>
           )}
         </View>
@@ -215,13 +215,13 @@ export default function ReportScreen({ navigation, route }: any) {
                 <LinearGradient colors={gradientColors} style={st.photoBtnGrad}>
                   <MaterialCommunityIcons name="camera" size={28} color="#fff" />
                 </LinearGradient>
-                <Text style={[st.photoBtnLabel, { color: accent }]}>Chụp ảnh</Text>
+                <Text style={[st.photoBtnLabel, { color: accent }]}>{t('profile.verify')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[st.photoBtn, { borderColor: "#9ca3af" }]} onPress={() => pickPhoto(false)}>
                 <View style={[st.photoBtnGrad, { backgroundColor: "#f3f4f6" }]}>
                   <MaterialCommunityIcons name="image-multiple" size={28} color="#6b7280" />
                 </View>
-                <Text style={[st.photoBtnLabel, { color: "#6b7280" }]}>Thư viện</Text>
+                <Text style={[st.photoBtnLabel, { color: "#6b7280" }]}>{t('library.title')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -249,7 +249,7 @@ export default function ReportScreen({ navigation, route }: any) {
             ? <ActivityIndicator size="small" color="#fff" />
             : <LinearGradient colors={gradientColors} style={st.submitGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                 <MaterialCommunityIcons name="send" size={20} color="#fff" />
-                <Text style={st.submitText}>Gửi báo cáo</Text>
+                <Text style={st.submitText}>{t('tasks.submit')}</Text>
               </LinearGradient>}
         </TouchableOpacity>
 

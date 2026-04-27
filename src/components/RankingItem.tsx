@@ -1,14 +1,17 @@
 import React from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
+import { useGameStore } from "../store/useGameStore";
 
 interface RankingItemProps {
   rank: number;
   name: string;
   points: string;
   imageUri: string;
+  level?: number;
 }
 
-export default function RankingItem({ rank, name, points, imageUri }: RankingItemProps) {
+export default function RankingItem({ rank, name, points, imageUri, level }: RankingItemProps) {
+  const { t } = useGameStore();
   return (
     <View style={st.card}>
       <View style={st.leftRow}>
@@ -16,12 +19,15 @@ export default function RankingItem({ rank, name, points, imageUri }: RankingIte
         <View style={st.avatarWrap}>
           <Image source={{ uri: imageUri }} style={st.avatar} />
         </View>
-        <Text style={st.name} numberOfLines={1}>{name}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={st.name} numberOfLines={1}>{name}</Text>
+          {level && <Text style={st.levelText}>{t('home.level')} {level}</Text>}
+        </View>
       </View>
       
       <View style={st.rightRow}>
         <Text style={st.points}>{points}</Text>
-        <Text style={st.label}>điểm</Text>
+        <Text style={st.label}>{t('ranking.point')}</Text>
       </View>
     </View>
   );
@@ -38,4 +44,5 @@ const st = StyleSheet.create({
   rightRow: { flexDirection: "row", alignItems: "baseline", gap: 4 },
   points: { fontFamily: "Nunito_800ExtraBold", fontSize: 16, color: "#154212" },
   label: { fontFamily: "Nunito_600SemiBold", fontSize: 11, color: "#9ca3af" },
+  levelText: { fontFamily: "Nunito_600SemiBold", fontSize: 10, color: "#059669" },
 });

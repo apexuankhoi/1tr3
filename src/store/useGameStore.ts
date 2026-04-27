@@ -44,13 +44,15 @@ interface GameState {
   location: string;
   createdAt: string;
   coins: number;
+  level: number;
+  exp: number;
   userStats: { tasksCompleted: number; redemptions: number };
   submissions: any[];
   
   // Language
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (path: string) => string;
+  t: (path: string, params?: Record<string, any>) => string;
 
   // Multi-pot System
   pots: PotData[];
@@ -131,6 +133,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   location: "",
   createdAt: "",
   coins: 100,
+  level: 1,
+  exp: 0,
   userStats: { tasksCompleted: 0, redemptions: 0 },
   redemptions: [],
   submissions: [],
@@ -140,7 +144,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   language: 'vi',
   setLanguage: (lang) => set({ language: lang }),
-  t: (path) => {
+  t: (path, params) => {
     const { language } = get();
     const keys = path.split('.');
     let result: any = (translations as any)[language];
@@ -150,6 +154,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       } else {
         return path;
       }
+    }
+    if (typeof result === 'string' && params) {
+      Object.keys(params).forEach(pKey => {
+        result = result.replace(`{${pKey}}`, params[pKey]);
+      });
     }
     return typeof result === 'string' ? result : path;
   },
@@ -332,6 +341,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         fullName: data.full_name || data.fullName || data.username,
         userRole: data.role,
         coins: data.coins,
+        level: data.level || 1,
+        exp: data.exp || 0,
         seeds: data.seeds ?? 2,
         avatarUrl: data.avatar_url,
         coverUrl: data.cover_url,
@@ -402,6 +413,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         fullName: data.full_name || data.fullName || data.username,
         userRole: data.role,
         coins: data.coins,
+        level: data.level || 1,
+        exp: data.exp || 0,
         seeds: data.seeds ?? 2,
         avatarUrl: data.avatar_url,
         coverUrl: data.cover_url,
@@ -537,6 +550,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       bio: "",
       location: "",
       coins: 100,
+      level: 1,
+      exp: 0,
       seeds: 2,
       pots: generateInitialPots(),
       redemptions: [],

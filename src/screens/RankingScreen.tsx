@@ -9,6 +9,7 @@ import api from "../services/api";
 
 export default function RankingScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useGameStore();
   const [activeTab, setActiveTab] = useState("individual");
   const [rankings, setRankings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,8 +46,8 @@ export default function RankingScreen() {
   return (
     <View style={st.root}>
       <View style={[st.header, { paddingTop: insets.top + 20 }]}>
-        <Text style={st.headerTitle}>Bảng Vàng Thành Tích</Text>
-        <Text style={st.headerSub}>Tôn vinh những đóng góp xuất sắc nhất</Text>
+        <Text style={st.headerTitle}>{t('ranking.title')}</Text>
+        <Text style={st.headerSub}>{t('ranking.sub')}</Text>
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={st.content} showsVerticalScrollIndicator={false}>
@@ -58,14 +59,14 @@ export default function RankingScreen() {
             activeOpacity={0.8}
             style={[st.tabBtn, activeTab === "individual" && st.tabActive]}
           >
-            <Text style={[st.tabText, activeTab === "individual" && st.tabTextActive]}>Cá nhân</Text>
+            <Text style={[st.tabText, activeTab === "individual" && st.tabTextActive]}>{t('ranking.tab_user')}</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => setActiveTab("village")}
             activeOpacity={0.8}
             style={[st.tabBtn, activeTab === "village" && st.tabActive]}
           >
-            <Text style={[st.tabText, activeTab === "village" && st.tabTextActive]}>Làng xã</Text>
+            <Text style={[st.tabText, activeTab === "village" && st.tabTextActive]}>{t('ranking.tab_village')}</Text>
           </TouchableOpacity>
         </View>
 

@@ -28,7 +28,7 @@ export default function ProfileScreen() {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const { 
-    userId, fullName, userName, coins, avatarUrl, coverUrl, bio, location, createdAt,
+    userId, fullName, userName, coins, level, exp, avatarUrl, coverUrl, bio, location, createdAt,
     redemptions, fetchRedemptions, submissions, fetchSubmissions, userStats, updateProfile, fetchUserData, userRole,
     language, setLanguage, t
   } = useGameStore();
@@ -40,6 +40,8 @@ export default function ProfileScreen() {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const currentLanguage = language;
 
   // Edit states
   const [editData, setEditData] = useState({
@@ -191,6 +193,12 @@ export default function ProfileScreen() {
                 <Text style={st.name}>{fullName || "Nông dân Xanh"}</Text>
                 <MaterialCommunityIcons name="check-decagram" size={20} color="#1d4ed8" style={{ marginLeft: 6 }} />
               </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                <View style={{ backgroundColor: '#154212', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginRight: 8 }}>
+                  <Text style={{ color: '#fff', fontSize: 10, fontFamily: 'Nunito_800ExtraBold' }}>LV.{level}</Text>
+                </View>
+                <Text style={{ color: '#6b7280', fontSize: 11, fontFamily: 'Nunito_700Bold' }}>{exp} / {level * 100} EXP</Text>
+              </View>
               <Text style={st.username}>@{userName}</Text>
             </View>
 
@@ -295,7 +303,7 @@ export default function ProfileScreen() {
                           <Text style={st.subDate}>{new Date(sub.submitted_at).toLocaleDateString('vi-VN')}</Text>
                           <View style={[st.statusBadge, { backgroundColor: sub.status === 'approved' ? '#d1fae5' : sub.status === 'rejected' ? '#fee2e2' : '#fef3c7' }]}>
                             <Text style={[st.statusBadgeTxt, { color: sub.status === 'approved' ? '#065f46' : sub.status === 'rejected' ? '#991b1b' : '#92400e' }]}>
-                              {sub.status === 'approved' ? 'Đã duyệt' : sub.status === 'rejected' ? 'Từ chối' : 'Chờ duyệt'}
+                              {sub.status === 'approved' ? t('tasks.status_approved') : sub.status === 'rejected' ? t('tasks.status_rejected') : t('tasks.status_pending')}
                             </Text>
                           </View>
                         </View>
@@ -306,8 +314,8 @@ export default function ProfileScreen() {
               ) : (
                 <View style={st.emptyState}>
                   <MaterialCommunityIcons name="flower-outline" size={64} color="#e5e7eb" />
-                  <Text style={st.emptyTitle}>Chưa có hoạt động</Text>
-                  <Text style={st.emptySub}>Hãy bắt đầu thực hiện nhiệm vụ để nhận phần thưởng nhé!</Text>
+                  <Text style={st.emptyTitle}>{t('tasks.empty')}</Text>
+                  <Text style={st.emptySub}>{t('home.welcome')}</Text>
                 </View>
               )}
             </Animated.View>
@@ -321,7 +329,7 @@ export default function ProfileScreen() {
                   <Text style={st.rewardName} numberOfLines={1}>{red.name}</Text>
                   <View style={[st.rewardBadge, red.status === 'collected' && { backgroundColor: '#d1fae5' }]}>
                     <Text style={[st.rewardBadgeTxt, red.status === 'collected' && { color: '#065f46' }]}>
-                      {red.status === 'collected' ? 'Đã nhận' : 'Chờ nhận'}
+                      {red.status === 'collected' ? t('tasks.status_approved') : t('tasks.status_pending')}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -347,7 +355,7 @@ export default function ProfileScreen() {
 
         {/* Quick Settings */}
         <View style={st.section}>
-          <Text style={st.sectionTitle}>Hỗ trợ & Cài đặt</Text>
+          <Text style={st.sectionTitle}>{t('profile.settings')}</Text>
           <View style={st.settingsList}>
             {[
               { 
@@ -371,7 +379,12 @@ export default function ProfileScreen() {
                 }
               },
               { 
-                title: "Quyền riêng tư", 
+                title: t('profile.language'), 
+                icon: "translate", 
+                action: () => setShowLanguageModal(true)
+              },
+              { 
+                title: t('profile.privacy'), 
                 icon: "shield-lock-outline",
                 action: () => setShowPrivacy(true)
               },
@@ -388,7 +401,6 @@ export default function ProfileScreen() {
             ))}
           </View>
         </View>
-
         {/* Edit Modal */}
         <Modal visible={isEditing} transparent animationType="slide">
           <View style={st.modalOverlay}>
@@ -436,6 +448,63 @@ export default function ProfileScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Language Modal */}
+        <Modal visible={showLanguageModal} transparent animationType="fade">
+          <View style={st.modalOverlay}>
+            <View style={st.modalContent}>
+              <Text style={st.modalTitle}>{t('profile.language')}</Text>
+              <View style={{ gap: 10, marginTop: 20 }}>
+                {[
+                  { id: 'vi', name: 'Tiếng Việt', flag: '🇻🇳' },
+                  { id: 'en', name: 'English', flag: '🇺🇸' },
+                  { id: 'ede', name: 'Tiếng Ê-đê', flag: '🏹' },
+                ].map(lang => (
+                  <TouchableOpacity 
+                    key={lang.id} 
+                    style={[st.langItem, currentLanguage === lang.id && st.langItemActive]}
+                    onPress={() => {
+                      setLanguage(lang.id as any);
+                      setShowLanguageModal(false);
+                    }}
+                  >
+                    <Text style={st.langFlag}>{lang.flag}</Text>
+                    <Text style={[st.langName, currentLanguage === lang.id && st.langNameActive]}>{lang.name}</Text>
+                    {currentLanguage === lang.id && <MaterialCommunityIcons name="check" size={20} color="#154212" />}
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TouchableOpacity style={st.modalClose} onPress={() => setShowLanguageModal(false)}>
+                <Text style={st.closeTxt}>{t('common.close')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Privacy Modal */}
+        <Modal visible={showPrivacy} transparent animationType="slide">
+          <View style={st.modalOverlay}>
+            <View style={[st.modalContent, { height: '80%' }]}>
+              <View style={st.modalHeader}>
+                <Text style={st.modalTitle}>{t('profile.privacy')}</Text>
+                <TouchableOpacity onPress={() => setShowPrivacy(false)}>
+                  <MaterialCommunityIcons name="close" size={24} color="#374151" />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={{ padding: 20 }}>
+                <Text style={st.privacyText}>
+                  Chào mừng bạn đến với Nông Nghiệp Xanh. Chúng tôi cam kết bảo vệ dữ liệu của bạn...
+                  {"\n\n"}
+                  1. Thông tin thu thập: Vị trí GPS (để xác thực nhiệm vụ), Ảnh chụp (minh chứng hoạt động).
+                  {"\n\n"}
+                  2. Mục đích: Khuyến khích canh tác bền vững, trao thưởng quà tặng vật tư.
+                  {"\n\n"}
+                  3. Chia sẻ dữ liệu: Dữ liệu chỉ được chia sẻ với Cán bộ kiểm duyệt địa phương.
+                </Text>
               </ScrollView>
             </View>
           </View>

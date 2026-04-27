@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useGameStore } from "../store/useGameStore";
 
 interface PodiumItemProps {
   rank: number;
@@ -8,9 +9,11 @@ interface PodiumItemProps {
   points: string;
   imageUri: string;
   isFirst?: boolean;
+  level?: number;
 }
 
-export default function PodiumItem({ rank, name, points, imageUri, isFirst }: PodiumItemProps) {
+export default function PodiumItem({ rank, name, points, imageUri, isFirst, level }: PodiumItemProps) {
+  const { t } = useGameStore();
   const rankColor = rank === 1 ? "#fbbf24" : rank === 2 ? "#9ca3af" : "#b45309";
   const rankTextColor = rank === 1 ? "#fff" : "#fff";
 
@@ -31,10 +34,11 @@ export default function PodiumItem({ rank, name, points, imageUri, isFirst }: Po
       </View>
 
       <Text style={[st.name, isFirst ? st.nameFirst : st.nameOther]} numberOfLines={1}>{name}</Text>
+      {level && <Text style={[st.levelText, isFirst ? { color: '#fff' } : { color: '#059669' }]}>{t('home.level')} {level}</Text>}
       
       <View style={st.scoreBox}>
         <Text style={[st.points, isFirst ? st.pointsFirst : st.pointsOther]}>{points}</Text>
-        <Text style={[st.label, isFirst ? st.labelFirst : st.labelOther]}>điểm</Text>
+        <Text style={[st.label, isFirst ? st.labelFirst : st.labelOther]}>{t('ranking.point')}</Text>
       </View>
     </View>
   );
@@ -67,4 +71,5 @@ const st = StyleSheet.create({
   label: { fontFamily: "Nunito_600SemiBold", fontSize: 10 },
   labelFirst: { color: "rgba(255,255,255,0.7)" },
   labelOther: { color: "#9ca3af" },
+  levelText: { fontFamily: "Nunito_700Bold", fontSize: 10, marginBottom: 4 },
 });
