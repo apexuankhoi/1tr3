@@ -273,69 +273,71 @@ async function ensureGardenTables() {
 
 async function performPreStartChecks() {
     console.log("\n--- BẮT ĐẦU KIỂM TRA HỆ THỐNG ---");
-    let issues = [];
+    let critical = [];
+    let warnings = [];
 
-    // 1. Kiểm tra Database
+    // 1. Kiểm tra Database (CRITICAL)
     try {
         await db.query('SELECT 1');
         console.log("   - Database: ✅ OK");
     } catch (e) {
         console.error("   - Database: ❌ LỖI -", e.message);
-        issues.push("Database không kết nối được.");
+        critical.push("Database không kết nối được (Kiểm tra lại DB_NAME, DB_USER, DB_PASS).");
     }
 
-    // 2. Kiểm tra Cloudinary
+    // 2. Kiểm tra Cloudinary (WARNING)
     if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY) {
-        console.error("   - Cloudinary: ❌ LỖI - Thiếu cấu hình trong .env");
-        issues.push("Cloudinary chưa được cấu hình.");
+        console.warn("   - Cloudinary: ⚠️ CẢNH BÁO - Thiếu cấu hình");
+        warnings.push("Cloudinary chưa được cấu hình (Tính năng upload ảnh sẽ lỗi).");
     } else {
-        try {
-            // Thử ping nhanh tới Cloudinary
-            const res = await fetch(`https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/sample.jpg`, { method: 'HEAD' });
-            if (res.ok) {
-                console.log("   - Cloudinary: ✅ OK");
-            } else {
-                console.warn("   - Cloudinary: ⚠️ CẢNH BÁO - Không truy cập được (có thể do chặn mạng)");
-                issues.push("Cloudinary không phản hồi (có thể do lỗi mạng).");
-            }
-        } catch (e) {
-            console.error("   - Cloudinary: ❌ LỖI -", e.message);
-            issues.push("Lỗi kết nối Cloudinary.");
-        }
+        console.log("   - Cloudinary: ✅ Cấu hình đã sẵn sàng");
     }
 
-    // 3. Kiểm tra Gemini AI
+    // 3. Kiểm tra Gemini AI (WARNING)
     if (!process.env.GEMINI_API_KEY) {
         console.warn("   - Gemini AI: ⚠️ CẢNH BÁO - Thiếu API Key");
-        issues.push("Gemini AI chưa có API Key (tính năng xác minh ảnh sẽ bị tắt).");
+        warnings.push("Gemini AI chưa có API Key (Tính năng tự động duyệt ảnh sẽ bị tắt).");
     } else {
-        console.log("   - Gemini AI: ✅ OK (Key đã cài đặt)");
+        console.log("   - Gemini AI: ✅ Cấu hình đã sẵn sàng");
     }
 
-    if (issues.length > 0) {
-        console.log("\n⚠️ PHÁT HIỆN CÁC VẤN ĐỀ SAU:");
-        issues.forEach((issue, index) => console.log(`   ${index + 1}. ${issue}`));
+    // Xử lý Cảnh báo
+    if (warnings.length > 0) {
+        console.log("\n🟡 CẢNH BÁO:");
+        warnings.forEach((w, i) => console.log(`   ${i + 1}. ${w}`));
+    }
+
+    // Xử lý Lỗi Nghiêm trọng
+    if (critical.length > 0) {
+        console.log("\n🔴 LỖI NGHIÊM TRỌNG (Hệ thống có thể không chạy được):");
+        critical.forEach((c, i) => console.log(`   ${i + 1}. ${c}`));
         
+        // Nếu không phải terminal (ví dụ chạy qua PM2), thì thoát luôn vì không nhập được y/n
+        if (!process.stdin.isTTY) {
+            console.error("🛑 Dừng khởi động do lỗi nghiêm trọng trong môi trường Non-TTY.");
+            process.exit(1);
+        }
+
         const rl = readline.createInterface({
             input: process.stdin,
             output: process.stdout
         });
 
         return new Promise((resolve) => {
-            rl.question('\nBạn có muốn TIẾP TỤC bật server không? (y/n): ', (answer) => {
+            rl.question('\nBạn có muốn TIẾP TỤC bật server bất chấp lỗi nghiêm trọng? (y/n): ', (answer) => {
                 rl.close();
                 if (answer.toLowerCase() === 'y') {
-                    console.log("⏩ Đang tiếp tục khởi động bất chấp lỗi...");
+                    console.log("⏩ Đang tiếp tục khởi động...");
                     resolve(true);
                 } else {
-                    console.log("🛑 Đã hủy khởi động.");
-                    process.exit(0);
+                    console.log("🛑 Đã dừng khởi động.");
+                    process.exit(1);
                 }
             });
         });
     }
 
-    console.log("✨ Mọi thứ đều ổn! Đang bật server...");
+    console.log("\n✨ Kiểm tra hoàn tất. Đang bật server...");
     return true;
 }
 
@@ -1032,6 +1034,8 @@ app.get('/api/rankings', async (req, res) => {
     } catch (err) {
         return sendResponse(res, false, null, err.message, 500);
     }
+});
+
 // Get Map Data (Users + POIs from Submissions)
 app.get('/api/map/data', async (req, res) => {
     try {
