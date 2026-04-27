@@ -1238,6 +1238,8 @@ app.post('/api/admin/reject', async (req, res) => {
     } catch (err) {
         return sendResponse(res, false, null, err.message, 500);
     }
+});
+
 // ── Admin: User Management ──────────────────────────────────────────────────
 
 // Get all users (Admin only)
