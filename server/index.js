@@ -105,217 +105,10 @@ const upload = multer({ storage });
 
 const PORT = process.env.PORT || 3000;
 
-async function ensureUserColumns() {
-    const [fullNameColumns] = await db.query("SHOW COLUMNS FROM users LIKE 'full_name'");
-    if (fullNameColumns.length === 0) {
-        await db.query("ALTER TABLE users ADD COLUMN full_name VARCHAR(255) NOT NULL DEFAULT '' AFTER password");
-    }
+// All ensure and seed functions have been removed. Structure is now managed via SQL file.
 
-    const [emailColumns] = await db.query("SHOW COLUMNS FROM users LIKE 'email'");
-    if (emailColumns.length === 0) {
-        await db.query("ALTER TABLE users ADD COLUMN email VARCHAR(255) AFTER full_name");
-    }
+// End of removed database management functions.
 
-    const [dobColumns] = await db.query("SHOW COLUMNS FROM users LIKE 'dob'");
-    if (dobColumns.length === 0) {
-        await db.query("ALTER TABLE users ADD COLUMN dob VARCHAR(50) AFTER email");
-    }
-
-    const [lockedCols] = await db.query("SHOW COLUMNS FROM users LIKE 'is_locked'");
-    if (lockedCols.length === 0) {
-        await db.query("ALTER TABLE users ADD COLUMN is_locked BOOLEAN DEFAULT FALSE AFTER role");
-    }
-
-    const [roleColumns] = await db.query("SHOW COLUMNS FROM users LIKE 'role'");
-    if (roleColumns.length > 0 && !String(roleColumns[0].Type).includes("buyer")) {
-        await db.query("ALTER TABLE users MODIFY COLUMN role ENUM('farmer', 'buyer', 'moderator', 'admin') DEFAULT 'farmer'");
-    }
-
-    // Ensure tasks columns
-    const [taskDescColumns] = await db.query("SHOW COLUMNS FROM tasks LIKE 'description'");
-    if (taskDescColumns.length === 0) {
-        await db.query("ALTER TABLE tasks ADD COLUMN description TEXT AFTER category");
-    }
-    const [taskIconColumns] = await db.query("SHOW COLUMNS FROM tasks LIKE 'icon'");
-    if (taskIconColumns.length === 0) {
-        await db.query("ALTER TABLE tasks ADD COLUMN icon VARCHAR(100) AFTER description");
-    }
-
-    // Ensure shop_items columns
-    const [shopDescColumns] = await db.query("SHOW COLUMNS FROM shop_items LIKE 'description'");
-    if (shopDescColumns.length === 0) {
-        await db.query("ALTER TABLE shop_items ADD COLUMN description TEXT AFTER price");
-    }
-
-    // Đảm bảo có các cột chỉ số sinh trưởng trong bảng users
-    const [coinsCols] = await db.query("SHOW COLUMNS FROM users LIKE 'coins'");
-    if (coinsCols.length === 0) {
-        await db.query("ALTER TABLE users ADD COLUMN coins INT DEFAULT 0 AFTER role");
-    } else {
-        await db.query("ALTER TABLE users MODIFY COLUMN coins INT DEFAULT 0");
-    }
-
-    const [waterCols] = await db.query("SHOW COLUMNS FROM users LIKE 'water_level'");
-    if (waterCols.length === 0) {
-        await db.query("ALTER TABLE users ADD COLUMN water_level FLOAT DEFAULT 0 AFTER coins");
-    } else {
-        await db.query("ALTER TABLE users MODIFY COLUMN water_level FLOAT DEFAULT 0");
-    }
-
-    const [energyCols] = await db.query("SHOW COLUMNS FROM users LIKE 'energy_level'");
-    if (energyCols.length === 0) {
-        await db.query("ALTER TABLE users ADD COLUMN energy_level FLOAT DEFAULT 1 AFTER water_level");
-    } else {
-        await db.query("ALTER TABLE users MODIFY COLUMN energy_level FLOAT DEFAULT 1");
-    }
-
-    const [growthCols] = await db.query("SHOW COLUMNS FROM users LIKE 'growth_stage'");
-    if (growthCols.length === 0) {
-        await db.query("ALTER TABLE users ADD COLUMN growth_stage VARCHAR(100) DEFAULT 'Nảy mầm' AFTER energy_level");
-    } else {
-        await db.query("ALTER TABLE users MODIFY COLUMN growth_stage VARCHAR(100) DEFAULT 'Nảy mầm'");
-    }
-
-    // Ensure Location columns for Map
-    const [latCols] = await db.query("SHOW COLUMNS FROM users LIKE 'last_lat'");
-    if (latCols.length === 0) {
-        await db.query("ALTER TABLE users ADD COLUMN last_lat DOUBLE AFTER growth_stage, ADD COLUMN last_lng DOUBLE AFTER last_lat, ADD COLUMN last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER last_lng");
-    }
-
-    const [coverCols] = await db.query("SHOW COLUMNS FROM users LIKE 'cover_url'");
-    if (coverCols.length === 0) {
-        await db.query("ALTER TABLE users ADD COLUMN cover_url VARCHAR(255) AFTER avatar_url");
-    }
-
-    const [bioCols] = await db.query("SHOW COLUMNS FROM users LIKE 'bio'");
-    if (bioCols.length === 0) {
-        await db.query("ALTER TABLE users ADD COLUMN bio TEXT AFTER cover_url, ADD COLUMN location VARCHAR(255) AFTER bio");
-    }
-
-    // Level and EXP system
-    const [lvlCols] = await db.query("SHOW COLUMNS FROM users LIKE 'level'");
-    if (lvlCols.length === 0) {
-        await db.query("ALTER TABLE users ADD COLUMN level INT DEFAULT 1 AFTER role, ADD COLUMN exp INT DEFAULT 0 AFTER level");
-    }
-
-    // Village system
-    const [villageCols] = await db.query("SHOW COLUMNS FROM users LIKE 'village_name'");
-    if (villageCols.length === 0) {
-        await db.query("ALTER TABLE users ADD COLUMN village_name VARCHAR(100) DEFAULT 'Làng Cà Phê' AFTER location");
-    }
-}
-
-// ── Ensure Garden tables (user_pots + push_tokens) ──────────────────────────
-async function ensureGardenTables() {
-    await db.query(`
-        CREATE TABLE IF NOT EXISTS user_pots (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            pot_id VARCHAR(50) NOT NULL,
-            floor_id INT DEFAULT 1,
-            has_plant BOOLEAN DEFAULT FALSE,
-            water_level FLOAT DEFAULT 0,
-            fertilizer_level FLOAT DEFAULT 0,
-            growth_stage VARCHAR(50) DEFAULT 'Nảy mầm',
-            growing_until BIGINT DEFAULT 0,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            UNIQUE KEY unique_user_pot (user_id, pot_id)
-        )
-    `);
-
-    // Seeds count column in users
-    const [seedCols] = await db.query("SHOW COLUMNS FROM users LIKE 'seeds'");
-    if (seedCols.length === 0) {
-        await db.query("ALTER TABLE users ADD COLUMN seeds INT DEFAULT 2 AFTER coins");
-    }
-
-    // Push notification tokens
-    await db.query(`
-        CREATE TABLE IF NOT EXISTS push_tokens (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            token VARCHAR(255) NOT NULL,
-            platform VARCHAR(20) DEFAULT 'android',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE KEY unique_user_token (user_id, token)
-        )
-    `);
-
-    // AI verification log
-    await db.query(`
-        CREATE TABLE IF NOT EXISTS ai_verifications (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            submission_id INT NOT NULL,
-            verified BOOLEAN DEFAULT TRUE,
-            confidence INT DEFAULT 0,
-            reason TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    `);
-
-    // Ensure library table exists (it was only created in seedAllTasks before)
-    await db.query(`
-        CREATE TABLE IF NOT EXISTS library (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            title VARCHAR(255) NOT NULL,
-            category VARCHAR(100),
-            duration VARCHAR(50),
-            description TEXT,
-            image_url TEXT,
-            category_color VARCHAR(20) DEFAULT '#154212',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    `);
-    
-    const [libVideoCols] = await db.query("SHOW COLUMNS FROM library LIKE 'video_url'");
-    if (libVideoCols.length === 0) {
-        await db.query("ALTER TABLE library ADD COLUMN video_url TEXT AFTER image_url, ADD COLUMN type ENUM('image', 'video') DEFAULT 'image' AFTER video_url");
-    }
-
-    // Ensure task_submissions table exists
-    await db.query(`
-        CREATE TABLE IF NOT EXISTS task_submissions (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            task_id INT NOT NULL,
-            image_url TEXT,
-            status VARCHAR(50) DEFAULT 'pending',
-            submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    `);
-
-    // Add exp_reward to tasks if not exists
-    const [taskExpCols] = await db.query("SHOW COLUMNS FROM tasks LIKE 'exp_reward'");
-    if (taskExpCols.length === 0) {
-        await db.query("ALTER TABLE tasks ADD COLUMN exp_reward INT DEFAULT 20 AFTER reward");
-    }
-
-    // Projects table
-    await db.query(`
-        CREATE TABLE IF NOT EXISTS projects (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            title VARCHAR(255) NOT NULL,
-            description TEXT,
-            target_value INT DEFAULT 10000,
-            current_value INT DEFAULT 0,
-            unit VARCHAR(50) DEFAULT 'cây',
-            icon VARCHAR(50) DEFAULT 'account-group',
-            status VARCHAR(20) DEFAULT 'active',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    `);
-
-    // Seed initial project if empty
-    const [projCount] = await db.query('SELECT COUNT(*) as n FROM projects');
-    if (projCount[0].n === 0) {
-        await db.query(`
-            INSERT INTO projects (title, description, target_value, current_value, unit, icon)
-            VALUES ('Dự án Làng Cà Phê', 'Mục tiêu: Trồng 10,000 cây cà phê hữu cơ trong mùa vụ năm nay.', 10000, 6540, 'cây', 'account-group')
-        `);
-    }
-
-    console.log('✅ Garden + Push + AI + Library + Tasks + Projects verified.');
-}
 
 async function performPreStartChecks() {
     console.log("\n--- BẮT ĐẦU KIỂM TRA HỆ THỐNG ---");
@@ -388,22 +181,14 @@ async function performPreStartChecks() {
 }
 
 async function initDatabase() {
-    console.log("1. Đang kiểm tra và chuẩn hóa cấu trúc Database...");
-    await ensureUserColumns();
-    await ensureTaskColumns();
-    await ensureShopTables();
-    await ensureGardenTables();
-    
-    // Force Reset Leaderboard Users (Dọn dẹp để nạp đúng Nguyễn Văn A và K'sor H'Bia)
-    await db.query('DELETE FROM users WHERE username IN ("0123456789", "0987654321")');
-    await db.query(`
-        INSERT INTO users (username, password, role, full_name, coins, village_name) 
-        VALUES 
-        ('0123456789', 'no-pass', 'farmer', 'Nguyễn Văn A', 1200, 'Buôn Làng'),
-        ('0987654321', 'no-pass', 'farmer', "K'sor H'Bia", 900, 'Buôn Làng')
-    `);
-    
-    console.log("2. Cấu trúc Database đã sẵn sàng!");
+    try {
+        await db.query('SELECT 1');
+        console.log("1. Kết nối Database: ✅ OK");
+        console.log("2. Chế độ vận hành: 🛡️ Read/Write (Quản lý thủ công qua SQL file)");
+    } catch (err) {
+        console.error("1. Kết nối Database: ❌ LỖI -", err.message);
+        throw err;
+    }
 }
 
 async function startServer() {
@@ -786,9 +571,8 @@ async function ensureTaskColumns() {
         const [cols] = await db.query(`SHOW COLUMNS FROM tasks LIKE '${c.col}'`);
         if (cols.length === 0) await db.query(c.sql);
     }
-    // Seed 50 tasks if table is mostly empty
-    const [count] = await db.query('SELECT COUNT(*) as n FROM tasks');
-    if (count[0].n < 10) await seedAllTasks();
+    // Luôn làm mới nhiệm vụ mỗi khi khởi động để cập nhật Quiz mới nhất
+    await seedAllTasks();
 }
 
 async function seedAllTasks() {
