@@ -47,20 +47,6 @@ export default function RegisterScreen({ navigation }: any) {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [avatar, setAvatar] = useState<string | null>(null);
-
-  const pickAvatar = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return showToast("Cần quyền truy cập thư viện ảnh");
-    
-    const result = await ImagePicker.launchImageLibraryAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.6,
-    });
-
-    if (!result.canceled) setAvatar(result.assets[0].uri);
-  };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') setShowDatePicker(false);
@@ -107,11 +93,6 @@ export default function RegisterScreen({ navigation }: any) {
     
     setLoading(true);
     try {
-      let finalAvatar = null;
-      if (avatar) {
-        finalAvatar = await uploadImage(avatar);
-      }
-
       await userService.register({ 
         username: phone.trim(), 
         password, 
@@ -119,10 +100,9 @@ export default function RegisterScreen({ navigation }: any) {
         email: email.trim(), 
         dob: dob.trim(), 
         role: "farmer",
-        avatarUrl: finalAvatar
       });
       showToast("Đăng ký thành công!", 'success');
-      setTimeout(() => navigation.navigate("Login"), 1500);
+      setTimeout(() => navigation.navigate("Login", { prefilledPhone: phone.trim() }), 1500);
     } catch (error: any) {
       showToast(error.response?.data?.message || "Đăng ký thất bại");
     } finally {
@@ -199,17 +179,6 @@ export default function RegisterScreen({ navigation }: any) {
         </View>
 
         <View style={st.form}>
-          <TouchableOpacity onPress={pickAvatar} style={st.avatarPicker}>
-            {avatar ? (
-              <Image source={{ uri: avatar }} style={st.avatarImg} />
-            ) : (
-              <View style={st.avatarPlaceholder}>
-                <MaterialCommunityIcons name="camera-plus" size={32} color="#154212" />
-                <Text style={st.avatarLabel}>Thêm ảnh đại diện</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
           <StaticInput label="Họ và tên" icon="account-outline" value={fullName} onChangeText={setFullName} placeholder="Nguyễn Văn A" />
           <StaticInput label="Ngày sinh" icon="calendar-month-outline" value={dob} editable={false} onPress={() => setShowDatePicker(true)} placeholder="Chọn ngày sinh của bạn" />
           {renderDatePicker()}

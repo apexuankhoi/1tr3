@@ -22,8 +22,10 @@ import QRCode from 'react-native-qrcode-svg';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { uploadImage } from "../services/api";
+import { useNavigation } from "@react-navigation/native";
 
 export default function ProfileScreen() {
+  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const { 
     userId, fullName, userName, coins, avatarUrl, coverUrl, bio, location, createdAt,
@@ -278,7 +280,26 @@ export default function ProfileScreen() {
           <Text style={st.sectionTitle}>Hỗ trợ & Cài đặt</Text>
           <View style={st.settingsList}>
             {[
-              { title: "Trung tâm trợ giúp", icon: "help-circle-outline" },
+              { 
+                title: "Trung tâm trợ giúp", 
+                icon: "help-circle-outline", 
+                action: () => {
+                  Alert.alert(
+                    "Trợ giúp",
+                    "Bác Sáu sẽ quay lại để hướng dẫn cháu một lần nữa nhé?",
+                    [
+                      { text: "Để sau", style: "cancel" },
+                      { 
+                        text: "Đồng ý", 
+                        onPress: () => {
+                          useGameStore.getState().setHasSeenTutorial(false);
+                          navigation.navigate("Home");
+                        } 
+                      }
+                    ]
+                  );
+                }
+              },
               { title: "Quyền riêng tư", icon: "shield-lock-outline" },
               { title: "Đăng xuất", icon: "logout", color: "#ef4444", action: handleLogout },
             ].map((item, i) => (

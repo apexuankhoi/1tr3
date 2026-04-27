@@ -28,7 +28,7 @@ function PillInput({ label, icon, value, onChangeText, secureTextEntry, keyboard
   );
 }
 
-export default function LoginScreen({ navigation }: any) {
+export default function LoginScreen({ navigation, route }: any) {
   const login = useGameStore((state) => state.login);
   const showToast = useGameStore((state) => state.showToast);
   const [username, setUsername] = useState("");
@@ -36,6 +36,12 @@ export default function LoginScreen({ navigation }: any) {
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [showError, setShowError] = useState(false);
+
+  React.useEffect(() => {
+    if (route.params?.prefilledPhone) {
+      setUsername(route.params.prefilledPhone);
+    }
+  }, [route.params?.prefilledPhone]);
 
   const handleLogin = async () => {
     if (!username || !password) {

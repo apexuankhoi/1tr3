@@ -77,6 +77,8 @@ interface GameState {
   scheduleWaterReminder: () => Promise<void>;
   updateProfile: (data: { fullName?: string; email?: string; avatarUrl?: string; coverUrl?: string; bio?: string; location?: string }) => Promise<void>;
   logout: () => void;
+  hasSeenTutorial: boolean;
+  setHasSeenTutorial: (val: boolean) => void;
 }
 
 // Thời gian phát triển thực tế: 1 tiếng (3,600,000ms)
@@ -126,6 +128,9 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   pots: generateInitialPots(),
   seeds: 2,
+
+  hasSeenTutorial: false,
+  setHasSeenTutorial: (val) => set({ hasSeenTutorial: val }),
 
   toast: null,
   shakeTrigger: 0,
