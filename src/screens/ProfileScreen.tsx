@@ -39,6 +39,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
 
   // Edit states
   const [editData, setEditData] = useState({
@@ -369,8 +370,11 @@ export default function ProfileScreen() {
                   );
                 }
               },
-              { title: "Quyền riêng tư", icon: "shield-lock-outline" },
-              { title: "Đăng xuất", icon: "logout", color: "#ef4444", action: handleLogout },
+              { 
+                title: "Quyền riêng tư", 
+                icon: "shield-lock-outline",
+                action: () => setShowPrivacy(true)
+              },
             ].map((item, i) => (
               <TouchableOpacity 
                 key={i} 
@@ -450,6 +454,42 @@ export default function ProfileScreen() {
             </View>
           </View>
         )}
+
+        {/* Privacy Policy Modal */}
+        <Modal visible={showPrivacy} transparent animationType="fade">
+          <View style={st.modalOverlay}>
+            <View style={[st.modalContent, { height: '80%' }]}>
+              <View style={st.modalHeader}>
+                <Text style={st.modalTitle}>Quyền riêng tư & Điều khoản</Text>
+                <TouchableOpacity onPress={() => setShowPrivacy(false)}>
+                  <MaterialCommunityIcons name="close" size={24} color="#374151" />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={st.modalBody} showsVerticalScrollIndicator={false}>
+                <Text style={st.privacyHeading}>1. Thu thập thông tin</Text>
+                <Text style={st.privacyText}>
+                  Chúng tôi thu thập thông tin vị trí (GPS) để xác minh các báo cáo môi trường và hình ảnh nhiệm vụ để cộng điểm thưởng.
+                </Text>
+                
+                <Text style={st.privacyHeading}>2. Sử dụng dữ liệu</Text>
+                <Text style={st.privacyText}>
+                  Dữ liệu của bạn được sử dụng để xếp hạng người dùng và hiển thị bản đồ ô nhiễm cộng đồng. Chúng tôi cam kết không chia sẻ dữ liệu cá nhân cho bên thứ ba.
+                </Text>
+
+                <Text style={st.privacyHeading}>3. Quyền của người dùng</Text>
+                <Text style={st.privacyText}>
+                  Bạn có quyền yêu cầu xóa tài khoản và dữ liệu cá nhân bất cứ lúc nào thông qua mục hỗ trợ hoặc liên hệ trực tiếp Admin.
+                </Text>
+
+                <View style={{ height: 40 }} />
+                <TouchableOpacity style={st.qrClose} onPress={() => setShowPrivacy(false)}>
+                  <Text style={st.qrCloseTxt}>Đã hiểu</Text>
+                </TouchableOpacity>
+                <View style={{ height: 40 }} />
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
 
         {/* Language Settings */}
         <View style={st.section}>
@@ -623,4 +663,7 @@ const st = StyleSheet.create({
 
   logoutBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#fee2e2', gap: 10 },
   logoutBtnTxt: { fontSize: 15, fontFamily: 'Nunito_800ExtraBold', color: '#ef4444' },
+
+  privacyHeading: { fontSize: 16, fontFamily: 'Nunito_800ExtraBold', color: '#154212', marginTop: 16, marginBottom: 8 },
+  privacyText: { fontSize: 14, fontFamily: 'Nunito_600SemiBold', color: '#4b5563', lineHeight: 22 },
 });

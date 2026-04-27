@@ -83,6 +83,10 @@ Trả lời CHÍNH XÁC theo định dạng JSON (không markdown):
         }
         return { verified: true, confidence: 50, reason: 'Không thể phân tích phản hồi AI' };
     } catch (error) {
+        if (error.message.includes('429') || error.message.includes('quota')) {
+            console.warn('[AI] Quota exceeded or Rate limited. Skipping AI verification.');
+            return { verified: true, confidence: 0, reason: 'AI đang bận (hết hạn mức Free), chuyển sang duyệt thủ công.' };
+        }
         console.error('[AI] Verification error:', error.message);
         return { verified: true, confidence: 0, reason: 'Lỗi xác minh AI: ' + error.message };
     }
