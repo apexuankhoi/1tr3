@@ -1348,6 +1348,62 @@ app.delete('/api/admin/users/:id', async (req, res) => {
     }
 });
 
+// ── Map Data Endpoint ──────────────────────────────────────────────────────
+app.get('/api/map/data', async (req, res) => {
+    try {
+        // 1. Get all users with coordinates
+        const [users] = await db.query(`
+            SELECT id, username, full_name, role, last_lat as lat, last_lng as lng, 
+                   avatar_url, cover_url, bio, coins,
+                   (CASE WHEN last_seen > DATE_SUB(NOW(), INTERVAL 15 MINUTE) THEN 1 ELSE 0 END) as isOnline
+            FROM users
+            WHERE last_lat IS NOT NULL AND last_lng IS NOT NULL
+        `);
+
+        // 2. Get task submissions (POIs) with GPS data
+        const [submissions] = await db.query(`
+            SELECT ts.id, ts.image_url, ts.status, t.title, u.username
+            FROM task_submissions ts
+            JOIN tasks t ON ts.task_id = t.id
+            JOIN users u ON ts.user_id = u.id
+            WHERE ts.image_url LIKE '%|GPS:%'
+        `);
+
+        const pois = submissions.map(s => {
+            const parts = s.image_url.split('|');
+            const imageUrl = parts[0];
+            let lat = 0, lng = 0, address = '';
+
+            parts.forEach(p => {
+                if (p.startsWith('GPS:')) {
+                    const coords = p.replace('GPS:', '').split(',');
+                    lat = parseFloat(coords[0]);
+                    lng = parseFloat(coords[1]);
+                }
+                if (p.startsWith('ADDR:')) {
+                    address = p.replace('ADDR:', '');
+                }
+            });
+
+            return {
+                id: s.id,
+                title: s.title,
+                imageUrl,
+                lat,
+                lng,
+                address,
+                username: s.username,
+                status: s.status
+            };
+        }).filter(p => p.lat !== 0 && p.lng !== 0);
+
+        return sendResponse(res, true, { users, pois }, 'Lấy dữ liệu bản đồ thành công');
+    } catch (err) {
+        console.error('[Map] Error:', err);
+        return sendResponse(res, false, null, err.message, 500);
+    }
+});
+
 startServer().catch((err) => {
     console.error('Failed to start server:', err);
     process.exit(1);

@@ -89,6 +89,7 @@ export default function MapScreen() {
 
           // Update Users
           data.users.forEach(user => {
+            if (!user.lat || !user.lng) return; // Skip invalid
             var className = 'user-marker' + (user.isOnline ? '' : ' offline');
             if (userMarkers[user.id]) {
               userMarkers[user.id].setLatLng([user.lat, user.lng]);
@@ -107,6 +108,7 @@ export default function MapScreen() {
           poiMarkers.forEach(m => map.removeLayer(m));
           poiMarkers = [];
           data.pois.forEach(poi => {
+            if (!poi.lat || !poi.lng) return;
             var icon = L.divIcon({ className: 'poi-marker' });
             var m = L.marker([poi.lat, poi.lng], { icon: icon })
               .addTo(map)
@@ -145,7 +147,7 @@ export default function MapScreen() {
           <View style={st.statusRow}>
             <View style={st.dot} />
             <Text style={st.statusText}>
-              {mapData?.users?.filter((u: any) => u.isOnline).length || 0} online / {mapData?.users?.length || 0} {t('home.map')}
+              {mapData?.users?.filter((u: any) => u.isOnline).length || 0} online / {mapData?.users?.length || 0} {t('ranking.tab_user')}
             </Text>
           </View>
         </View>

@@ -7,10 +7,12 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { taskService, adminService } from "../services/api";
+import { useGameStore } from "../store/useGameStore";
 
 export default function AdminTasksScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const t = useGameStore(s => s.t);
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -41,28 +43,28 @@ export default function AdminTasksScreen() {
 
   const handleSave = async () => {
     if (!currentTask.title) {
-      Alert.alert("Lỗi", "Vui lòng nhập tiêu đề");
+      Alert.alert(t('common.error'), t('common.error'));
       return;
     }
     try {
       await adminService.saveTask(currentTask);
       setEditModalVisible(false);
       fetchTasks();
-      Alert.alert("Thành công", "Đã lưu nhiệm vụ");
+      Alert.alert(t('common.success'), t('common.success'));
     } catch (err) {
-      Alert.alert("Lỗi", "Không thể lưu nhiệm vụ");
+      Alert.alert(t('common.error'), t('common.error'));
     }
   };
 
   const handleDelete = (id: number) => {
-    Alert.alert("Xác nhận", "Bạn có chắc muốn xóa nhiệm vụ này?", [
-      { text: "Hủy" },
-      { text: "Xóa", style: "destructive", onPress: async () => {
+    Alert.alert(t('common.confirm'), t('common.confirm'), [
+      { text: t('common.close') },
+      { text: t('admin_users.action_delete'), style: "destructive", onPress: async () => {
           try {
             await adminService.deleteItem("tasks", id);
             fetchTasks();
           } catch (err) {
-            Alert.alert("Lỗi", "Không thể xóa");
+            Alert.alert(t('common.error'), t('common.error'));
           }
       }}
     ]);
@@ -76,7 +78,7 @@ export default function AdminTasksScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
           <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={st.headerTitle}>Quản Lý Nhiệm Vụ</Text>
+        <Text style={st.headerTitle}>{t('admin_dash.menu_tasks')}</Text>
         <TouchableOpacity onPress={() => handleEdit({ title: '', reward: 50, task_type: 'photo', needs_gps: 0, needs_moderator: 1 })} style={st.addBtn}>
           <MaterialCommunityIcons name="plus" size={24} color="#154212" />
         </TouchableOpacity>
@@ -97,11 +99,11 @@ export default function AdminTasksScreen() {
             <View style={st.cardActions}>
               <TouchableOpacity onPress={() => handleEdit(task)} style={st.editBtn}>
                 <MaterialCommunityIcons name="pencil" size={18} color="#2563eb" />
-                <Text style={[st.actionText, { color: "#2563eb" }]}>Sửa</Text>
+                <Text style={[st.actionText, { color: "#2563eb" }]}>{t('common.edit')}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => handleDelete(task.id)} style={st.deleteBtn}>
                 <MaterialCommunityIcons name="trash-can" size={18} color="#ef4444" />
-                <Text style={[st.actionText, { color: "#ef4444" }]}>Xóa</Text>
+                <Text style={[st.actionText, { color: "#ef4444" }]}>{t('common.delete')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -111,27 +113,27 @@ export default function AdminTasksScreen() {
       <Modal visible={editModalVisible} animationType="slide">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={[st.modalContent, { paddingTop: insets.top + 20 }]}>
-            <Text style={st.modalTitle}>{currentTask?.id ? "Sửa Nhiệm Vụ" : "Thêm Nhiệm Vụ"}</Text>
+            <Text style={st.modalTitle}>{currentTask?.id ? t('admin_forms.edit_task') : t('admin_forms.add_task')}</Text>
             
-            <Text style={st.label}>Tiêu đề</Text>
+            <Text style={st.label}>{t('admin_forms.title_label')}</Text>
             <TextInput style={st.input} value={currentTask?.title} onChangeText={t => setCurrentTask({...currentTask, title: t})} />
 
-            <Text style={st.label}>Thưởng (xu)</Text>
+            <Text style={st.label}>{t('admin_forms.reward_label')}</Text>
             <TextInput style={st.input} keyboardType="numeric" value={String(currentTask?.reward)} onChangeText={t => setCurrentTask({...currentTask, reward: parseInt(t) || 0})} />
 
-            <Text style={st.label}>Loại nhiệm vụ</Text>
+            <Text style={st.label}>{t('admin_forms.type')}</Text>
             <View style={st.row}>
               <TouchableOpacity onPress={() => setCurrentTask({...currentTask, task_type: 'photo'})} style={[st.typeBtn, currentTask?.task_type === 'photo' && st.typeBtnActive]}>
-                <Text style={[st.typeText, currentTask?.task_type === 'photo' && st.typeTextActive]}>Chụp ảnh</Text>
+                <Text style={[st.typeText, currentTask?.task_type === 'photo' && st.typeTextActive]}>{t('admin_forms.task_type_photo')}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setCurrentTask({...currentTask, task_type: 'quiz'})} style={[st.typeBtn, currentTask?.task_type === 'quiz' && st.typeBtnActive]}>
-                <Text style={[st.typeText, currentTask?.task_type === 'quiz' && st.typeTextActive]}>Trắc nghiệm</Text>
+                <Text style={[st.typeText, currentTask?.task_type === 'quiz' && st.typeTextActive]}>{t('admin_forms.task_type_quiz')}</Text>
               </TouchableOpacity>
             </View>
 
             {currentTask?.task_type === 'quiz' && (
               <View style={st.quizSection}>
-                <Text style={st.label}>Các lựa chọn (Dạng A. B. C. D.)</Text>
+                <Text style={st.label}>{t('admin_forms.quiz_options_label')}</Text>
                 {currentTask.quiz_options.map((opt: string, i: number) => (
                   <TextInput 
                     key={i}
@@ -142,27 +144,27 @@ export default function AdminTasksScreen() {
                       newOpts[i] = t;
                       setCurrentTask({...currentTask, quiz_options: newOpts});
                     }}
-                    placeholder={`Lựa chọn ${i + 1}`}
+                    placeholder={`Option ${i + 1}`}
                   />
                 ))}
-                <Text style={st.label}>Đáp án đúng (A, B, C hoặc D)</Text>
+                <Text style={st.label}>{t('admin_forms.quiz_answer_label')}</Text>
                 <TextInput style={st.input} value={currentTask?.quiz_answer} onChangeText={t => setCurrentTask({...currentTask, quiz_answer: t.toUpperCase()})} maxLength={1} />
               </View>
             )}
 
             <View style={st.switchRow}>
-              <Text style={st.label}>Yêu cầu GPS</Text>
+              <Text style={st.label}>{t('admin_forms.gps_req')}</Text>
               <Switch value={!!currentTask?.needs_gps} onValueChange={v => setCurrentTask({...currentTask, needs_gps: v ? 1 : 0})} />
             </View>
 
             <View style={st.switchRow}>
-              <Text style={st.label}>Cần Kiểm duyệt</Text>
+              <Text style={st.label}>{t('admin_forms.mod_req')}</Text>
               <Switch value={!!currentTask?.needs_moderator} onValueChange={v => setCurrentTask({...currentTask, needs_moderator: v ? 1 : 0})} />
             </View>
 
             <View style={st.modalBtns}>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)} style={st.cancelBtn}><Text style={st.cancelBtnText}>Hủy</Text></TouchableOpacity>
-              <TouchableOpacity onPress={handleSave} style={st.saveBtn}><Text style={st.saveBtnText}>Lưu Lại</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)} style={st.cancelBtn}><Text style={st.cancelBtnText}>{t('common.cancel')}</Text></TouchableOpacity>
+              <TouchableOpacity onPress={handleSave} style={st.saveBtn}><Text style={st.saveBtnText}>{t('common.save')}</Text></TouchableOpacity>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>

@@ -12,6 +12,7 @@ import { libraryService, adminService, uploadImage } from "../services/api";
 export default function AdminLibraryScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const t = useGameStore(s => s.t);
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -46,7 +47,7 @@ export default function AdminLibraryScreen() {
 
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return Alert.alert("Lỗi", "Cần quyền truy cập thư viện");
+    if (status !== 'granted') return Alert.alert(t('common.error'), t('profile.privacy'));
 
     const result = await ImagePicker.launchImageLibraryAsync({
       allowsEditing: true,
@@ -60,7 +61,7 @@ export default function AdminLibraryScreen() {
         const url = await uploadImage(result.assets[0].uri);
         setCurrentItem({ ...currentItem, image_url: url });
       } catch (err) {
-        Alert.alert("Lỗi", "Không thể tải ảnh lên");
+        Alert.alert(t('common.error'), t('common.error'));
       } finally {
         setLoading(false);
       }
@@ -69,28 +70,28 @@ export default function AdminLibraryScreen() {
 
   const handleSave = async () => {
     if (!currentItem.title) {
-      Alert.alert("Lỗi", "Vui lòng nhập tiêu đề");
+      Alert.alert(t('common.error'), t('common.error'));
       return;
     }
     try {
       await adminService.saveLibrary(currentItem);
       setEditModalVisible(false);
       fetchLibrary();
-      Alert.alert("Thành công", "Đã lưu bài viết");
+      Alert.alert(t('common.success'), t('common.success'));
     } catch (err) {
-      Alert.alert("Lỗi", "Không thể lưu bài viết");
+      Alert.alert(t('common.error'), t('common.error'));
     }
   };
 
   const handleDelete = (id: number) => {
-    Alert.alert("Xác nhận", "Bạn có chắc muốn xóa bài viết này?", [
-      { text: "Hủy" },
-      { text: "Xóa", style: "destructive", onPress: async () => {
+    Alert.alert(t('common.confirm'), t('common.confirm'), [
+      { text: t('common.cancel') },
+      { text: t('common.delete'), style: "destructive", onPress: async () => {
           try {
             await adminService.deleteItem("library", id);
             fetchLibrary();
           } catch (err) {
-            Alert.alert("Lỗi", "Không thể xóa");
+            Alert.alert(t('common.error'), t('common.error'));
           }
       }}
     ]);
@@ -104,7 +105,7 @@ export default function AdminLibraryScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
           <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={st.headerTitle}>Quản Lý Thư Viện</Text>
+        <Text style={st.headerTitle}>{t('admin_dash.manage_library')}</Text>
         <TouchableOpacity onPress={() => handleEdit({ title: '', category: 'Trồng trọt', type: 'image', duration: '05:00', image_url: '' })} style={st.addBtn}>
           <MaterialCommunityIcons name="plus" size={24} color="#154212" />
         </TouchableOpacity>
@@ -132,11 +133,11 @@ export default function AdminLibraryScreen() {
               <View style={st.cardActions}>
                 <TouchableOpacity onPress={() => handleEdit(item)} style={st.editBtn}>
                   <MaterialCommunityIcons name="pencil" size={18} color="#2563eb" />
-                  <Text style={[st.actionText, { color: "#2563eb" }]}>Sửa</Text>
+                  <Text style={[st.actionText, { color: "#2563eb" }]}>{t('common.edit')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => handleDelete(item.id)} style={st.deleteBtn}>
                   <MaterialCommunityIcons name="trash-can" size={18} color="#ef4444" />
-                  <Text style={[st.actionText, { color: "#ef4444" }]}>Xóa</Text>
+                  <Text style={[st.actionText, { color: "#ef4444" }]}>{t('common.delete')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -220,8 +221,8 @@ export default function AdminLibraryScreen() {
             </TouchableOpacity>
 
             <View style={st.modalBtns}>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)} style={st.cancelBtn}><Text style={st.cancelBtnText}>Hủy</Text></TouchableOpacity>
-              <TouchableOpacity onPress={handleSave} style={st.saveBtn}><Text style={st.saveBtnText}>Lưu Lại</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)} style={st.cancelBtn}><Text style={st.cancelBtnText}>{t('common.cancel')}</Text></TouchableOpacity>
+              <TouchableOpacity onPress={handleSave} style={st.saveBtn}><Text style={st.saveBtnText}>{t('common.save')}</Text></TouchableOpacity>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>

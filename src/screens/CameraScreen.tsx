@@ -12,6 +12,7 @@ const { width } = Dimensions.get("window");
 export default function CameraScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const t = useGameStore(s => s.t);
   const [loading, setLoading] = useState(false);
   const [popup, setPopup] = useState({ visible: false, type: "success" as "success" | "error", title: "", message: "" });
 
@@ -23,16 +24,16 @@ export default function CameraScreen() {
       setPopup({
         visible: true,
         type: "success",
-        title: "Minh chứng đã gửi",
-        message: "Ảnh minh chứng của bạn đã được gửi thành công. Vui lòng chờ Admin duyệt để nhận xu!"
+        title: t('tasks.status_approved'),
+        message: t('common.success')
       });
     } catch (error) {
       haptics.notificationAsync(haptics.NotificationFeedbackType.Error);
       setPopup({
         visible: true,
         type: "error",
-        title: "Lỗi",
-        message: "Không thể gửi ảnh. Vui lòng thử lại sau."
+        title: t('common.error'),
+        message: t('common.error')
       });
     } finally {
       setLoading(false);
@@ -58,7 +59,7 @@ export default function CameraScreen() {
         </TouchableOpacity>
         
         <View style={st.headerTitleWrap}>
-          <Text style={st.headerTitle}>Chụp minh chứng</Text>
+          <Text style={st.headerTitle}>{t('tasks.submit')}</Text>
         </View>
         
         <View style={{ width: 48, height: 48 }} />
@@ -80,14 +81,14 @@ export default function CameraScreen() {
         {/* Instructional Text */}
         <View style={st.instructionWrap}>
           <MaterialCommunityIcons name="line-scan" size={24} color="#bcf0ae" />
-          <Text style={st.instructionText}>Hãy căn chỉnh đống ủ vào khung</Text>
+          <Text style={st.instructionText}>{t('tasks.submit')}</Text>
         </View>
       </View>
 
       {/* Bottom Controls */}
       <View style={[st.bottomControls, { paddingBottom: insets.bottom + 40 }]}>
         <TouchableOpacity style={st.retakeBtn}>
-          <Text style={st.retakeBtnText}>Chụp lại</Text>
+          <Text style={st.retakeBtnText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -97,7 +98,7 @@ export default function CameraScreen() {
         >
           <MaterialCommunityIcons name="check-circle" size={24} color="white" />
           <Text style={st.submitBtnText}>
-            {loading ? "Đang gửi..." : "Gửi minh chứng"}
+            {loading ? t('common.loading') : t('tasks.submit')}
           </Text>
         </TouchableOpacity>
       </View>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { 
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, 
+import {
+  View, Text, ScrollView, StyleSheet, TouchableOpacity,
   ActivityIndicator, Alert, Modal, TextInput, KeyboardAvoidingView, Platform, Image
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -12,6 +12,7 @@ import { shopService, adminService, uploadImage } from "../services/api";
 export default function AdminShopScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const t = useGameStore(s => s.t);
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -44,7 +45,7 @@ export default function AdminShopScreen() {
 
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return Alert.alert("Lỗi", "Cần quyền truy cập thư viện");
+    if (status !== 'granted') return Alert.alert(t('common.error'), t('profile.privacy'));
 
     const result = await ImagePicker.launchImageLibraryAsync({
       allowsEditing: true,
@@ -58,7 +59,7 @@ export default function AdminShopScreen() {
         const url = await uploadImage(result.assets[0].uri);
         setCurrentItem({ ...currentItem, image_url: url });
       } catch (err) {
-        Alert.alert("Lỗi", "Không thể tải ảnh lên");
+        Alert.alert(t('common.error'), t('common.error'));
       } finally {
         setLoading(false);
       }
@@ -67,30 +68,32 @@ export default function AdminShopScreen() {
 
   const handleSave = async () => {
     if (!currentItem.name || !currentItem.price) {
-      Alert.alert("Lỗi", "Vui lòng nhập tên và giá");
+      Alert.alert(t('common.error'), t('common.error'));
       return;
     }
     try {
       await adminService.saveShop(currentItem);
       setEditModalVisible(false);
       fetchData();
-      Alert.alert("Thành công", "Đã lưu sản phẩm");
+      Alert.alert(t('common.success'), t('common.success'));
     } catch (err) {
-      Alert.alert("Lỗi", "Không thể lưu");
+      Alert.alert(t('common.error'), t('common.error'));
     }
   };
 
   const handleDelete = (id: number) => {
-    Alert.alert("Xác nhận", "Xóa sản phẩm này?", [
-      { text: "Hủy" },
-      { text: "Xóa", style: "destructive", onPress: async () => {
+    Alert.alert(t('common.confirm'), t('admin_users.confirm_delete'), [
+      { text: t('common.cancel') },
+      {
+        text: t('common.delete'), style: "destructive", onPress: async () => {
           try {
             await adminService.deleteItem("shop", id);
             fetchData();
           } catch (err) {
-            Alert.alert("Lỗi", "Không thể xóa");
+            Alert.alert(t('common.error'), t('common.error'));
           }
-      }}
+        }
+      }
     ]);
   };
 
@@ -114,12 +117,12 @@ export default function AdminShopScreen() {
         </TouchableOpacity>
         <Text style={st.headerTitle}>Quản Lý Cửa Hàng</Text>
         <View style={{ flexDirection: 'row', gap: 10 }}>
-            <TouchableOpacity onPress={() => setStockModalVisible(true)} style={[st.addBtn, { backgroundColor: '#e0f2fe' }]}>
-                <MaterialCommunityIcons name="package-variant-closed" size={24} color="#0369a1" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleEdit({ name: '', price: 0, description: '', image_url: '' })} style={st.addBtn}>
-                <MaterialCommunityIcons name="plus" size={24} color="#154212" />
-            </TouchableOpacity>
+          <TouchableOpacity onPress={() => setStockModalVisible(true)} style={[st.addBtn, { backgroundColor: '#e0f2fe' }]}>
+            <MaterialCommunityIcons name="package-variant-closed" size={24} color="#0369a1" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleEdit({ name: '', price: 0, description: '', image_url: '' })} style={st.addBtn}>
+            <MaterialCommunityIcons name="plus" size={24} color="#154212" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -131,12 +134,12 @@ export default function AdminShopScreen() {
               <Image source={{ uri: item.image_url }} style={st.cardImg} />
               <View style={st.cardBody}>
                 <View style={st.row}>
-                    <Text style={st.cardTitle}>{item.name}</Text>
-                    <Text style={st.cardPrice}>{item.price} xu</Text>
+                  <Text style={st.cardTitle}>{item.name}</Text>
+                  <Text style={st.cardPrice}>{item.price} {t('ranking.point')}</Text>
                 </View>
                 <Text style={st.cardDesc} numberOfLines={2}>{item.description}</Text>
-                <Text style={[st.stockText, stock < 10 && { color: '#ef4444' }]}>Trong kho: {stock}</Text>
-                
+                <Text style={[st.stockText, stock < 10 && { color: '#ef4444' }]}>{t('shop.stock')}: {stock}</Text>
+
                 <View style={st.cardActions}>
                   <TouchableOpacity onPress={() => handleEdit(item)} style={st.editBtn}>
                     <MaterialCommunityIcons name="pencil" size={18} color="#2563eb" />
@@ -158,7 +161,7 @@ export default function AdminShopScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={[st.modalContent, { paddingTop: insets.top + 20 }]}>
             <Text style={st.modalTitle}>{currentItem?.id ? "Sửa Sản Phẩm" : "Thêm Sản Phẩm"}</Text>
-            
+
             <Text style={st.label}>Ảnh sản phẩm</Text>
             <TouchableOpacity onPress={handlePickImage} style={st.imagePicker}>
               {currentItem?.image_url ? (
@@ -166,23 +169,23 @@ export default function AdminShopScreen() {
               ) : (
                 <View style={st.imagePlaceholder}>
                   <MaterialCommunityIcons name="camera-plus" size={32} color="#64748b" />
-                  <Text style={st.placeholderText}>Chọn ảnh Cloudinary</Text>
+                  <Text style={st.placeholderText}>Chọn ảnh</Text>
                 </View>
               )}
             </TouchableOpacity>
 
             <Text style={st.label}>Tên sản phẩm</Text>
-            <TextInput style={st.input} value={currentItem?.name} onChangeText={t => setCurrentItem({...currentItem, name: t})} />
+            <TextInput style={st.input} value={currentItem?.name} onChangeText={t => setCurrentItem({ ...currentItem, name: t })} />
 
             <Text style={st.label}>Giá (Xu)</Text>
-            <TextInput style={st.input} keyboardType="numeric" value={currentItem?.price?.toString()} onChangeText={t => setCurrentItem({...currentItem, price: parseInt(t) || 0})} />
+            <TextInput style={st.input} keyboardType="numeric" value={currentItem?.price?.toString()} onChangeText={t => setCurrentItem({ ...currentItem, price: parseInt(t) || 0 })} />
 
             <Text style={st.label}>Mô tả</Text>
-            <TextInput 
-              style={[st.input, { height: 80, textAlignVertical: 'top' }]} 
-              multiline 
-              value={currentItem?.description} 
-              onChangeText={t => setCurrentItem({...currentItem, description: t})} 
+            <TextInput
+              style={[st.input, { height: 80, textAlignVertical: 'top' }]}
+              multiline
+              value={currentItem?.description}
+              onChangeText={t => setCurrentItem({ ...currentItem, description: t })}
             />
 
             <View style={st.modalBtns}>
@@ -196,23 +199,23 @@ export default function AdminShopScreen() {
       {/* Stock Modal */}
       <Modal visible={stockModalVisible} animationType="fade" transparent>
         <View style={st.overlay}>
-            <View style={st.stockCard}>
-                <Text style={st.modalTitle}>Quản Lý Tồn Kho</Text>
-                <ScrollView style={{ maxHeight: 400 }}>
-                    {stocks.map(s => (
-                        <View key={s.id} style={st.stockRow}>
-                            <Text style={st.stockName}>{s.name}</Text>
-                            <TextInput 
-                                style={st.stockInput} 
-                                keyboardType="numeric" 
-                                defaultValue={s.quantity.toString()}
-                                onBlur={(e) => updateStock(s.id, e.nativeEvent.text)}
-                            />
-                        </View>
-                    ))}
-                </ScrollView>
-                <TouchableOpacity onPress={() => setStockModalVisible(false)} style={st.saveBtn}><Text style={st.saveBtnText}>Đóng</Text></TouchableOpacity>
-            </View>
+          <View style={st.stockCard}>
+            <Text style={st.modalTitle}>Quản Lý Tồn Kho</Text>
+            <ScrollView style={{ maxHeight: 400 }}>
+              {stocks.map(s => (
+                <View key={s.id} style={st.stockRow}>
+                  <Text style={st.stockName}>{s.name}</Text>
+                  <TextInput
+                    style={st.stockInput}
+                    keyboardType="numeric"
+                    defaultValue={s.quantity.toString()}
+                    onBlur={(e) => updateStock(s.id, e.nativeEvent.text)}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+            <TouchableOpacity onPress={() => setStockModalVisible(false)} style={st.saveBtn}><Text style={st.saveBtnText}>Đóng</Text></TouchableOpacity>
+          </View>
         </View>
       </Modal>
     </View>
@@ -226,7 +229,7 @@ const st = StyleSheet.create({
   backBtn: { padding: 5 },
   headerTitle: { fontSize: 18, fontFamily: "Nunito_800ExtraBold", color: "#0f172a" },
   addBtn: { padding: 8, backgroundColor: '#fef3c7', borderRadius: 8 },
-  
+
   list: { padding: 20 },
   card: { backgroundColor: '#fff', borderRadius: 20, marginBottom: 20, overflow: 'hidden', elevation: 4, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
   cardImg: { width: '100%', height: 140 },
