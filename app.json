@@ -21,7 +21,13 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -44,6 +50,18 @@
           "cameraPermission": "Cho phép ứng dụng truy cập camera để chụp ảnh minh chứng và quét mã QR."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "75b55760-b295-406a-a6d6-1e5a7ec3fdc3"
+      }
+    },
+    "owner": "xuankhoi29",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/75b55760-b295-406a-a6d6-1e5a7ec3fdc3"
+    }
   }
 }

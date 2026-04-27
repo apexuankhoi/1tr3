@@ -44,6 +44,7 @@ interface GameState {
   createdAt: string;
   coins: number;
   userStats: { tasksCompleted: number; redemptions: number };
+  submissions: any[];
 
   // Multi-pot System
   pots: PotData[];
@@ -73,6 +74,7 @@ interface GameState {
   login: (credentials: any) => Promise<boolean>;
   redemptions: any[];
   fetchRedemptions: () => Promise<void>;
+  fetchSubmissions: () => Promise<void>;
   registerPushToken: () => Promise<void>;
   scheduleWaterReminder: () => Promise<void>;
   updateProfile: (data: { fullName?: string; email?: string; avatarUrl?: string; coverUrl?: string; bio?: string; location?: string }) => Promise<void>;
@@ -125,6 +127,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   coins: 100,
   userStats: { tasksCompleted: 0, redemptions: 0 },
   redemptions: [],
+  submissions: [],
 
   pots: generateInitialPots(),
   seeds: 2,
@@ -355,6 +358,17 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
+  fetchSubmissions: async () => {
+    const { userId } = get();
+    if (!userId) return;
+    try {
+      const data = await taskService.getUserSubmissions(userId);
+      set({ submissions: data });
+    } catch (error) {
+      console.error("Lỗi lấy danh sách nhiệm vụ đã nộp:", error);
+    }
+  },
+
   setRole: (role) => set({ userRole: role }),
 
   login: async (credentials) => {
@@ -398,6 +412,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
 
       get().fetchRedemptions();
+      get().fetchSubmissions();
       get().registerPushToken();
       return true;
     } catch (error) {

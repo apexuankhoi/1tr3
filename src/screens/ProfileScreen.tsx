@@ -29,7 +29,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { 
     userId, fullName, userName, coins, avatarUrl, coverUrl, bio, location, createdAt,
-    redemptions, fetchRedemptions, userStats, updateProfile, fetchUserData 
+    redemptions, fetchRedemptions, submissions, fetchSubmissions, userStats, updateProfile, fetchUserData 
   } = useGameStore();
 
   const [selectedQR, setSelectedQR] = React.useState<string | null>(null);
@@ -48,6 +48,7 @@ export default function ProfileScreen() {
 
   React.useEffect(() => {
     fetchRedemptions();
+    fetchSubmissions();
     if (userId) fetchUserData(userId);
   }, []);
 
@@ -236,10 +237,45 @@ export default function ProfileScreen() {
         {/* Tab Content */}
         <View style={st.tabContent}>
           {activeTab === 'tasks' && (
-            <Animated.View entering={FadeInDown} style={st.emptyState}>
-              <MaterialCommunityIcons name="flower-outline" size={64} color="#e5e7eb" />
-              <Text style={st.emptyTitle}>Hoạt động gần đây</Text>
-              <Text style={st.emptySub}>Bạn đã hoàn thành {userStats.tasksCompleted} nhiệm vụ bảo vệ môi trường.</Text>
+            <Animated.View entering={FadeInDown} style={st.tasksTabContainer}>
+              <View style={st.recentHeader}>
+                <Text style={st.recentTitle}>Hoạt động gần đây</Text>
+                <Text style={st.recentSub}>Bạn đã hoàn thành {userStats.tasksCompleted} nhiệm vụ</Text>
+              </View>
+
+              {submissions.length > 0 ? (
+                <View style={st.submissionList}>
+                  {submissions.map((sub, idx) => (
+                    <View key={idx} style={st.submissionCard}>
+                      <View style={st.subIconBox}>
+                        <MaterialCommunityIcons 
+                          name={sub.status === 'approved' ? 'check-circle' : sub.status === 'rejected' ? 'close-circle' : 'clock-outline'} 
+                          size={24} 
+                          color={sub.status === 'approved' ? '#10b981' : sub.status === 'rejected' ? '#ef4444' : '#f59e0b'} 
+                        />
+                      </View>
+                      <View style={st.subContent}>
+                        <Text style={st.subTitle}>{sub.title}</Text>
+                        <Text style={st.subDesc} numberOfLines={2}>{sub.description}</Text>
+                        <View style={st.subFooter}>
+                          <Text style={st.subDate}>{new Date(sub.submitted_at).toLocaleDateString('vi-VN')}</Text>
+                          <View style={[st.statusBadge, { backgroundColor: sub.status === 'approved' ? '#d1fae5' : sub.status === 'rejected' ? '#fee2e2' : '#fef3c7' }]}>
+                            <Text style={[st.statusBadgeTxt, { color: sub.status === 'approved' ? '#065f46' : sub.status === 'rejected' ? '#991b1b' : '#92400e' }]}>
+                              {sub.status === 'approved' ? 'Đã duyệt' : sub.status === 'rejected' ? 'Từ chối' : 'Chờ duyệt'}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <View style={st.emptyState}>
+                  <MaterialCommunityIcons name="flower-outline" size={64} color="#e5e7eb" />
+                  <Text style={st.emptyTitle}>Chưa có hoạt động</Text>
+                  <Text style={st.emptySub}>Hãy bắt đầu thực hiện nhiệm vụ để nhận phần thưởng nhé!</Text>
+                </View>
+              )}
             </Animated.View>
           )}
 
@@ -466,4 +502,32 @@ const st = StyleSheet.create({
   qrClose: { marginTop: 30, backgroundColor: '#154212', paddingHorizontal: 40, paddingVertical: 12, borderRadius: 20 },
   qrCloseTxt: { color: '#fff', fontFamily: 'Nunito_800ExtraBold' },
   gpsBtn: { backgroundColor: '#f1f5f9', width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+
+  tasksTabContainer: { paddingHorizontal: 20 },
+  recentHeader: { marginBottom: 16 },
+  recentTitle: { fontSize: 18, fontFamily: 'Nunito_800ExtraBold', color: '#111827' },
+  recentSub: { fontSize: 13, color: '#6b7280', fontFamily: 'Nunito_600SemiBold', marginTop: 2 },
+  
+  submissionList: { gap: 12 },
+  submissionCard: { 
+    flexDirection: 'row', 
+    backgroundColor: '#fff', 
+    borderRadius: 16, 
+    padding: 12, 
+    borderWidth: 1, 
+    borderColor: '#f3f4f6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  subIconBox: { width: 40, alignItems: 'center', justifyContent: 'center' },
+  subContent: { flex: 1, marginLeft: 8 },
+  subTitle: { fontSize: 15, fontFamily: 'Nunito_700Bold', color: '#111827' },
+  subDesc: { fontSize: 13, color: '#6b7280', fontFamily: 'Nunito_600SemiBold', marginTop: 2 },
+  subFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
+  subDate: { fontSize: 11, color: '#9ca3af', fontFamily: 'Nunito_600SemiBold' },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  statusBadgeTxt: { fontSize: 10, fontFamily: 'Nunito_800ExtraBold' },
 });

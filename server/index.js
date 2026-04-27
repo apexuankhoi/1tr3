@@ -12,11 +12,31 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+// Health Check Route
+app.get('/api/health', async (req, res) => {
+    try {
+        await db.query('SELECT 1');
+        res.json({ status: 'ok', database: 'connected', timestamp: new Date() });
+    } catch (err) {
+        res.status(500).json({ status: 'error', database: 'disconnected', error: err.message });
+    }
+});
+
 // Logging Middleware
 app.use((req, res, next) => {
     console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
     next();
 });
+
+// Standardized Response Helper
+const sendResponse = (res, success, data, message, statusCode = 200) => {
+    return res.status(statusCode).json({
+        success,
+        data,
+        message,
+        timestamp: new Date()
+    });
+};
 
 // ── Gemini AI Setup ─────────────────────────────────────────────────────────
 const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
@@ -245,15 +265,19 @@ async function ensureGardenTables() {
     console.log('✅ Garden + Push + AI + Library tables verified.');
 }
 
+async function initDatabase() {
+    console.log("1. Đang kiểm tra và chuẩn hóa cấu trúc Database...");
+    await ensureUserColumns();
+    await ensureTaskColumns();
+    await ensureShopTables();
+    await ensureGardenTables();
+    console.log("2. Cấu trúc Database đã sẵn sàng!");
+}
+
 async function startServer() {
     console.log("--- ĐANG KHỞI ĐỘNG SERVER ---");
     try {
-        console.log("1. Đang kiểm tra kết nối Database...");
-        await ensureUserColumns();
-        await ensureTaskColumns();
-        await ensureShopTables();
-        await ensureGardenTables();
-        console.log("2. Kết nối Database thành công!");
+        await initDatabase();
         console.log(`   AI Verification: ${genAI ? '✅ Enabled' : '⚠️ Disabled (set GEMINI_API_KEY in .env)'}`);
 
         app.listen(PORT, () => {
@@ -317,12 +341,12 @@ app.post('/api/auth/register', async (req, res) => {
         user.energy_level = user.energy_level ?? 1;
         user.growing_until = user.growing_until ?? 0;
 
-        res.status(201).json(user);
+        return sendResponse(res, true, user, 'Đăng ký thành công', 201);
     } catch (err) {
         if (err.code === 'ER_DUP_ENTRY') {
-            return res.status(409).json({ message: 'Tên đăng nhập đã tồn tại' });
+            return sendResponse(res, false, null, 'Tên đăng nhập đã tồn tại', 409);
         }
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -343,9 +367,9 @@ app.post('/api/auth/login', async (req, res) => {
         user.growing_until = user.growing_until ?? 0;
         
         console.log(`[Login] User ${user.username} logged in. Coins: ${user.coins}`);
-        res.json(user);
+        return sendResponse(res, true, user, 'Đăng nhập thành công');
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -371,9 +395,9 @@ app.get('/api/user/:id', async (req, res) => {
             redemptions: redemptionCount.n
         };
         
-        res.json(user);
+        return sendResponse(res, true, user, 'Lấy thông tin người dùng thành công');
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -385,9 +409,9 @@ app.patch('/api/user/profile/:id', async (req, res) => {
             'UPDATE users SET full_name = COALESCE(?, full_name), email = COALESCE(?, email), avatar_url = COALESCE(?, avatar_url), cover_url = COALESCE(?, cover_url), bio = COALESCE(?, bio), location = COALESCE(?, location) WHERE id = ?',
             [fullName, email, avatarUrl, coverUrl, bio, location, req.params.id]
         );
-        res.json({ message: 'Profile updated successfully' });
+        return sendResponse(res, true, null, 'Cập nhật hồ sơ thành công');
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -400,9 +424,9 @@ app.patch('/api/stats/:id', async (req, res) => {
             'UPDATE users SET coins = ?, seeds = ?, water_level = ?, energy_level = ?, growth_stage = ?, growing_until = ? WHERE id = ?',
             [coins, seeds ?? 2, waterLevel, energyLevel, growthStage, growingUntil || 0, req.params.id]
         );
-        res.json({ message: 'Stats updated successfully' });
+        return sendResponse(res, true, null, 'Đồng bộ chỉ số thành công');
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -414,9 +438,9 @@ app.get('/api/garden/:userId/pots', async (req, res) => {
             'SELECT pot_id, floor_id, has_plant, water_level, fertilizer_level, growth_stage, growing_until FROM user_pots WHERE user_id = ? ORDER BY floor_id, pot_id',
             [req.params.userId]
         );
-        res.json(rows);
+        return sendResponse(res, true, rows, 'Lấy danh sách chậu cây thành công');
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -454,9 +478,9 @@ app.put('/api/garden/:userId/pots', async (req, res) => {
         }
         
         console.log(`[Garden] Synced ${pots.length} pots for user ${userId}`);
-        res.json({ message: 'Garden synced successfully' });
+        return sendResponse(res, true, null, 'Đồng bộ vườn thành công');
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -492,9 +516,9 @@ app.post('/api/push/register', async (req, res) => {
 app.get('/api/shop', async (req, res) => {
     try {
         const [rows] = await db.query('SELECT * FROM shop_items');
-        res.json(rows);
+        return sendResponse(res, true, rows, 'Lấy danh sách vật phẩm thành công');
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -771,7 +795,7 @@ app.get('/api/tasks/weekly/:userId', async (req, res) => {
 app.get('/api/tasks/submissions/:userId', async (req, res) => {
     try {
         const [rows] = await db.query(
-            `SELECT ts.task_id, ts.status, ts.submitted_at, t.title
+            `SELECT ts.task_id, ts.status, ts.submitted_at, t.title, t.description
              FROM task_submissions ts JOIN tasks t ON ts.task_id = t.id
              WHERE ts.user_id = ? ORDER BY ts.submitted_at DESC`,
             [req.params.userId]
