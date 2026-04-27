@@ -9,6 +9,7 @@ import { useGameStore } from "../store/useGameStore";
 
 export default function QRScannerScreen() {
   const navigation = useNavigation();
+  const t = useGameStore(s => s.t);
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
 
@@ -58,7 +59,7 @@ export default function QRScannerScreen() {
       <View style={st.overlay}>
         <View style={st.scanFrame} />
         <Text style={st.helperText}>
-          {t('profile.verify')} QR
+          {t('qr.scan_helper')}
         </Text>
       </View>
 

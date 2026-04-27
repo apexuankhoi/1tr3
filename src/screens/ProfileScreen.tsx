@@ -514,11 +514,11 @@ export default function ProfileScreen() {
         {selectedQR && (
           <View style={st.qrModal}>
             <View style={st.qrBox}>
-              <Text style={st.qrTitle}>Mã nhận quà</Text>
+              <Text style={st.qrTitle}>{t('qr.my_reward')}</Text>
               <QRCode value={selectedQR} size={200} />
               <Text style={st.qrRaw}>{selectedQR}</Text>
               <TouchableOpacity style={st.qrClose} onPress={() => setSelectedQR(null)}>
-                <Text style={st.qrCloseTxt}>Đóng</Text>
+                <Text style={st.qrCloseTxt}>{t('common.close')}</Text>
               </TouchableOpacity>
             </View>
           </View>

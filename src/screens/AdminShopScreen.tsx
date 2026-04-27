@@ -115,7 +115,7 @@ export default function AdminShopScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
           <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={st.headerTitle}>Quản Lý Cửa Hàng</Text>
+        <Text style={st.headerTitle}>{t('admin_shop.title')}</Text>
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <TouchableOpacity onPress={() => setStockModalVisible(true)} style={[st.addBtn, { backgroundColor: '#e0f2fe' }]}>
             <MaterialCommunityIcons name="package-variant-closed" size={24} color="#0369a1" />
@@ -143,11 +143,11 @@ export default function AdminShopScreen() {
                 <View style={st.cardActions}>
                   <TouchableOpacity onPress={() => handleEdit(item)} style={st.editBtn}>
                     <MaterialCommunityIcons name="pencil" size={18} color="#2563eb" />
-                    <Text style={[st.actionText, { color: "#2563eb" }]}>Sửa</Text>
+                    <Text style={[st.actionText, { color: "#2563eb" }]}>{t('common.edit')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => handleDelete(item.id)} style={st.deleteBtn}>
                     <MaterialCommunityIcons name="trash-can" size={18} color="#ef4444" />
-                    <Text style={[st.actionText, { color: "#ef4444" }]}>Xóa</Text>
+                    <Text style={[st.actionText, { color: "#ef4444" }]}>{t('common.delete')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -160,27 +160,27 @@ export default function AdminShopScreen() {
       <Modal visible={editModalVisible} animationType="slide">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={[st.modalContent, { paddingTop: insets.top + 20 }]}>
-            <Text style={st.modalTitle}>{currentItem?.id ? "Sửa Sản Phẩm" : "Thêm Sản Phẩm"}</Text>
+            <Text style={st.modalTitle}>{currentItem?.id ? t('admin_shop.edit_item') : t('admin_shop.add_item')}</Text>
 
-            <Text style={st.label}>Ảnh sản phẩm</Text>
+            <Text style={st.label}>{t('admin_shop.image')}</Text>
             <TouchableOpacity onPress={handlePickImage} style={st.imagePicker}>
               {currentItem?.image_url ? (
                 <Image source={{ uri: currentItem.image_url }} style={st.previewImg} />
               ) : (
                 <View style={st.imagePlaceholder}>
                   <MaterialCommunityIcons name="camera-plus" size={32} color="#64748b" />
-                  <Text style={st.placeholderText}>Chọn ảnh</Text>
+                  <Text style={st.placeholderText}>{t('common.search')}</Text>
                 </View>
               )}
             </TouchableOpacity>
 
-            <Text style={st.label}>Tên sản phẩm</Text>
+            <Text style={st.label}>{t('admin_shop.name')}</Text>
             <TextInput style={st.input} value={currentItem?.name} onChangeText={t => setCurrentItem({ ...currentItem, name: t })} />
 
-            <Text style={st.label}>Giá (Xu)</Text>
+            <Text style={st.label}>{t('admin_forms.price_label')}</Text>
             <TextInput style={st.input} keyboardType="numeric" value={currentItem?.price?.toString()} onChangeText={t => setCurrentItem({ ...currentItem, price: parseInt(t) || 0 })} />
 
-            <Text style={st.label}>Mô tả</Text>
+            <Text style={st.label}>{t('admin_shop.desc')}</Text>
             <TextInput
               style={[st.input, { height: 80, textAlignVertical: 'top' }]}
               multiline
@@ -189,8 +189,8 @@ export default function AdminShopScreen() {
             />
 
             <View style={st.modalBtns}>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)} style={st.cancelBtn}><Text style={st.cancelBtnText}>Hủy</Text></TouchableOpacity>
-              <TouchableOpacity onPress={handleSave} style={st.saveBtn}><Text style={st.saveBtnText}>Lưu Lại</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)} style={st.cancelBtn}><Text style={st.cancelBtnText}>{t('common.cancel')}</Text></TouchableOpacity>
+              <TouchableOpacity onPress={handleSave} style={st.saveBtn}><Text style={st.saveBtnText}>{t('common.save')}</Text></TouchableOpacity>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -200,7 +200,7 @@ export default function AdminShopScreen() {
       <Modal visible={stockModalVisible} animationType="fade" transparent>
         <View style={st.overlay}>
           <View style={st.stockCard}>
-            <Text style={st.modalTitle}>Quản Lý Tồn Kho</Text>
+            <Text style={st.modalTitle}>{t('admin_shop.stock_mgmt')}</Text>
             <ScrollView style={{ maxHeight: 400 }}>
               {stocks.map(s => (
                 <View key={s.id} style={st.stockRow}>
@@ -214,7 +214,7 @@ export default function AdminShopScreen() {
                 </View>
               ))}
             </ScrollView>
-            <TouchableOpacity onPress={() => setStockModalVisible(false)} style={st.saveBtn}><Text style={st.saveBtnText}>Đóng</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setStockModalVisible(false)} style={st.saveBtn}><Text style={st.saveBtnText}>{t('common.close')}</Text></TouchableOpacity>
           </View>
         </View>
       </Modal>

@@ -137,8 +137,8 @@ export default function LibraryScreen() {
       {/* Header */}
       <View style={[st.header, { paddingTop: insets.top + 10 }]}>
         <View>
-          <Text style={st.headerTitle}>Thư viện xanh</Text>
-          <Text style={st.headerSub}>Kiến thức nông nghiệp bền vững</Text>
+          <Text style={st.headerTitle}>{t('library.title_main')}</Text>
+          <Text style={st.headerSub}>{t('library.subtitle')}</Text>
         </View>
 
         <View style={st.badges}>
@@ -185,7 +185,7 @@ export default function LibraryScreen() {
           ) : (
             <View style={st.emptyState}>
               <MaterialCommunityIcons name="book-open-blank-variant" size={64} color="#e5e7eb" />
-              <Text style={st.emptyText}>Chưa có tài liệu nào trong mục này</Text>
+              <Text style={st.emptyText}>{t('library.empty')}</Text>
             </View>
           )}
           <View style={{ height: 100 }} />
@@ -225,7 +225,7 @@ export default function LibraryScreen() {
         <View style={st.articleModalRoot}>
           <View style={st.articleModalContent}>
             <View style={st.articleHeader}>
-              <Text style={st.articleHeaderTitle}>Chi tiết bài viết</Text>
+              <Text style={st.articleHeaderTitle}>{t('library.article_detail')}</Text>
               <TouchableOpacity style={st.articleCloseBtn} onPress={() => setSelectedArticle(null)}>
                 <MaterialCommunityIcons name="close" size={24} color="#154212" />
               </TouchableOpacity>

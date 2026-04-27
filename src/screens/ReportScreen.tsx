@@ -23,8 +23,8 @@ export default function ReportScreen({ navigation, route }: any) {
 
   const taskId: number = route?.params?.taskId ?? 1;
   const needsGps: boolean = !!route?.params?.needsGps;
-  const taskTitle: string = route?.params?.taskTitle ?? "Báo cáo nhiệm vụ";
-  const taskDesc: string = route?.params?.taskDesc ?? "Chụp ảnh minh chứng hoàn thành nhiệm vụ.";
+  const taskTitle: string = route?.params?.taskTitle ?? t('report.title');
+  const taskDesc: string = route?.params?.taskDesc ?? t('report.default_desc');
   const taskReward: number = route?.params?.taskReward ?? 60;
   const taskGroup: string = route?.params?.taskGroup ?? "action";
 
@@ -58,7 +58,7 @@ export default function ReportScreen({ navigation, route }: any) {
         longitude: loc.coords.longitude
       });
       
-      let addressName = "Vị trí không xác định";
+      let addressName = t('report.unknown_loc');
       if (geo.length > 0) {
         const g = geo[0];
         addressName = [g.streetNumber, g.street, g.subregion, g.region].filter(Boolean).join(", ");
@@ -71,7 +71,7 @@ export default function ReportScreen({ navigation, route }: any) {
       });
     } catch (err) {
       console.error(err);
-      Alert.alert("Lỗi GPS", "Không thể lấy vị trí. Kiểm tra GPS của bạn.");
+      Alert.alert(t('report.gps_error'), t('report.gps_error_desc'));
     } finally {
       setGpsLoading(false);
     }
@@ -83,7 +83,7 @@ export default function ReportScreen({ navigation, route }: any) {
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (status !== "granted") {
-      Alert.alert("Cần quyền truy cập", fromCamera ? "Vui lòng cho phép dùng camera." : "Vui lòng cho phép truy cập thư viện.");
+      Alert.alert(t('report.perm_req'), fromCamera ? t('report.perm_camera') : t('report.perm_library'));
       return;
     }
 
@@ -98,11 +98,11 @@ export default function ReportScreen({ navigation, route }: any) {
 
   const handleSubmit = async () => {
     if (!photo) {
-      Alert.alert("Thiếu ảnh", "Vui lòng chụp hoặc chọn ảnh minh chứng.");
+      Alert.alert(t('report.missing_photo'), t('report.missing_photo_desc'));
       return;
     }
     if (needsGps && !location) {
-      Alert.alert("Thiếu GPS", "Vui lòng lấy tọa độ GPS trước khi gửi.");
+      Alert.alert(t('report.missing_gps'), t('report.missing_gps_desc'));
       return;
     }
 
@@ -170,7 +170,7 @@ export default function ReportScreen({ navigation, route }: any) {
         {/* GPS Section */}
         {needsGps && (
           <View style={[st.card, { marginBottom: 20 }]}>
-            <Text style={st.sectionTitle}>📍 Tọa độ GPS</Text>
+            <Text style={st.sectionTitle}>📍 {t('report.gps_coords')}</Text>
             {location ? (
               <View style={st.gpsResult}>
                 <MaterialCommunityIcons name="map-marker-check" size={24} color="#10b981" />
@@ -187,7 +187,7 @@ export default function ReportScreen({ navigation, route }: any) {
                   ? <ActivityIndicator size="small" color={accent} />
                   : <MaterialCommunityIcons name="map-marker-radius" size={20} color={accent} />}
                 <Text style={[st.gpsBtnText, { color: accent }]}>
-                  {gpsLoading ? "Đang lấy GPS..." : "Lấy tọa độ hiện tại"}
+                  {gpsLoading ? t('report.gps_fetching') : t('report.gps_get')}
                 </Text>
               </TouchableOpacity>
             )}
@@ -196,7 +196,7 @@ export default function ReportScreen({ navigation, route }: any) {
 
         {/* Photo Section */}
         <View style={[st.card, { marginBottom: 20 }]}>
-          <Text style={st.sectionTitle}>📸 Ảnh minh chứng</Text>
+          <Text style={st.sectionTitle}>📸 {t('report.photo_evidence')}</Text>
 
           {photo ? (
             <View style={st.photoPreviewWrap}>
@@ -206,7 +206,7 @@ export default function ReportScreen({ navigation, route }: any) {
               </TouchableOpacity>
               <TouchableOpacity style={[st.retakeBtn, { backgroundColor: accent }]} onPress={() => pickPhoto(true)}>
                 <MaterialCommunityIcons name="camera-retake" size={16} color="#fff" />
-                <Text style={st.retakeBtnText}>Chụp lại</Text>
+                <Text style={st.retakeBtnText}>{t('report.retake')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -229,8 +229,8 @@ export default function ReportScreen({ navigation, route }: any) {
 
         {/* Tips */}
         <View style={st.tipsCard}>
-          <Text style={st.tipsTitle}>💡 Gợi ý chụp ảnh đạt chuẩn</Text>
-          {["Ảnh rõ nét, đủ sáng, không bị mờ", "Thể hiện rõ hành động/hiện trường", "Không chỉnh sửa hay ghép ảnh", "Nên chụp toàn cảnh và cận cảnh"].map((tip, i) => (
+          <Text style={st.tipsTitle}>💡 {t('report.tips_title')}</Text>
+          {(t('report.tips') as string[]).map((tip, i) => (
             <View key={i} style={st.tipRow}>
               <View style={st.tipDot} />
               <Text style={st.tipText}>{tip}</Text>

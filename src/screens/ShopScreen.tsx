@@ -21,7 +21,7 @@ const SHADOW = Platform.select({
 export default function ShopScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { coins, seeds, userId, buyItem } = useGameStore();
+  const { coins, seeds, userId, buyItem, t } = useGameStore();
 
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,9 +60,9 @@ export default function ShopScreen() {
       t('shop.buy'),
       `${t('shop.price')}: ${item.price} xu. ${t('shop.buy')} "${item.name}"?`,
       [
-        { text: "Hủy", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
         { 
-          text: "Đổi ngay", 
+          text: t('shop.buy'), 
           onPress: async () => {
             setBuyingId(item.id);
             try {
@@ -73,10 +73,10 @@ export default function ShopScreen() {
                 setCurrentItemName(item.name);
                 setQrModalVisible(true);
               } else {
-                Alert.alert("Lỗi", "Không thể đổi quà lúc này.");
+                Alert.alert(t('common.error'), t('common.error'));
               }
             } catch (err: any) {
-              Alert.alert("Lỗi", err?.response?.data?.message || "Không thể đổi quà lúc này.");
+              Alert.alert(t('common.error'), err?.response?.data?.message || t('common.error'));
             } finally {
               setBuyingId(null);
             }

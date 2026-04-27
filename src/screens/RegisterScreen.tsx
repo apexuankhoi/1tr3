@@ -43,6 +43,7 @@ export default function RegisterScreen({ navigation }: any) {
   const [dob, setDob] = useState("");
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [villageName, setVillageName] = useState("Làng Cà Phê");
   const [password, setPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -100,6 +101,7 @@ export default function RegisterScreen({ navigation }: any) {
         fullName, 
         email: email.trim(), 
         dob: dob.trim(), 
+        villageName: villageName.trim(),
         role: "farmer",
       });
       showToast(t('common.success'), 'success');
@@ -184,6 +186,7 @@ export default function RegisterScreen({ navigation }: any) {
           <StaticInput label={t('auth.fullname')} icon="calendar-month-outline" value={dob} editable={false} onPress={() => setShowDatePicker(true)} placeholder="01/01/1990" />
           {renderDatePicker()}
           <StaticInput label="Email" icon="email-outline" value={email} onChangeText={setEmail} placeholder="example@gmail.com" keyboardType="email-address" />
+          <StaticInput label={t('ranking.tab_village')} icon="home-group" value={villageName} onChangeText={setVillageName} placeholder="Tên buôn làng của bạn" />
           <StaticInput label={t('auth.phone')} icon="phone-outline" value={phone} onChangeText={setPhone} placeholder="09xxxxxxxx" keyboardType="phone-pad" />
           <StaticInput label={t('auth.password')} icon="lock-outline" value={password} onChangeText={setPassword} secureTextEntry placeholder="••••••••" />
 

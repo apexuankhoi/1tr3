@@ -131,8 +131,8 @@ export default function AdminDashboard() {
             <MaterialCommunityIcons name="storefront" size={24} color="#fff" />
           </LinearGradient>
           <View style={st.menuText}>
-            <Text style={st.menuTitle}>Cửa hàng & Kho hàng</Text>
-            <Text style={st.menuSub}>Quản lý sản phẩm và tồn kho</Text>
+            <Text style={st.menuTitle}>{t('admin_dash.manage_shop')}</Text>
+            <Text style={st.menuSub}>{t('admin_shop.stock_mgmt')}</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={24} color="#d1d5db" />
         </TouchableOpacity>
@@ -145,8 +145,8 @@ export default function AdminDashboard() {
             <MaterialCommunityIcons name="account-cog" size={24} color="#fff" />
           </LinearGradient>
           <View style={st.menuText}>
-            <Text style={st.menuTitle}>Quản lý Người dùng</Text>
-            <Text style={st.menuSub}>Khóa, Xóa, Đổi mật khẩu</Text>
+            <Text style={st.menuTitle}>{t('admin_users.title')}</Text>
+            <Text style={st.menuSub}>{t('admin_users.desc')}</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={24} color="#d1d5db" />
         </TouchableOpacity>

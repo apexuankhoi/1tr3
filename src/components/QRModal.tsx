@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, Modal, TouchableOpacity, StyleSheet } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useGameStore } from "../store/useGameStore";
 
 interface QRModalProps {
   visible: boolean;
@@ -11,15 +12,16 @@ interface QRModalProps {
 }
 
 export default function QRModal({ visible, qrCode, itemName, onClose }: QRModalProps) {
+  const t = useGameStore(s => s.t);
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={st.overlay}>
         <View style={st.card}>
           <View style={st.pill} />
           
-          <Text style={st.title}>Mã Đổi Quà</Text>
+          <Text style={st.title}>{t('qr.title')}</Text>
           <Text style={st.subtitle}>
-            Vui lòng đưa mã này cho Trưởng buôn để nhận <Text style={st.highlight}>{itemName}</Text>
+            {t('qr.receive_gift')} <Text style={st.highlight}>{itemName}</Text>
           </Text>
 
           <View style={st.qrBox}>
@@ -29,12 +31,12 @@ export default function QRModal({ visible, qrCode, itemName, onClose }: QRModalP
           <View style={st.infoBox}>
             <MaterialCommunityIcons name="information-outline" size={20} color="#6f5a53" />
             <Text style={st.infoText}>
-              Mã này chỉ có hiệu lực một lần duy nhất tại điểm đổi quà tập trung.
+              {t('qr.usage_limit')}
             </Text>
           </View>
 
           <TouchableOpacity onPress={onClose} activeOpacity={0.85} style={st.btn}>
-            <Text style={st.btnText}>Hoàn tất</Text>
+            <Text style={st.btnText}>{t('qr.complete')}</Text>
           </TouchableOpacity>
         </View>
       </View>

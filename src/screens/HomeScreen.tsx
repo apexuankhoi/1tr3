@@ -11,6 +11,7 @@ import {
   RefreshControl,
   StyleSheet,
   Animated as RNAnimated,
+  Modal,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useGameStore, PotData } from "../store/useGameStore";
@@ -18,6 +19,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   FadeInDown,
   FadeInUp,
+  FadeIn,
+  FadeOut,
 } from "react-native-reanimated";
 import * as haptics from "expo-haptics";
 import * as Location from "expo-location";
@@ -34,7 +37,6 @@ function Butterfly({ startX, startY, delay }: { startX: number; startY: number; 
   const bobY = useRef(new RNAnimated.Value(0)).current;
 
   useEffect(() => {
-    // Vỗ cánh liên tục
     RNAnimated.loop(
       RNAnimated.sequence([
         RNAnimated.timing(wingFlap, { toValue: 0.15, duration: 130, useNativeDriver: true }),
@@ -42,7 +44,6 @@ function Butterfly({ startX, startY, delay }: { startX: number; startY: number; 
       ])
     ).start();
 
-    // Lắc lư nhẹ
     RNAnimated.loop(
       RNAnimated.sequence([
         RNAnimated.timing(bobY, { toValue: -6, duration: 600, useNativeDriver: true }),
@@ -50,7 +51,6 @@ function Butterfly({ startX, startY, delay }: { startX: number; startY: number; 
       ])
     ).start();
 
-    // Bay đến vị trí ngẫu nhiên
     const fly = () => {
       const toX = Math.random() * (width - 60);
       const toY = Math.random() * (height * 0.5 - 40) + 80;
@@ -69,16 +69,11 @@ function Butterfly({ startX, startY, delay }: { startX: number; startY: number; 
       style={{ position: 'absolute', transform: [{ translateX: posX }, { translateY: posY }, { translateY: bobY }], alignItems: 'center' }}
     >
       <RNAnimated.View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        {/* Cánh trái trên */}
         <RNAnimated.View style={{ transform: [{ scaleX: wingFlap }], transformOrigin: 'right' }}>
           <View style={{ width: 20, height: 16, borderRadius: 10, backgroundColor: 'rgba(200,100,255,0.85)', marginRight: -2, transform: [{ rotate: '-20deg' }], shadowColor: '#AA00FF', shadowOpacity: 0.6, shadowRadius: 4 }} />
           <View style={{ width: 14, height: 10, borderRadius: 7, backgroundColor: 'rgba(170,60,230,0.75)', marginRight: -2, marginTop: -2, transform: [{ rotate: '-15deg' }] }} />
         </RNAnimated.View>
-
-        {/* Thân */}
         <View style={{ width: 5, height: 22, borderRadius: 3, backgroundColor: '#3A1060', zIndex: 2 }} />
-
-        {/* Cánh phải */}
         <RNAnimated.View style={{ transform: [{ scaleX: wingFlap }], transformOrigin: 'left' }}>
           <View style={{ width: 20, height: 16, borderRadius: 10, backgroundColor: 'rgba(200,100,255,0.85)', marginLeft: -2, transform: [{ rotate: '20deg' }], shadowColor: '#AA00FF', shadowOpacity: 0.6, shadowRadius: 4 }} />
           <View style={{ width: 14, height: 10, borderRadius: 7, backgroundColor: 'rgba(170,60,230,0.75)', marginLeft: -2, marginTop: -2, transform: [{ rotate: '15deg' }] }} />
@@ -127,32 +122,75 @@ function Bee({ startX, startY, delay }: { startX: number; startY: number; delay:
       pointerEvents="none"
       style={{ position: 'absolute', transform: [{ translateX: posX }, { translateY: posY }, { translateY: wobble }], alignItems: 'center' }}
     >
-      {/* Cánh ong */}
       <RNAnimated.View style={{ flexDirection: 'row', transform: [{ scaleX: wingFlap }], marginBottom: -4 }}>
         <View style={{ width: 16, height: 9, borderRadius: 8, backgroundColor: 'rgba(180,220,255,0.7)', marginRight: 1, shadowColor: '#FFF', shadowOpacity: 0.8, shadowRadius: 3 }} />
         <View style={{ width: 16, height: 9, borderRadius: 8, backgroundColor: 'rgba(180,220,255,0.7)', marginLeft: 1, shadowColor: '#FFF', shadowOpacity: 0.8, shadowRadius: 3 }} />
       </RNAnimated.View>
-      {/* Thân ong sọc vàng đen */}
       <View style={{ width: 14, height: 20, borderRadius: 7, backgroundColor: '#FFD700', overflow: 'hidden', shadowColor: '#FF6600', shadowOpacity: 0.5, shadowRadius: 3, elevation: 3 }}>
         <View style={{ width: '100%', height: 4, backgroundColor: '#2D2D00', marginTop: 5 }} />
         <View style={{ width: '100%', height: 4, backgroundColor: '#2D2D00', marginTop: 3 }} />
       </View>
-      {/* Đầu ong */}
       <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: '#2D2D00', marginTop: -2 }} />
     </RNAnimated.View>
+  );
+}
+
+// ── Tutorial Overlay ──
+function TutorialOverlay({ visible, onFinish, t }: any) {
+  const [step, setStep] = useState(0);
+  const steps = [
+    { title: t('tutorial.welcome_title'), desc: t('tutorial.welcome_desc'), icon: "hand-wave" },
+    { title: t('tutorial.plant_title'), desc: t('tutorial.plant_desc'), icon: "seed" },
+    { title: t('tutorial.care_title'), desc: t('tutorial.care_desc'), icon: "watering-can" },
+    { title: t('tutorial.harvest_title'), desc: t('tutorial.harvest_desc'), icon: "star-circle" },
+  ];
+
+  if (!visible) return null;
+
+  return (
+    <Modal transparent visible={visible} animationType="fade">
+      <View style={st.tutorialRoot}>
+        <Animated.View entering={FadeInDown} style={st.tutorialCard}>
+          <View style={st.tutorialIconWrap}>
+            <MaterialCommunityIcons name={steps[step].icon as any} size={50} color="#154212" />
+          </View>
+          <Text style={st.tutorialTitle}>{steps[step].title}</Text>
+          <Text style={st.tutorialDesc}>{steps[step].desc}</Text>
+          
+          <View style={st.tutorialDots}>
+            {steps.map((_, i) => (
+              <View key={i} style={[st.dot, step === i && st.dotActive]} />
+            ))}
+          </View>
+
+          <TouchableOpacity 
+            style={st.tutorialBtn} 
+            onPress={() => {
+              if (step < steps.length - 1) setStep(step + 1);
+              else onFinish();
+            }}
+          >
+            <Text style={st.tutorialBtnText}>{step < steps.length - 1 ? t('common.next') : t('common.start')}</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    </Modal>
   );
 }
 
 export default function HomeScreen({ navigation }: any) {
   const {
     userId, userRole, fullName, coins, level, exp, pots, seeds, avatarUrl,
-    plantSeed, waterPot, fertilizePot, harvestPot, advancePotStage, t, showToast
+    plantSeed, waterPot, fertilizePot, harvestPot, advancePotStage, t, showToast,
+    hasSeenTutorial, setHasSeenTutorial
   } = useGameStore();
 
   const [refreshing, setRefreshing] = useState(false);
   const [popup, setPopup] = useState({ visible: false, type: "success" as any, title: "", message: "" });
   const [now, setNow] = useState(Date.now());
   const [selectedPotId, setSelectedPotId] = useState<string | null>(null);
+  const [activeFloor, setActiveFloor] = useState(1);
+  const [showTutorial, setShowTutorial] = useState(!hasSeenTutorial);
 
   useEffect(() => {
     if (userRole === 'farmer') {
@@ -197,14 +235,6 @@ export default function HomeScreen({ navigation }: any) {
     return () => clearInterval(interval);
   }, [pots, advancePotStage]);
 
-  const initializedRef = useRef(false);
-  useEffect(() => {
-    if (!initializedRef.current && pots.length > 0) {
-      initializedRef.current = true;
-      // Không auto-select nữa — để người dùng tự chọn
-    }
-  }, [pots]);
-
   const onRefresh = async () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 1500);
@@ -223,7 +253,7 @@ export default function HomeScreen({ navigation }: any) {
 
   const isGrowing = selectedPot && selectedPot.growingUntil > 0 && selectedPot.growingUntil > now;
   const remainingTime = selectedPot ? Math.max(0, selectedPot.growingUntil - now) : 0;
-  const totalGrowTime = 3600000; // 1 hour in milliseconds (matches GROWTH_DURATION_MS in store)
+  const totalGrowTime = 3600000; 
   
   const currentWaterPct = isGrowing 
     ? Math.round((remainingTime / totalGrowTime) * 100) 
@@ -245,16 +275,14 @@ export default function HomeScreen({ navigation }: any) {
 
   const hour = new Date().getHours();
   const isDaytime = hour >= 6 && hour < 18;
-  const isEvening = hour >= 17 && hour < 20;
 
   const getThemeColors = (): readonly [string, string, ...string[]] => {
-    if (hour >= 5 && hour < 8)   return ['#FBBF87', '#FDE68A', '#87CEEB']; // Bình minh
-    if (hour >= 8 && hour < 17)  return ['#5B9BD5', '#AEE1FF', '#E1F2FB']; // Ban ngày
-    if (hour >= 17 && hour < 20) return ['#FF7043', '#FF8C69', '#9B59B6']; // Hoàng hôn
-    return ['#1A237E', '#283593', '#3949AB'];                               // Ban đêm
+    if (hour >= 5 && hour < 8)   return ['#FBBF87', '#FDE68A', '#87CEEB'];
+    if (hour >= 8 && hour < 17)  return ['#5B9BD5', '#AEE1FF', '#E1F2FB'];
+    if (hour >= 17 && hour < 20) return ['#FF7043', '#FF8C69', '#9B59B6'];
+    return ['#1A237E', '#283593', '#3949AB'];
   };
 
-  // Animate sun/moon pulse glow
   const glowAnim = useRef(new RNAnimated.Value(1)).current;
   useEffect(() => {
     RNAnimated.loop(
@@ -287,25 +315,24 @@ export default function HomeScreen({ navigation }: any) {
     }
   };
 
+  const floorPots = pots.filter(p => p.floorId === activeFloor);
+
   return (
     <LinearGradient colors={getThemeColors()} style={st.appContainer}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       
-      {/* Background Depth Clouds */}
+      <TutorialOverlay visible={showTutorial} onFinish={() => { setShowTutorial(false); setHasSeenTutorial(true); }} t={t} />
+
       <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-        <MaterialCommunityIcons name="cloud" size={150} color="#FFFFFF" style={{ position: 'absolute', top: '15%', left: '-15%', opacity: 0.15 }} />
-        <MaterialCommunityIcons name="cloud" size={220} color="#FFFFFF" style={{ position: 'absolute', top: '45%', right: '-25%', opacity: 0.1 }} />
-        <MaterialCommunityIcons name="cloud" size={120} color="#FFFFFF" style={{ position: 'absolute', top: '75%', left: '10%', opacity: 0.12 }} />
+        <Butterfly startX={50}  startY={180} delay={0}    />
+        <Butterfly startX={220} startY={280} delay={1200} />
+        <Bee       startX={130} startY={240} delay={600}  />
       </View>
 
-      {/* Header */}
       <View style={st.header}>
         <View style={st.userProfile}>
           <View style={st.avatar}>
-            <Image 
-              source={(avatarUrl && avatarUrl.length > 5) ? { uri: avatarUrl } : require("../../assets/avatar_premium.png")} 
-              style={{width: '100%', height: '100%'}} 
-            />
+            <Image source={(avatarUrl && avatarUrl.length > 5) ? { uri: avatarUrl } : require("../../assets/avatar_premium.png")} style={{width: '100%', height: '100%'}} />
           </View>
           <View style={st.userInfo}>
             <Text style={st.subText}>{t('home.garden_of')}</Text>
@@ -324,7 +351,6 @@ export default function HomeScreen({ navigation }: any) {
         </View>
       </View>
 
-      {/* Level Progress Bar */}
       <View style={st.levelContainer}>
         <View style={st.levelBadge}>
           <Text style={st.levelText}>{t('home.level')}.{level}</Text>
@@ -335,45 +361,15 @@ export default function HomeScreen({ navigation }: any) {
         </View>
       </View>
 
-      {/* ── Sun / Moon ── */}
-      <View style={{ position: 'absolute', top: 100, right: 20, zIndex: 5 }} pointerEvents="none">
-        {isDaytime ? (
-          // ☀️ Mặt trời với tia nắng xoay
-          <RNAnimated.View style={{ transform: [{ rotate: glowAnim.interpolate({ inputRange: [1, 1.18], outputRange: ['0deg', '30deg'] }) }], alignItems: 'center', justifyContent: 'center', width: 70, height: 70 }}>
-            {/* Tia nắng */}
-            {[0,45,90,135].map(deg => (
-              <View key={deg} style={{ position: 'absolute', width: 3, height: 70, borderRadius: 2, backgroundColor: 'rgba(255,220,50,0.5)', transform: [{ rotate: `${deg}deg` }] }} />
-            ))}
-            {/* Vầng hào quang ngoài */}
-            <View style={{ position: 'absolute', width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,200,30,0.25)' }} />
-            {/* Lõi mặt trời */}
-            <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#FFD700', shadowColor: '#FF8C00', shadowOpacity: 0.8, shadowRadius: 12, shadowOffset: {width:0,height:0}, elevation: 10 }} />
-          </RNAnimated.View>
-        ) : (
-          // 🌙 Mặt trăng với vầng sáng xanh bạc
-          <RNAnimated.View style={{ transform: [{ scale: glowAnim }], alignItems: 'center', justifyContent: 'center', width: 64, height: 64 }}>
-            {/* Hào quang ngoài */}
-            <View style={{ position: 'absolute', width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(180,200,255,0.18)' }} />
-            {/* Vầng trăng */}
-            <View style={{ position: 'absolute', width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(180,200,255,0.28)' }} />
-            {/* Lõi trăng lưỡi liềm */}
-            <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#C8D8FF', shadowColor: '#8090FF', shadowOpacity: 0.9, shadowRadius: 14, shadowOffset: {width:0,height:0}, elevation: 8 }} />
-            {/* Cắt khuyết tạo hình lưỡi liềm */}
-            <View style={{ position: 'absolute', width: 26, height: 26, borderRadius: 13, backgroundColor: 'transparent', borderWidth: 0, top: 3, left: 14, overflow: 'hidden', backgroundColor: 'rgba(30,40,100,0.55)' }} />
-            {/* Các ngôi sao nhỏ */}
-            <Text style={{ position: 'absolute', top: -18, left: -22, fontSize: 10, opacity: 0.9 }}>✦</Text>
-            <Text style={{ position: 'absolute', top: -8, left: -35, fontSize: 7, opacity: 0.7 }}>✦</Text>
-            <Text style={{ position: 'absolute', top: 8, left: -30, fontSize: 8, opacity: 0.8 }}>✦</Text>
-          </RNAnimated.View>
-        )}
+      <View style={st.floorSwitcher}>
+        <TouchableOpacity onPress={() => setActiveFloor(1)} style={[st.floorBtn, activeFloor === 1 && st.floorBtnActive]}>
+          <Text style={[st.floorBtnText, activeFloor === 1 && st.floorBtnTextActive]}>Tầng 1</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setActiveFloor(2)} style={[st.floorBtn, activeFloor === 2 && st.floorBtnActive]}>
+          <Text style={[st.floorBtnText, activeFloor === 2 && st.floorBtnTextActive]}>Tầng 2</Text>
+        </TouchableOpacity>
       </View>
 
-      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-        <Butterfly startX={50}  startY={180} delay={0}    />
-        <Butterfly startX={220} startY={280} delay={1200} />
-        <Bee       startX={130} startY={240} delay={600}  />
-      </View>
-      
       <Text style={st.pageTitle}>{t('home.garden_title')} ☁️</Text>
 
       <ScrollView
@@ -382,27 +378,19 @@ export default function HomeScreen({ navigation }: any) {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0A2E26" />}
       >
-        <View
-          style={st.gardenGrid}
-          onStartShouldSetResponder={() => true}
-          onResponderGrant={() => setSelectedPotId(null)}
-        >
-          {pots.map((pot, index) => {
+        <View style={st.gardenGrid} onStartShouldSetResponder={() => true} onResponderGrant={() => setSelectedPotId(null)}>
+          {floorPots.map((pot, index) => {
+            const globalIndex = (activeFloor - 1) * 3 + index;
             const maxPlots = 2 + level;
-            const isLocked = index >= maxPlots;
+            const isLocked = globalIndex >= maxPlots;
             const isSelected = selectedPotId === pot.id;
             const treeImg = getTreeImage(pot);
             return (
-              <TouchableOpacity 
-                key={pot.id}
-                activeOpacity={0.9}
-                onPress={() => {
-                  if (isLocked) return showToast(t('home.need_level', { level: index - 1 }), 'error');
-                  setSelectedPotId(pot.id);
-                  haptics.selectionAsync();
-                }}
-                style={st.gridItem}
-              >
+              <TouchableOpacity key={pot.id} activeOpacity={0.9} onPress={() => {
+                if (isLocked) return showToast(t('home.need_level', { level: Math.floor(globalIndex / 2) }), 'error');
+                setSelectedPotId(pot.id);
+                haptics.selectionAsync();
+              }} style={st.gridItem}>
                 <View style={[st.cloudSlot, isSelected && { transform: [{scale: 1.05}] }, isLocked && { opacity: 0.6 }]}>
                   {isLocked ? (
                     <MaterialCommunityIcons name="lock" size={32} color="#64748b" style={{ position: 'absolute', bottom: 35, zIndex: 10 }} />
@@ -415,7 +403,6 @@ export default function HomeScreen({ navigation }: any) {
                       </LinearGradient>
                     </View>
                   )}
-                  {/* Cloud Render */}
                   <View style={st.cloud}>
                     <LinearGradient colors={['#FFFFFF', '#D8F2FB']} style={st.cloudGradient} />
                     <View style={st.cloudBefore} />
@@ -428,101 +415,58 @@ export default function HomeScreen({ navigation }: any) {
         </View>
       </ScrollView>
 
-
-
-      {/* Action Panel */}
       <Animated.View entering={FadeInUp.duration(400)}>
         <View style={st.actionPanel}>
-        {!selectedPot ? (
-          <Text style={{textAlign: 'center', color: '#8D9999'}}>{t('home.locked_plot')}</Text>
-        ) : !selectedPot.hasPlant ? (
-          <View style={st.emptyStateContainer}>
-            <View style={st.emptyStateIconWrap}>
-              <MaterialCommunityIcons name="seed-outline" size={48} color="#10B981" />
+          {!selectedPot ? (
+            <Text style={{textAlign: 'center', color: '#8D9999'}}>{t('home.locked_plot')}</Text>
+          ) : !selectedPot.hasPlant ? (
+            <View style={st.emptyStateContainer}>
+              <View style={st.emptyStateIconWrap}><MaterialCommunityIcons name="seed-outline" size={48} color="#10B981" /></View>
+              <Text style={st.emptyStateTitle}>{t('garden.empty_plot')}</Text>
+              <Text style={st.emptyStateSub}>{t('home.balance')}: {seeds} {t('garden.plant')}</Text>
+              <TouchableOpacity onPress={() => handleAction('plant')} activeOpacity={0.8} style={st.btnPlantWrap}>
+                <LinearGradient colors={['#4ADE80', '#22C55E']} start={{x: 0, y: 0}} end={{x: 1, y: 0}} style={st.btnPlant}>
+                  <MaterialCommunityIcons name="seed" size={20} color="#fff" />
+                  <Text style={st.btnPlantText}>{t('garden.plant')}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
-            <Text style={st.emptyStateTitle}>{t('garden.empty_plot')}</Text>
-            <Text style={st.emptyStateSub}>{t('home.balance')}: {seeds} {t('garden.plant')}</Text>
-            
-            <TouchableOpacity onPress={() => handleAction('plant')} activeOpacity={0.8} style={st.btnPlantWrap}>
-              <LinearGradient colors={['#4ADE80', '#22C55E']} start={{x: 0, y: 0}} end={{x: 1, y: 0}} style={st.btnPlant}>
-                <MaterialCommunityIcons name="seed" size={20} color="#fff" />
-                <Text style={st.btnPlantText}>{t('garden.plant')}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <>
-            <View style={st.panelHeader}>
-              <Text style={st.panelTitle}>{t('garden.growing')}</Text>
-              <View style={st.statusBadge}>
-                <MaterialCommunityIcons name="leaf" size={14} color="#0284C7" />
-                <Text style={st.statusBadgeText}>{selectedPot.growthStage}</Text>
-              </View>
-            </View>
-
-            <View style={st.progressItem}>
-              <View style={st.progressHeader}>
-                <Text style={st.progressLabel}>{t('garden.water')}</Text>
-                <Text style={[st.progressValue, st.blueText]}>{currentWaterPct}%</Text>
-              </View>
-              <View style={st.progressTrack}>
-                <LinearGradient colors={['#60A5FA', '#3B82F6']} start={{x: 0, y: 0}} end={{x: 1, y: 0}} style={[st.progressFill, {width: `${currentWaterPct}%`}]} />
-              </View>
-            </View>
-
-            <View style={[st.progressItem, {marginBottom: 0}]}>
-              <View style={st.progressHeader}>
-                <Text style={st.progressLabel}>{t('garden.fertilize')}</Text>
-                <Text style={[st.progressValue, st.greenText]}>{currentFertilizerPct}%</Text>
-              </View>
-              <View style={st.progressTrack}>
-                <LinearGradient colors={['#4ADE80', '#22C55E']} start={{x: 0, y: 0}} end={{x: 1, y: 0}} style={[st.progressFill, {width: `${currentFertilizerPct}%`}]} />
-              </View>
-            </View>
-
-            {/* Buttons */}
-            {selectedPot.growthStage === "Kết trái" ? (
-              <View style={st.buttonGroup}>
-                <TouchableOpacity onPress={() => handleAction('harvest')} activeOpacity={0.8} style={{flex: 1, shadowColor: '#f59e0b', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: {width:0, height: 4}}}>
-                  <LinearGradient colors={['#fbbf24', '#f59e0b']} style={st.btn}>
-                    <Text style={st.btnText}>🌟 {t('garden.harvest')}</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            ) : isGrowing ? (
-              <Animated.View entering={FadeInUp}>
-                <View style={st.growingStateWrap}>
-                  <View style={st.growingStateIcon}>
-                    <MaterialCommunityIcons name="timer-sand" size={26} color="#8b5cf6" />
-                  </View>
-                  <View style={st.growingStateTextWrap}>
-                    <Text style={st.growingStateTitle}>{t('garden.growing')}...</Text>
-                    <Text style={st.growingStateTime}>{t('common.loading')} {formatTime(remainingTime)}</Text>
-                  </View>
-                  <MaterialCommunityIcons name="star-four-points" size={24} color="#fcd34d" style={{marginRight: 5}} />
+          ) : (
+            <>
+              <View style={st.panelHeader}>
+                <Text style={st.panelTitle}>{t('garden.growing')}</Text>
+                <View style={st.statusBadge}>
+                  <MaterialCommunityIcons name="leaf" size={14} color="#0284C7" />
+                  <Text style={st.statusBadgeText}>{selectedPot.growthStage}</Text>
                 </View>
-              </Animated.View>
-            ) : (
-              <View style={st.buttonGroup}>
-                <TouchableOpacity onPress={() => handleAction('water')} activeOpacity={0.8} style={st.btnWaterWrap}>
-                  <LinearGradient colors={['#7DD3FC', '#3B82F6']} style={st.btn}>
-                    <MaterialCommunityIcons name="water" size={20} color="#fff" />
-                    <Text style={st.btnText}>{t('garden.water')}</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => handleAction('fertilize')} activeOpacity={0.8} style={st.btnFertWrap}>
-                  <LinearGradient colors={['#86EFAC', '#22C55E']} style={st.btn}>
-                    <MaterialCommunityIcons name="leaf" size={20} color="#fff" />
-                    <Text style={st.btnText}>{t('garden.fertilize')}</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
               </View>
-            )}
-          </>
-        )}
-      </View>
-    </Animated.View>
+              <View style={st.progressItem}>
+                <View style={st.progressHeader}><Text style={st.progressLabel}>{t('garden.water')}</Text><Text style={[st.progressValue, st.blueText]}>{currentWaterPct}%</Text></View>
+                <View style={st.progressTrack}><LinearGradient colors={['#60A5FA', '#3B82F6']} style={[st.progressFill, {width: `${currentWaterPct}%`}]} /></View>
+              </View>
+              <View style={st.progressItem}>
+                <View style={st.progressHeader}><Text style={st.progressLabel}>{t('garden.fertilize')}</Text><Text style={[st.progressValue, st.greenText]}>{currentFertilizerPct}%</Text></View>
+                <View style={st.progressTrack}><LinearGradient colors={['#4ADE80', '#22C55E']} style={[st.progressFill, {width: `${currentFertilizerPct}%`}]} /></View>
+              </View>
+              {selectedPot.growthStage === "Kết trái" ? (
+                <TouchableOpacity onPress={() => handleAction('harvest')} activeOpacity={0.8} style={st.btnHarvestWrap}>
+                  <LinearGradient colors={['#fbbf24', '#f59e0b']} style={st.btn}><Text style={st.btnText}>🌟 {t('garden.harvest')}</Text></LinearGradient>
+                </TouchableOpacity>
+              ) : isGrowing ? (
+                <View style={st.growingStateWrap}>
+                  <View style={st.growingStateIcon}><MaterialCommunityIcons name="timer-sand" size={26} color="#8b5cf6" /></View>
+                  <View style={st.growingStateTextWrap}><Text style={st.growingStateTitle}>{t('garden.growing')}...</Text><Text style={st.growingStateTime}>{formatTime(remainingTime)}</Text></View>
+                </View>
+              ) : (
+                <View style={st.buttonGroup}>
+                  <TouchableOpacity onPress={() => handleAction('water')} activeOpacity={0.8} style={st.btnAction}><LinearGradient colors={['#7DD3FC', '#3B82F6']} style={st.btn}><MaterialCommunityIcons name="water" size={20} color="#fff" /><Text style={st.btnText}>{t('garden.water')}</Text></LinearGradient></TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleAction('fertilize')} activeOpacity={0.8} style={st.btnAction}><LinearGradient colors={['#86EFAC', '#22C55E']} style={st.btn}><MaterialCommunityIcons name="leaf" size={20} color="#fff" /><Text style={st.btnText}>{t('garden.fertilize')}</Text></LinearGradient></TouchableOpacity>
+                </View>
+              )}
+            </>
+          )}
+        </View>
+      </Animated.View>
 
       <FeedbackPopup visible={popup.visible} type={popup.type} title={popup.title} message={popup.message} onClose={() => setPopup({ ...popup, visible: false })} />
     </LinearGradient>
@@ -530,88 +474,77 @@ export default function HomeScreen({ navigation }: any) {
 }
 
 const st = StyleSheet.create({
-  appContainer: { flex: 1, backgroundColor: '#A9EBD5' },
-
-  header: { 
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', 
-    paddingTop: 56, paddingBottom: 10, paddingHorizontal: 20,
-  },
+  appContainer: { flex: 1 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 56, paddingBottom: 10, paddingHorizontal: 20 },
   userProfile: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  avatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#FFDDAA', borderWidth: 2, borderColor: '#fff', overflow: 'hidden', elevation: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5, shadowOffset: {width:0, height:2} },
+  avatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#FFDDAA', borderWidth: 2, borderColor: '#fff', overflow: 'hidden' },
   userInfo: { flexDirection: 'column' },
   subText: { color: '#374151', fontSize: 13, fontFamily: 'Nunito_600SemiBold' },
   name: { color: '#0F172A', fontSize: 16, fontFamily: 'Nunito_800ExtraBold' },
-  
   stats: { flexDirection: 'row', gap: 10 },
-  statBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, gap: 6, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: {width:0, height:4} },
+  statBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, gap: 6 },
   statBadgeText: { color: '#1a1a1a', fontSize: 15, fontFamily: 'Nunito_800ExtraBold' },
-
   levelContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginTop: 10, gap: 10 },
   levelBadge: { backgroundColor: '#154212', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   levelText: { color: '#fff', fontSize: 12, fontFamily: 'Nunito_800ExtraBold' },
   expTrack: { flex: 1, height: 20, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 10, overflow: 'hidden', justifyContent: 'center' },
   expFill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 10 },
   expText: { textAlign: 'center', fontSize: 10, fontFamily: 'Nunito_800ExtraBold', color: '#154212' },
-
-  pageTitle: {
-    textAlign: 'center', color: '#fff', fontSize: 26, fontFamily: 'Nunito_800ExtraBold', 
-    marginTop: 15, marginBottom: 35, textShadowColor: 'rgba(0,0,0,0.15)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4
-  },
-
+  pageTitle: { textAlign: 'center', color: '#fff', fontSize: 26, fontFamily: 'Nunito_800ExtraBold', marginTop: 15, marginBottom: 20 },
+  floorSwitcher: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginBottom: 10 },
+  floorBtn: { paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)' },
+  floorBtnActive: { backgroundColor: '#fff' },
+  floorBtnText: { color: '#fff', fontFamily: 'Nunito_700Bold' },
+  floorBtnTextActive: { color: '#154212', fontFamily: 'Nunito_800ExtraBold' },
   gardenGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8 },
   gridItem: { width: '33.33%', marginBottom: 50, alignItems: 'center' },
-  
-  cloudSlot: { width: 140, height: 140, justifyContent: 'flex-end', alignItems: 'center', position: 'relative', overflow: 'hidden' },
-  
+  cloudSlot: { width: 140, height: 140, justifyContent: 'flex-end', alignItems: 'center', position: 'relative' },
   plantImg: { width: 70, height: 70, position: 'absolute', bottom: 16, zIndex: 3 },
   addBtnWrap: { position: 'absolute', bottom: 20, zIndex: 3, borderRadius: 18 },
-  addBtnGradient: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: '#fff', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  addBtnText: { color: '#fff', fontSize: 24, fontFamily: 'Nunito_600SemiBold', lineHeight: 28 },
-
+  addBtnGradient: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: '#fff', justifyContent: 'center', alignItems: 'center' },
+  addBtnText: { color: '#fff', fontSize: 24, fontFamily: 'Nunito_600SemiBold' },
   cloud: { width: 140, height: 58, zIndex: 1 },
-  cloudGradient: { ...StyleSheet.absoluteFillObject, borderRadius: 50, shadowColor: '#76C0C6', shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: {width: 0, height: 6}, elevation: 5 },
+  cloudGradient: { ...StyleSheet.absoluteFillObject, borderRadius: 50 },
   cloudBefore: { position: 'absolute', width: 70, height: 70, backgroundColor: '#FFFFFF', borderRadius: 35, top: -33, left: 18 },
   cloudAfter: { position: 'absolute', width: 53, height: 53, backgroundColor: '#FFFFFF', borderRadius: 26.5, top: -23, right: 22 },
-
-  actionPanel: {
-    position: 'absolute', bottom: 85, left: 15, right: 15,
-    backgroundColor: '#fff', borderRadius: 24, padding: 24,
-    elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.08, shadowRadius: 25, zIndex: 10
-  },
-
-  emptyStateContainer: { alignItems: 'center', paddingVertical: 10 },
+  actionPanel: { position: 'absolute', bottom: 85, left: 15, right: 15, backgroundColor: '#fff', borderRadius: 24, padding: 24 },
+  emptyStateContainer: { alignItems: 'center' },
   emptyStateIconWrap: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#ECFDF5', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
-  emptyStateTitle: { fontSize: 16, color: '#1E293B', fontFamily: 'Nunito_800ExtraBold', marginBottom: 8, letterSpacing: 0.5 },
+  emptyStateTitle: { fontSize: 16, color: '#1E293B', fontFamily: 'Nunito_800ExtraBold', marginBottom: 8 },
   emptyStateSub: { fontSize: 14, color: '#64748B', fontFamily: 'Nunito_600SemiBold', marginBottom: 25 },
-  btnPlantWrap: { width: '100%', shadowColor: '#22C55E', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: {width:0, height: 4}, elevation: 4, borderRadius: 24 },
+  btnPlantWrap: { width: '100%', borderRadius: 24 },
   btnPlant: { paddingVertical: 16, borderRadius: 24, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
   btnPlantText: { color: '#fff', fontSize: 16, fontFamily: 'Nunito_800ExtraBold' },
-
   panelHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  panelTitle: { fontSize: 15, color: '#1E293B', fontFamily: 'Nunito_800ExtraBold', letterSpacing: 0.5 },
-  
-  growingStateWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3E8FF', borderRadius: 24, padding: 16, marginTop: 25, borderWidth: 1, borderColor: '#E9D5FF' },
-  growingStateIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#8B5CF6', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
-  growingStateTextWrap: { marginLeft: 15, flex: 1 },
-  growingStateTitle: { fontSize: 16, fontFamily: 'Nunito_800ExtraBold', color: '#6D28D9' },
-  growingStateTime: { fontSize: 14, fontFamily: 'Nunito_600SemiBold', color: '#8B5CF6', marginTop: 2 },
-  
+  panelTitle: { fontSize: 15, color: '#1E293B', fontFamily: 'Nunito_800ExtraBold' },
   statusBadge: { backgroundColor: '#E0F2FE', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statusBadgeText: { fontSize: 12, color: '#0284C7', fontFamily: 'Nunito_800ExtraBold', textTransform: 'uppercase' },
-
-  progressItem: { marginBottom: 20 },
-  progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  statusBadgeText: { fontSize: 12, color: '#0284C7', fontFamily: 'Nunito_800ExtraBold' },
+  progressItem: { marginBottom: 15 },
+  progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   progressLabel: { fontSize: 14, color: '#1E293B', fontFamily: 'Nunito_600SemiBold' },
   progressValue: { fontSize: 14, fontFamily: 'Nunito_800ExtraBold' },
   blueText: { color: '#0284C7' },
   greenText: { color: '#15803D' },
-  
   progressTrack: { height: 8, backgroundColor: '#E2E8F0', borderRadius: 4, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 4 },
-
-  buttonGroup: { flexDirection: 'row', gap: 15, marginTop: 25 },
-  btnWaterWrap: { flex: 1, shadowColor: '#3B82F6', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: {width:0, height: 4}, elevation: 4, borderRadius: 24 },
-  btnFertWrap: { flex: 1, shadowColor: '#22C55E', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: {width:0, height: 4}, elevation: 4, borderRadius: 24 },
+  buttonGroup: { flexDirection: 'row', gap: 15, marginTop: 15 },
+  btnAction: { flex: 1 },
   btn: { paddingVertical: 14, borderRadius: 24, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
-  btnText: { color: '#fff', fontSize: 16, fontFamily: 'Nunito_800ExtraBold' }
+  btnText: { color: '#fff', fontSize: 16, fontFamily: 'Nunito_800ExtraBold' },
+  btnHarvestWrap: { marginTop: 15 },
+  growingStateWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3E8FF', borderRadius: 20, padding: 12, marginTop: 15 },
+  growingStateIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
+  growingStateTextWrap: { marginLeft: 12, flex: 1 },
+  growingStateTitle: { fontSize: 14, fontFamily: 'Nunito_800ExtraBold', color: '#6D28D9' },
+  growingStateTime: { fontSize: 12, fontFamily: 'Nunito_600SemiBold', color: '#8B5CF6' },
+  tutorialRoot: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
+  tutorialCard: { width: '85%', backgroundColor: '#fff', borderRadius: 32, padding: 30, alignItems: 'center' },
+  tutorialIconWrap: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#f0fdf4', justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
+  tutorialTitle: { fontSize: 24, fontFamily: 'Nunito_800ExtraBold', color: '#154212', textAlign: 'center', marginBottom: 12 },
+  tutorialDesc: { fontSize: 16, fontFamily: 'Nunito_600SemiBold', color: '#64748b', textAlign: 'center', lineHeight: 24, marginBottom: 30 },
+  tutorialDots: { flexDirection: 'row', gap: 8, marginBottom: 30 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#e2e8f0' },
+  dotActive: { width: 24, backgroundColor: '#154212' },
+  tutorialBtn: { backgroundColor: '#154212', paddingVertical: 16, paddingHorizontal: 40, borderRadius: 20 },
+  tutorialBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Nunito_800ExtraBold' },
 });

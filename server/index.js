@@ -197,6 +197,12 @@ async function ensureUserColumns() {
     if (lvlCols.length === 0) {
         await db.query("ALTER TABLE users ADD COLUMN level INT DEFAULT 1 AFTER role, ADD COLUMN exp INT DEFAULT 0 AFTER level");
     }
+
+    // Village system
+    const [villageCols] = await db.query("SHOW COLUMNS FROM users LIKE 'village_name'");
+    if (villageCols.length === 0) {
+        await db.query("ALTER TABLE users ADD COLUMN village_name VARCHAR(100) DEFAULT 'Làng Cà Phê' AFTER location");
+    }
 }
 
 // ── Ensure Garden tables (user_pots + push_tokens) ──────────────────────────
@@ -284,7 +290,31 @@ async function ensureGardenTables() {
         await db.query("ALTER TABLE tasks ADD COLUMN exp_reward INT DEFAULT 20 AFTER reward");
     }
 
-    console.log('✅ Garden + Push + AI + Library + Tasks verified.');
+    // Projects table
+    await db.query(`
+        CREATE TABLE IF NOT EXISTS projects (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            description TEXT,
+            target_value INT DEFAULT 10000,
+            current_value INT DEFAULT 0,
+            unit VARCHAR(50) DEFAULT 'cây',
+            icon VARCHAR(50) DEFAULT 'account-group',
+            status VARCHAR(20) DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // Seed initial project if empty
+    const [projCount] = await db.query('SELECT COUNT(*) as n FROM projects');
+    if (projCount[0].n === 0) {
+        await db.query(`
+            INSERT INTO projects (title, description, target_value, current_value, unit, icon)
+            VALUES ('Dự án Làng Cà Phê', 'Mục tiêu: Trồng 10,000 cây cà phê hữu cơ trong mùa vụ năm nay.', 10000, 6540, 'cây', 'account-group')
+        `);
+    }
+
+    console.log('✅ Garden + Push + AI + Library + Tasks + Projects verified.');
 }
 
 async function performPreStartChecks() {
@@ -413,14 +443,14 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
 
 // Register
 app.post('/api/auth/register', async (req, res) => {
-    const { username, password, role, fullName, email, dob } = req.body;
+    const { username, password, role, fullName, email, dob, villageName } = req.body;
     if (!username || !password || !fullName) {
         return res.status(400).json({ message: 'Vui lòng nhập đầy đủ thông tin đăng ký' });
     }
     try {
         const [result] = await db.query(
-            'INSERT INTO users (username, password, role, full_name, email, dob) VALUES (?, ?, ?, ?, ?, ?)',
-            [username, password, role || 'farmer', fullName, email || null, dob || null]
+            'INSERT INTO users (username, password, role, full_name, email, dob, village_name) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [username, password, role || 'farmer', fullName, email || null, dob || null, villageName || 'Làng Cà Phê']
         );
 
         const [rows] = await db.query(
@@ -608,6 +638,32 @@ app.post('/api/push/register', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+// Helper: Send Push Notification
+async function sendPush(userId, title, body, data = {}) {
+    try {
+        const [rows] = await db.query('SELECT token FROM push_tokens WHERE user_id = ?', [userId]);
+        if (rows.length === 0) return;
+
+        const messages = rows.map(r => ({
+            to: r.token,
+            sound: 'default',
+            title,
+            body,
+            data
+        }));
+
+        const response = await fetch('https://exp.host/--/api/v2/push/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(messages)
+        });
+        const result = await response.json();
+        console.log(`[Push] Sent to user ${userId}:`, JSON.stringify(result));
+    } catch (err) {
+        console.error('[Push] Error sending push:', err.message);
+    }
+}
 
 // Get Shop Items
 app.get('/api/shop', async (req, res) => {
@@ -1039,6 +1095,9 @@ app.post('/api/admin/approve', async (req, res) => {
         
         const { level, leveledUp } = await awardExp(sub.user_id, sub.exp_reward || 20);
 
+        // Send Push Notification
+        sendPush(sub.user_id, "Nhiệm vụ đã được duyệt! 🎉", `Bạn vừa nhận được ${sub.reward} xu thưởng.`, { type: 'TASK_APPROVED' });
+
         return sendResponse(res, true, { level, leveledUp }, 'Đã duyệt nhiệm vụ và cộng thưởng');
     } catch (err) {
         return sendResponse(res, false, null, err.message, 500);
@@ -1049,7 +1108,13 @@ app.post('/api/admin/approve', async (req, res) => {
 app.post('/api/admin/reject', async (req, res) => {
     const { submissionId } = req.body;
     try {
+        const [submissions] = await db.query('SELECT user_id FROM task_submissions WHERE id = ?', [submissionId]);
         await db.query('UPDATE task_submissions SET status = "rejected" WHERE id = ?', [submissionId]);
+        
+        if (submissions.length > 0) {
+            sendPush(submissions[0].user_id, "Nhiệm vụ bị từ chối ❌", "Vui lòng kiểm tra lại minh chứng và nộp lại nhé.", { type: 'TASK_REJECTED' });
+        }
+
         return sendResponse(res, true, null, 'Đã từ chối nhiệm vụ');
     } catch (err) {
         return sendResponse(res, false, null, err.message, 500);
@@ -1069,8 +1134,54 @@ app.get('/api/library', async (req, res) => {
 // ── Get rankings ────────────────────────────────────────────────────────────
 app.get('/api/rankings', async (req, res) => {
     try {
-        const [users] = await db.query('SELECT id, full_name as name, coins as points, avatar_url as imageUri, level FROM users ORDER BY coins DESC LIMIT 20');
-        return sendResponse(res, true, users, 'Lấy bảng xếp hạng thành công');
+        const { type } = req.query;
+        if (type === 'village') {
+            const [villages] = await db.query(`
+                SELECT village_name as name, SUM(coins) as points, COUNT(*) as memberCount
+                FROM users 
+                GROUP BY village_name 
+                ORDER BY points DESC 
+                LIMIT 10
+            `);
+            // Format for UI: add an icon/image
+            const formatted = villages.map((v, i) => ({
+                id: i + 1,
+                name: v.name,
+                points: v.points,
+                imageUri: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400',
+                level: v.memberCount + ' thành viên'
+            }));
+            return sendResponse(res, true, formatted, 'Lấy bảng xếp hạng làng thành công');
+        } else {
+            const [users] = await db.query('SELECT id, full_name as name, coins as points, avatar_url as imageUri, level FROM users ORDER BY coins DESC LIMIT 20');
+            return sendResponse(res, true, users, 'Lấy bảng xếp hạng thành công');
+        }
+    } catch (err) {
+        return sendResponse(res, false, null, err.message, 500);
+    }
+});
+
+// ── Get Community Data (Feed + Projects) ────────────────────────────────────
+app.get('/api/community/data', async (req, res) => {
+    try {
+        // 1. Get Projects
+        const [projects] = await db.query('SELECT * FROM projects WHERE status = "active"');
+
+        // 2. Get Featured Farmers (Top 5 by coins)
+        const [farmers] = await db.query('SELECT id, full_name as name, avatar_url as imageUri, level FROM users ORDER BY coins DESC LIMIT 5');
+
+        // 3. Get Recent Feed (from approved submissions)
+        const [feed] = await db.query(`
+            SELECT ts.id, u.full_name as user, t.title as action, ts.submitted_at as time
+            FROM task_submissions ts
+            JOIN users u ON ts.user_id = u.id
+            JOIN tasks t ON ts.task_id = t.id
+            WHERE ts.status = 'approved'
+            ORDER BY ts.submitted_at DESC
+            LIMIT 10
+        `);
+
+        return sendResponse(res, true, { projects, farmers, feed }, 'Lấy dữ liệu cộng đồng thành công');
     } catch (err) {
         return sendResponse(res, false, null, err.message, 500);
     }
@@ -1160,6 +1271,11 @@ app.post('/api/admin/tasks', async (req, res) => {
                 INSERT INTO tasks (title, reward, category, description, icon, task_group, task_type, needs_gps, needs_moderator, quiz_options, quiz_answer)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [title, reward, category, description, icon, task_group, task_type, needs_gps, needs_moderator, JSON.stringify(quiz_options), quiz_answer]);
+
+            // Notify all farmers about new task
+            const [farmers] = await db.query('SELECT id FROM users WHERE role = "farmer"');
+            farmers.forEach(f => sendPush(f.id, "Nhiệm vụ mới! 🌱", `Hãy tham gia: ${title}`, { type: 'NEW_TASK' }));
+
             return sendResponse(res, true, null, 'Tạo nhiệm vụ thành công');
         }
     } catch (err) {

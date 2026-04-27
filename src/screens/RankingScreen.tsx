@@ -1,47 +1,51 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, ActivityIndicator, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import PodiumItem from "../components/PodiumItem";
 import RankingItem from "../components/RankingItem";
-import api from "../services/api";
-
-
+import { communityService } from "../services/api";
+import { useGameStore } from "../store/useGameStore";
 
 export default function RankingScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useGameStore();
-  const [activeTab, setActiveTab] = useState("individual");
+  const [activeTab, setActiveTab] = useState<"individual" | "village">("individual");
   const [rankings, setRankings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchRankings();
-  }, []);
+  }, [activeTab]);
 
   const fetchRankings = async () => {
     try {
-      const data = await api.get("/rankings");
+      const data = await communityService.getRankings(activeTab);
       setRankings(data || []);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchRankings();
+  };
+
   const top3 = (rankings || []).slice(0, 3).map((item, index) => {
-    // Reorder for podium: [2, 1, 3]
     if (index === 0) return { ...item, rank: 1, isFirst: true };
     if (index === 1) return { ...item, rank: 2 };
     if (index === 2) return { ...item, rank: 3 };
     return item;
   });
 
-  // Podium order: index 1 (rank 2), index 0 (rank 1), index 2 (rank 3)
   const podiumData = [top3[1], top3[0], top3[2]].filter(Boolean);
   const others = (rankings || []).slice(3).map((item, index) => ({ ...item, rank: index + 4 }));
 
-  if (loading) return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator size="large" color="#154212" /></View>;
+  if (loading && !refreshing) return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator size="large" color="#154212" /></View>;
 
   return (
     <View style={st.root}>
@@ -50,9 +54,13 @@ export default function RankingScreen() {
         <Text style={st.headerSub}>{t('ranking.sub')}</Text>
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={{ flex: 1 }} 
+        contentContainerStyle={st.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         
-        {/* Tab Switcher */}
         <View style={st.tabsWrap}>
           <TouchableOpacity 
             onPress={() => setActiveTab("individual")}
@@ -70,14 +78,12 @@ export default function RankingScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Podium */}
         <View style={st.podiumWrap}>
           {podiumData[0] && <View style={{ flex: 1 }}><PodiumItem {...podiumData[0]} /></View>}
           {podiumData[1] && <View style={{ flex: 1.2, marginHorizontal: 10 }}><PodiumItem {...podiumData[1]} /></View>}
           {podiumData[2] && <View style={{ flex: 1 }}><PodiumItem {...podiumData[2]} /></View>}
         </View>
 
-        {/* Others List */}
         <View style={st.listWrap}>
           {others.map(item => (
             <RankingItem key={item.id} {...item} />

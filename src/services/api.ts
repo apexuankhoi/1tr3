@@ -113,6 +113,15 @@ export const shopService = {
   },
 };
 
+export const communityService = {
+  getCommunityData: async () => {
+    return await api.get("community/data");
+  },
+  getRankings: async (type: 'individual' | 'village' = 'individual') => {
+    return await api.get("rankings", { params: { type } });
+  },
+};
+
 export const taskService = {
   getTasks: async () => {
     return await api.get("tasks");

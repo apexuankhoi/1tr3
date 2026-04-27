@@ -1,7 +1,9 @@
-import React from "react";
-import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, Platform, StatusBar } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, Platform, StatusBar, ActivityIndicator, RefreshControl } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useGameStore } from "../store/useGameStore";
+import { communityService } from "../services/api";
 
 const SHADOW = Platform.select({
   ios: { shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 15, shadowOffset: { width: 0, height: 6 } },
@@ -11,61 +13,111 @@ const SHADOW = Platform.select({
 export default function CommunityScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useGameStore();
-  
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [data, setData] = useState<{ projects: any[], farmers: any[], feed: any[] }>({
+    projects: [],
+    farmers: [],
+    feed: []
+  });
+
+  const fetchData = async () => {
+    try {
+      const res = await communityService.getCommunityData();
+      setData(res);
+    } catch (err) {
+      console.error("Lỗi lấy dữ liệu cộng đồng:", err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
+
+  if (loading && !refreshing) {
+    return (
+      <View style={[st.root, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#154212" />
+      </View>
+    );
+  }
+
+  const formatTime = (timeStr: string) => {
+    const date = new Date(timeStr);
+    const diff = Date.now() - date.getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins} phút trước`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours} giờ trước`;
+    return date.toLocaleDateString('vi-VN');
+  };
+
   return (
     <View style={st.root}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       
       <View style={[st.header, { paddingTop: insets.top + 20 }]}>
-        <Text style={st.headerTitle}>{t('tabs.ranking')}</Text>
+        <Text style={st.headerTitle}>{t('tabs.community')}</Text>
         <Text style={st.headerSub}>{t('ranking.sub')}</Text>
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={{ flex: 1 }} 
+        contentContainerStyle={st.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         
-        {/* Project Card */}
-        <View style={st.card}>
-          <View style={st.cardHeader}>
-            <View style={st.iconWrap}>
-              <MaterialCommunityIcons name="account-group" size={24} color="#154212" />
+        {/* Project Cards */}
+        {data.projects.map((project: any) => (
+          <View key={project.id} style={st.card}>
+            <View style={st.cardHeader}>
+              <View style={st.iconWrap}>
+                <MaterialCommunityIcons name={project.icon || "account-group"} size={24} color="#154212" />
+              </View>
+              <Text style={st.cardTitle}>{project.title}</Text>
             </View>
-            <Text style={st.cardTitle}>Dự án Làng Cà Phê</Text>
+            <Text style={st.cardDesc}>{project.description}</Text>
+            
+            <View style={st.progressWrap}>
+              <Text style={st.progressLabel}>Tiến độ dự án</Text>
+              <View style={st.progressBarBg}>
+                <View style={[st.progressBarFill, { width: `${Math.min(100, (project.current_value / project.target_value) * 100)}%` }]} />
+              </View>
+              <View style={st.progressTextRow}>
+                <Text style={st.progressVal}>{project.current_value.toLocaleString()} {project.unit}</Text>
+                <Text style={st.progressTarget}>{project.target_value.toLocaleString()} {project.unit}</Text>
+              </View>
+            </View>
           </View>
-          <Text style={st.cardDesc}>Mục tiêu: Trồng 10,000 cây cà phê hữu cơ trong mùa vụ năm nay.</Text>
-          
-          <View style={st.progressWrap}>
-            <Text style={st.progressLabel}>Tiến độ dự án</Text>
-            <View style={st.progressBarBg}>
-              <View style={[st.progressBarFill, { width: "65%" }]} />
-            </View>
-            <View style={st.progressTextRow}>
-              <Text style={st.progressVal}>6,500 cây</Text>
-              <Text style={st.progressTarget}>10,000 cây</Text>
-            </View>
-          </View>
-        </View>
+        ))}
 
         {/* Featured Farmers */}
         <View style={st.sectionHeader}>
           <Text style={st.sectionTitle}>{t('ranking.tab_user')}</Text>
-          <TouchableOpacity>
-            <Text style={st.seeAllBtn}>{t('common.save')}</Text>
-          </TouchableOpacity>
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={st.horizList} contentContainerStyle={{ paddingHorizontal: 24, gap: 16 }}>
-          {[1, 2, 3].map((i) => (
-            <TouchableOpacity key={i} activeOpacity={0.8} style={st.farmerCard}>
+          {data.farmers.map((farmer: any) => (
+            <TouchableOpacity key={farmer.id} activeOpacity={0.8} style={st.farmerCard}>
               <View style={st.farmerAvatarWrap}>
                 <Image 
-                  source={{ uri: "https://images.unsplash.com/photo-1599307734111-d138f6d66934?w=400" }}
+                  source={farmer.imageUri ? { uri: farmer.imageUri } : require("../../assets/avatar_premium.png")}
                   style={st.farmerAvatar} 
                 />
               </View>
-              <Text style={st.farmerName}>Bác {i === 1 ? "Bảy" : i === 2 ? "Tám" : "Chín"}</Text>
+              <Text style={st.farmerName} numberOfLines={1}>{farmer.name}</Text>
               <View style={st.rankBadge}>
                 <MaterialCommunityIcons name="star-circle" size={14} color="#fbbf24" />
-                <Text style={st.rankText}>Thành viên Vàng</Text>
+                <Text style={st.rankText}>Level {farmer.level}</Text>
               </View>
             </TouchableOpacity>
           ))}
@@ -75,23 +127,23 @@ export default function CommunityScreen() {
         <Text style={[st.sectionTitle, { paddingHorizontal: 24, marginBottom: 16 }]}>Hoạt động mới nhất</Text>
         
         <View style={st.feedCard}>
-          {[
-            { id: 1, user: "Anh Ba", action: "vừa hoàn thành ủ 50kg phân hữu cơ", time: "2 phút trước" },
-            { id: 2, user: "Chị Tư", action: "vừa quyên góp 500 xu cho làng", time: "15 phút trước" },
-            { id: 3, user: "Chú Sáu", action: "vừa trồng thêm 5 cây cà phê mới", time: "1 giờ trước" },
-          ].map((item, idx) => (
-            <View key={item.id} style={[st.feedItem, idx !== 2 && st.feedBorder]}>
+          {data.feed.length > 0 ? data.feed.map((item, idx) => (
+            <View key={item.id} style={[st.feedItem, idx !== data.feed.length - 1 && st.feedBorder]}>
               <View style={st.feedIcon}>
                 <MaterialCommunityIcons name="bell-ring" size={20} color="#154212" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={st.feedText}>
-                  <Text style={st.feedUser}>{item.user}</Text> {item.action}
+                  <Text style={st.feedUser}>{item.user}</Text> vừa hoàn thành: {item.action}
                 </Text>
-                <Text style={st.feedTime}>{item.time}</Text>
+                <Text style={st.feedTime}>{formatTime(item.time)}</Text>
               </View>
             </View>
-          ))}
+          )) : (
+            <View style={{ padding: 40, alignItems: 'center' }}>
+              <Text style={{ color: '#94a3b8', fontFamily: 'Nunito_600SemiBold' }}>Chưa có hoạt động nào.</Text>
+            </View>
+          )}
         </View>
 
         <View style={{ height: 60 }} />
@@ -124,7 +176,6 @@ const st = StyleSheet.create({
 
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 24, marginBottom: 16 },
   sectionTitle: { fontSize: 20, fontFamily: "Nunito_800ExtraBold", color: "#111827" },
-  seeAllBtn: { fontSize: 14, fontFamily: "Nunito_700Bold", color: "#154212" },
 
   horizList: { marginBottom: 30 },
   farmerCard: { backgroundColor: "#fff", width: 140, borderRadius: 24, padding: 16, alignItems: "center", borderWidth: 1, borderColor: "#f3f4f6", ...SHADOW },
