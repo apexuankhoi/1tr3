@@ -807,7 +807,6 @@ async function seedAllTasks() {
             t
         );
     }
-}
     // 6. Library Table
     await db.query(`
         CREATE TABLE IF NOT EXISTS library (

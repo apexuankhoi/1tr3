@@ -1,5 +1,6 @@
 import "./global.css";
 import React, { useEffect } from "react";
+import { View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { NavigationContainer } from "@react-navigation/native";
@@ -60,7 +61,7 @@ export default function App() {
   }));
 
   if (!fontsLoaded) {
-    return null;
+    return <View style={{ flex: 1, backgroundColor: '#fff' }} />;
   }
 
   return (

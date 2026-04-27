@@ -7,7 +7,7 @@ import Animated, { FadeInDown, FadeOutUp, useSharedValue, useAnimatedStyle, with
 
 const { width } = Dimensions.get("window");
 
-function PillInput({ label, icon, value, onChangeText, secureTextEntry, keyboardType, placeholder }: any) {
+function PillInput({ label, icon, value, onChangeText, secureTextEntry, keyboardType, placeholder, ...props }: any) {
   return (
     <View style={st.inputBox}>
       <Text style={st.inputLabel}>{label}</Text>
@@ -22,6 +22,7 @@ function PillInput({ label, icon, value, onChangeText, secureTextEntry, keyboard
           autoCapitalize="none"
           placeholder={placeholder}
           placeholderTextColor="#6b7280"
+          {...props}
         />
       </View>
     </View>
@@ -71,13 +72,35 @@ export default function LoginScreen({ navigation, route }: any) {
           </View>
 
           <View style={st.form}>
-            <PillInput label={t('auth.phone')} icon="phone" placeholder={t('auth.phone')} value={username} onChangeText={(text: string) => { setUsername(text); if (showError) setShowError(false); }} keyboardType="phone-pad" />
+            <PillInput 
+              label={t('auth.phone')} 
+              icon="phone" 
+              placeholder="Nhập số điện thoại (ví dụ: 0912345678)" 
+              value={username} 
+              onChangeText={(text: string) => { 
+                // Chỉ cho phép nhập số
+                const cleaned = text.replace(/[^0-9]/g, '');
+                setUsername(cleaned); 
+                if (showError) setShowError(false); 
+              }} 
+              keyboardType="phone-pad" 
+              maxLength={10}
+            />
 
-            <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.9} style={st.loginBtnWrap}>
-              <LinearGradient colors={["#154212", "#2d5a27"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={st.loginBtn}>
-                {loading ? <ActivityIndicator color="white" /> : <Text style={st.loginBtnText}>{t('auth.login')}</Text>}
-              </LinearGradient>
-            </TouchableOpacity>
+            {/* Chỉ hiện nút khi nhập đúng định dạng 10 số bắt đầu bằng 0 */}
+            {username.length === 10 && /^0[0-9]{9}$/.test(username) && (
+              <Animated.View entering={FadeInDown.duration(400)} style={st.loginBtnWrap}>
+                <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.9}>
+                  <LinearGradient colors={["#154212", "#2d5a27"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={st.loginBtn}>
+                    {loading ? <ActivityIndicator color="white" /> : <Text style={st.loginBtnText}>{t('auth.login')}</Text>}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </Animated.View>
+            )}
+
+            {username.length > 0 && username.length < 10 && (
+              <Text style={st.hintText}>Vui lòng nhập đủ 10 chữ số</Text>
+            )}
           </View>
 
         </View>
@@ -108,8 +131,8 @@ const st = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", paddingVertical: 40 },
   
   header: { alignItems: "center", marginBottom: 40 },
-  logoWrap: { width: 96, height: 96, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", marginBottom: 16 },
-  logo: { width: "200%", height: "200%" },
+  logoWrap: { width: 96, height: 96, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", marginBottom: 16, borderRadius: 20, overflow: 'hidden' },
+  logo: { width: '100%', height: '100%' },
   subtitle: { fontFamily: "Nunito_600SemiBold", color: "#6b7280" },
 
   form: { marginTop: 16 },
@@ -138,4 +161,5 @@ const st = StyleSheet.create({
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 48, marginBottom: 24, alignItems: "center" },
   footerText: { fontFamily: "Nunito_600SemiBold", color: "#6b7280" },
   registerText: { fontFamily: "Nunito_800ExtraBold", color: "#154212", fontSize: 18, textDecorationLine: "underline", marginLeft: 4 },
+  hintText: { textAlign: "center", color: "#9ca3af", marginTop: 8, fontSize: 12, fontFamily: "Nunito_600SemiBold" },
 });
