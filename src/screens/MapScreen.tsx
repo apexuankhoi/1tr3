@@ -1,5 +1,16 @@
 import React, { useEffect, useState, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, StatusBar, Platform, Modal, Image } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  StatusBar,
+  Platform,
+  Modal,
+  Image,
+  ScrollView
+} from "react-native";
 import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -49,9 +60,6 @@ export default function MapScreen() {
         .user-marker { background: #154212; border: 2px solid white; border-radius: 50%; width: 20px; height: 20px; box-shadow: 0 0 10px rgba(21,66,18,0.4); }
         .user-marker.offline { background: #94a3b8; box-shadow: none; }
         .leaflet-container { background: #cbd5e1 !important; }
-        /* Hiệu ứng xám bản đồ ngoài Việt Nam */
-        .leaflet-tile-pane { filter: grayscale(1) opacity(0.5); }
-        .vietnam-highlight { filter: grayscale(0) opacity(1) !important; z-index: 1000; }
         .poi-marker { background: #f59e0b; border: 2px solid white; border-radius: 4px; width: 16px; height: 16px; transform: rotate(45deg); }
         .leaflet-popup-content-wrapper { border-radius: 12px; font-family: 'Nunito', sans-serif; }
         .popup-img { width: 100%; height: 100px; border-radius: 8px; object-fit: cover; margin-bottom: 8px; }

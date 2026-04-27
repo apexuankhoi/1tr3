@@ -105,7 +105,7 @@ const generateInitialPots = (): PotData[] => {
         hasPlant: floor === 1 && p === 1,
         waterLevel: 0,
         fertilizerLevel: 0,
-        growthStage: "Nảy mầm",
+        growthStage: "Hạt cà phê",
         growingUntil: 0,
       });
     }
@@ -232,19 +232,24 @@ export const useGameStore = create<GameState>()(
       waterPot: (potId) => {
         set((state) => ({
           pots: state.pots.map(pot => {
-            if (pot.id !== potId || !pot.hasPlant || pot.growingUntil > 0) return pot;
+            if (pot.id !== potId || !pot.hasPlant) return pot;
             const newWater = Math.round(Math.min(1, pot.waterLevel + 0.5) * 10) / 10;
             
-            let newGrowingUntil = 0;
+            let newStage = pot.growthStage;
+            let newWaterFinal = newWater;
+            let newFertilizerFinal = pot.fertilizerLevel;
+
             if (newWater >= 0.99 && pot.fertilizerLevel >= 0.99) {
-              const stages = ["Nảy mầm", "Cây non", "Cây trưởng thành", "Ra hoa", "Kết trái"];
-              if (stages.indexOf(pot.growthStage) < stages.length - 1) {
-                newGrowingUntil = Date.now() + GROWTH_DURATION_MS;
-                get().showToast("🌿 Cây đang hấp thụ dưỡng chất! Quay lại sau 1 tiếng.", 'success');
-                get().scheduleWaterReminder();
+              const stages = ["Hạt cà phê", "Cây non", "Cây trưởng thành", "Ra hoa", "Kết trái"];
+              const idx = stages.indexOf(pot.growthStage);
+              if (idx < stages.length - 1) {
+                newStage = stages[idx + 1];
+                newWaterFinal = 0;
+                newFertilizerFinal = 0;
+                get().showToast(`🌿 Cây cà phê đã lớn lên: ${newStage}!`, 'success');
               }
             }
-            return { ...pot, waterLevel: newWater, growingUntil: newGrowingUntil };
+            return { ...pot, waterLevel: newWaterFinal, fertilizerLevel: newFertilizerFinal, growthStage: newStage };
           })
         }));
         debouncedGardenSync(() => get().syncGarden());
@@ -253,19 +258,24 @@ export const useGameStore = create<GameState>()(
       fertilizePot: (potId) => {
         set((state) => ({
           pots: state.pots.map(pot => {
-            if (pot.id !== potId || !pot.hasPlant || pot.growingUntil > 0) return pot;
+            if (pot.id !== potId || !pot.hasPlant) return pot;
             const newFertilizer = Math.round(Math.min(1, pot.fertilizerLevel + 0.5) * 10) / 10;
             
-            let newGrowingUntil = 0;
+            let newStage = pot.growthStage;
+            let newWaterFinal = pot.waterLevel;
+            let newFertilizerFinal = newFertilizer;
+
             if (pot.waterLevel >= 0.99 && newFertilizer >= 0.99) {
-              const stages = ["Nảy mầm", "Cây non", "Cây trưởng thành", "Ra hoa", "Kết trái"];
-              if (stages.indexOf(pot.growthStage) < stages.length - 1) {
-                newGrowingUntil = Date.now() + GROWTH_DURATION_MS;
-                get().showToast("🌿 Cây đang hấp thụ dưỡng chất! Quay lại sau 1 tiếng.", 'success');
-                get().scheduleWaterReminder();
+              const stages = ["Hạt cà phê", "Cây non", "Cây trưởng thành", "Ra hoa", "Kết trái"];
+              const idx = stages.indexOf(pot.growthStage);
+              if (idx < stages.length - 1) {
+                newStage = stages[idx + 1];
+                newWaterFinal = 0;
+                newFertilizerFinal = 0;
+                get().showToast(`🌿 Cây cà phê đã lớn lên: ${newStage}!`, 'success');
               }
             }
-            return { ...pot, fertilizerLevel: newFertilizer, growingUntil: newGrowingUntil };
+            return { ...pot, waterLevel: newWaterFinal, fertilizerLevel: newFertilizerFinal, growthStage: newStage };
           })
         }));
         debouncedGardenSync(() => get().syncGarden());

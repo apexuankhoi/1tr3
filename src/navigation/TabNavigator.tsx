@@ -43,7 +43,7 @@ export default function TabNavigator() {
         <>
           <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: "Trang chủ" }} />
           <Tab.Screen name="Tasks" component={TasksScreen} options={{ tabBarLabel: "Nhiệm vụ" }} />
-          <Tab.Screen name="Shop" component={ShopScreen} options={{ tabBarLabel: "Cửa hàng" }} />
+          <Tab.Screen name="Ranking" component={RankingScreen} options={{ tabBarLabel: "Bảng vàng" }} />
           <Tab.Screen name="Library" component={LibraryScreen} options={{ tabBarLabel: "Thư viện" }} />
           <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: "Hồ sơ" }} />
         </>

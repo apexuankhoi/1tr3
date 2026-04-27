@@ -441,59 +441,36 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
     }
 });
 
-// Register
-app.post('/api/auth/register', async (req, res) => {
-    const { username, password, role, fullName, email, dob, villageName } = req.body;
-    if (!username || !password || !fullName) {
-        return res.status(400).json({ message: 'Vui lòng nhập đầy đủ thông tin đăng ký' });
-    }
-    try {
-        const [result] = await db.query(
-            'INSERT INTO users (username, password, role, full_name, email, dob, village_name) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [username, password, role || 'farmer', fullName, email || null, dob || null, villageName || 'Làng Cà Phê']
-        );
-
-        const [rows] = await db.query(
-            'SELECT id, username, full_name, email, dob, role, coins, water_level, energy_level, growth_stage, growing_until, avatar_url, cover_url, bio, location, created_at FROM users WHERE id = ?',
-            [result.insertId]
-        );
-
-        const user = rows[0];
-        user.coins = user.coins ?? 0;
-        user.water_level = user.water_level ?? 0;
-        user.energy_level = user.energy_level ?? 1;
-        user.growing_until = user.growing_until ?? 0;
-
-        return sendResponse(res, true, user, 'Đăng ký thành công', 201);
-    } catch (err) {
-        if (err.code === 'ER_DUP_ENTRY') {
-            return sendResponse(res, false, null, 'Tên đăng nhập đã tồn tại', 409);
-        }
-        return sendResponse(res, false, null, err.message, 500);
-    }
-});
-
-// Login
+// Phone-only Login/Bypass (Tối giản luồng)
 app.post('/api/auth/login', async (req, res) => {
-    const { username, password } = req.body;
+    const { username } = req.body;
+    if (!username) {
+        return sendResponse(res, false, null, 'Vui lòng nhập số điện thoại', 400);
+    }
     try {
-        const [users] = await db.query(
-            'SELECT id, username, full_name, role, is_locked, coins, water_level, energy_level, growth_stage, growing_until, avatar_url, cover_url, bio, location, created_at FROM users WHERE username = ? AND password = ?',
-            [username, password]
+        let [rows] = await db.query(
+            'SELECT id, username, full_name, role, is_locked, coins, avatar_url, created_at FROM users WHERE username = ?',
+            [username]
         );
-        if (users.length === 0) return res.status(401).json({ message: 'Sai tên đăng nhập hoặc mật khẩu' });
-        
-        if (users[0].is_locked) {
-            return sendResponse(res, false, null, 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin.', 403);
+
+        let user;
+        if (rows.length === 0) {
+            // Tự động đăng ký
+            const [result] = await db.query(
+                'INSERT INTO users (username, password, role, full_name, village_name) VALUES (?, ?, ?, ?, ?)',
+                [username, 'no-pass', 'farmer', `Nông dân ${username.slice(-4)}`, 'Buôn Làng']
+            );
+            const [newRows] = await db.query(
+                'SELECT id, username, full_name, role, is_locked, coins, avatar_url, created_at FROM users WHERE id = ?',
+                [result.insertId]
+            );
+            user = newRows[0];
+        } else {
+            user = rows[0];
         }
-        
-        const user = users[0];
+
+        if (user.is_locked) return sendResponse(res, false, null, 'Tài khoản đã bị khóa', 403);
         user.coins = user.coins ?? 0;
-        user.water_level = user.water_level ?? 0;
-        user.energy_level = user.energy_level ?? 1;
-        user.growing_until = user.growing_until ?? 0;
-        
-        console.log(`[Login] User ${user.username} logged in. Coins: ${user.coins}`);
         return sendResponse(res, true, user, 'Đăng nhập thành công');
     } catch (err) {
         return sendResponse(res, false, null, err.message, 500);
@@ -805,54 +782,9 @@ async function ensureTaskColumns() {
 
 async function seedAllTasks() {
     const tasks = [
-        // GROUP 1: Action (needs photo, needs moderator)
-        ['Gom rơm rạ/vỏ cà phê', 60, 'Action', 'Chụp ảnh gom rơm rạ/vỏ cà phê thành đống sau thu hoạch.', 'camera', 'action', 'photo', 'weekly', 0, 1, null, null],
-        ['Trộn men vi sinh', 70, 'Action', 'Chụp ảnh đang trộn men vi sinh vào đống ủ.', 'camera', 'action', 'photo', 'weekly', 0, 1, null, null],
-        ['Tưới giữ ẩm đống ủ', 50, 'Action', 'Chụp ảnh đang tưới nước giữ ẩm cho đống ủ phân.', 'water', 'action', 'photo', 'daily', 0, 1, null, null],
-        ['Che đậy bạt đống ủ', 50, 'Action', 'Chụp ảnh/quay video (5s) che đậy bạt bảo vệ đống ủ.', 'camera', 'action', 'video', 'weekly', 0, 1, null, null],
-        ['Đảo đống ủ cho thoáng', 60, 'Action', 'Quay video ngắn cảnh dùng xẻng đảo đống ủ cho thoáng khí.', 'camera', 'action', 'video', 'weekly', 0, 1, null, null],
-        ['Phân hoai mục thành công', 100, 'Action', 'Chụp ảnh đống phân hữu cơ đã hoai mục thành công (đen, tơi xốp).', 'leaf', 'action', 'photo', 'weekly', 0, 1, null, null],
-        ['Bón phân tự ủ cho cây', 80, 'Action', 'Chụp ảnh đang bón phân tự ủ cho gốc cây cà phê / hoa màu.', 'leaf', 'action', 'photo', 'weekly', 0, 1, null, null],
-        ['Phân loại rác tại bếp', 60, 'Action', 'Chụp ảnh phân loại rác hữu cơ (rau củ thừa) và vô cơ (túi nilon) tại bếp.', 'recycle', 'action', 'photo', 'daily', 0, 1, null, null],
-        ['Vứt rác vô cơ đúng nơi', 40, 'Action', 'Chụp ảnh vứt rác vô cơ đúng nơi quy định của buôn làng.', 'trash-can', 'action', 'photo', 'daily', 0, 1, null, null],
-        ['Nhặt vỏ chai thuốc trên rẫy', 70, 'Action', 'Chụp ảnh nhặt vỏ chai/bao bì thuốc bảo vệ thực vật trên rẫy.', 'delete-sweep', 'action', 'photo', 'weekly', 0, 1, null, null],
-        ['Nộp bao bì thuốc trừ sâu', 80, 'Action', 'Chụp ảnh đem bao bì thuốc trừ sâu nộp tại điểm thu gom chung.', 'truck-delivery', 'action', 'photo', 'weekly', 0, 1, null, null],
-        ['Tái chế đồ cũ thành chậu', 90, 'Action', 'Chụp ảnh tái chế (dùng chai nhựa cũ làm chậu ươm hạt mầm).', 'recycle', 'action', 'photo', 'weekly', 0, 1, null, null],
-        ['Quét dọn đường làng', 60, 'Action', 'Chụp ảnh tham gia quét dọn đường làng ngõ xóm.', 'broom', 'action', 'photo', 'weekly', 0, 1, null, null],
-        ['Giới thiệu app cho hàng xóm', 120, 'Action', 'Quét mã QR giới thiệu app thành công cho một người hàng xóm.', 'qrcode', 'action', 'qr', 'weekly', 0, 1, null, null],
-        ['Buộc kín túi rác trước khi vứt', 40, 'Action', 'Chụp ảnh túi rác hoặc bao tải rác đã được buộc kín trước khi vứt.', 'bag-checked', 'action', 'photo', 'daily', 0, 1, null, null],
-        // GROUP 2: Report (needs GPS + moderator)
-        ['Báo cáo đốt rơm rạ', 100, 'Report', 'Báo cáo tọa độ đang có đống rơm rạ bị đốt (kèm ảnh khói).', 'fire-alert', 'report', 'photo', 'daily', 1, 1, null, null],
-        ['Báo cáo đốt rác nông nghiệp', 100, 'Report', 'Báo cáo tọa độ đang đốt vỏ cà phê / rác thải nông nghiệp.', 'fire', 'report', 'photo', 'daily', 1, 1, null, null],
-        ['Báo cáo bãi rác tự phát', 80, 'Report', 'Báo cáo một bãi rác tự phát mới xuất hiện cạnh đường/kênh rạch.', 'map-marker-alert', 'report', 'photo', 'daily', 1, 1, null, null],
-        ['Báo cáo vỏ chai thuốc vứt bừa', 80, 'Report', 'Báo cáo khu vực có nhiều vỏ chai thuốc trừ sâu vứt bừa bãi.', 'alert', 'report', 'photo', 'daily', 1, 1, null, null],
-        ['Cập nhật điểm ô nhiễm đã sạch', 120, 'Report', 'Chụp ảnh điểm ô nhiễm (đã báo cáo trước đó) nay đã được dọn sạch.', 'check-circle', 'report', 'photo', 'daily', 1, 1, null, null],
-        ['Báo cáo khói mù không rõ nguồn', 90, 'Report', 'Báo cáo khói mù mịt không rõ nguồn gốc gây ảnh hưởng tầm nhìn.', 'weather-fog', 'report', 'photo', 'daily', 1, 1, null, null],
-        ['Báo cáo xả rác xuống suối', 100, 'Report', 'Báo cáo hành vi xả rác sinh hoạt thẳng xuống suối/nguồn nước.', 'water-off', 'report', 'photo', 'daily', 1, 1, null, null],
-        ['Đánh dấu đống ủ lên bản đồ', 60, 'Report', 'Đánh dấu vị trí đống ủ phân sinh học chuẩn của nhà mình lên bản đồ.', 'map-marker-plus', 'report', 'gps', 'weekly', 1, 1, null, null],
-        ['Báo cáo điểm tập kết rác quá tải', 70, 'Report', 'Báo cáo điểm tập kết rác của buôn làng đang bị quá tải, chưa có xe thu gom.', 'trash-can-outline', 'report', 'photo', 'daily', 1, 1, null, null],
-        ['SOS: Báo cháy lan rộng', 150, 'Report', 'Báo cáo nhanh (SOS) đám cháy có nguy cơ lan rộng.', 'fire-extinguisher', 'report', 'photo', 'daily', 1, 1, null, null],
-        // GROUP 3: Quiz
-        ['Quiz: Ủ rơm mất bao lâu?', 50, 'Quiz', 'Rơm rạ ủ men vi sinh mất bao lâu thì bón được cho cây?', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["A. 1 tuần","B. 30-45 ngày","C. 3 tháng","D. 1 năm"]', 'B'],
-        ['Quiz: Khói nilon chứa chất gì?', 50, 'Quiz', 'Khói đốt rác nilon chứa chất độc gì gây ung thư?', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["A. CO2","B. Dioxin","C. Metan","D. Oxy"]', 'B'],
-        ['Quiz: Đốt rẫy làm đất tốt hơn?', 50, 'Quiz', 'Đất rẫy bị đốt thường xuyên sẽ màu mỡ hơn hay bạc màu đi?', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["A. Màu mỡ hơn","B. Bạc màu đi"]', 'B'],
-        ['Quiz: Men vi sinh khử mùi?', 40, 'Quiz', 'Men vi sinh có tác dụng khử mùi hôi đống ủ, Đúng hay Sai?', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["Đúng","Sai"]', 'Đúng'],
-        ['Quiz: Ủ kín không cần tưới?', 40, 'Quiz', 'Vỏ cà phê đậy bạt kín hoàn toàn không cần tưới nước, Đúng hay Sai?', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["Đúng","Sai"]', 'Sai'],
-        ['Quiz: Đốt bao bì thuốc được không?', 60, 'Quiz', 'Bao bì thuốc trừ sâu đã dùng hết có được mang đốt chung với rác sinh hoạt không?', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["Được","Không được"]', 'Không được'],
-        ['Quiz: Phân hữu cơ vs hóa học?', 50, 'Quiz', 'Phân hữu cơ hoai mục giúp rễ cây hấp thụ nước tốt hơn phân hóa học, Đúng hay Sai?', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["Đúng","Sai"]', 'Đúng'],
-        ['Quiz: Tỷ lệ pha men vi sinh?', 50, 'Quiz', 'Tỷ lệ pha men vi sinh với nước chuẩn là bao nhiêu?', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["A. 1:10","B. 1:100","C. 1:500","D. 1:1000"]', 'C'],
-        // GROUP 3: Media
-        ['Xem video Già làng kể chuyện', 60, 'Quiz', 'Xem hết 1 video "Già làng kể chuyện bảo vệ đất" (thời lượng 1-2 phút).', 'play-circle', 'learn', 'media', 'daily', 0, 0, null, null],
-        ['Nghe audio tiếng Ê Đê', 60, 'Quiz', 'Nghe trọn vẹn 1 file audio tiếng Ê Đê hướng dẫn trộn phân.', 'headphones', 'learn', 'media', 'daily', 0, 0, null, null],
-        ['Xem infographic ủ vỏ cà phê', 50, 'Quiz', 'Xem và vuốt chạm hết 1 Infographic "4 bước ủ vỏ cà phê".', 'image', 'learn', 'media', 'daily', 0, 0, null, null],
-        ['Đọc mẹo nông nghiệp xanh hôm nay', 40, 'Quiz', 'Đọc "Mẹo nông nghiệp xanh" hiển thị dưới dạng pop-up của ngày hôm nay.', 'book-open', 'learn', 'media', 'daily', 0, 0, null, null],
-        ['Xem video tác hại khói đốt rẫy', 70, 'Quiz', 'Xem video cảnh báo tác hại của khói đốt rẫy đến hệ hô hấp của trẻ em.', 'play-circle', 'learn', 'media', 'daily', 0, 0, null, null],
-        // GROUP 3: Retention
-        ['Điểm danh hôm nay', 20, 'Quiz', 'Điểm danh: Đăng nhập mở app ngày hôm nay.', 'calendar-today', 'learn', 'checkin', 'daily', 0, 0, null, null],
-        ['Streak 3 ngày liên tiếp', 80, 'Quiz', 'Chuỗi (Streak): Đăng nhập liên tiếp 3 ngày.', 'fire', 'learn', 'streak', 'daily', 0, 0, null, null],
-        ['Streak 7 ngày liên tiếp', 200, 'Quiz', 'Chuỗi (Streak): Đăng nhập liên tiếp 7 ngày (thưởng rương Xu ngẫu nhiên).', 'trophy', 'learn', 'streak', 'daily', 0, 0, null, null],
-        ['Tưới/bón phân cây ảo', 30, 'Quiz', 'Click tưới nước/bón phân cho "Cây ảo" trên trang chủ.', 'leaf', 'learn', 'interact', 'daily', 0, 0, null, null],
-        ['Nhiệm vụ Combo trong ngày', 150, 'Quiz', 'Hoàn thành ít nhất 1 task Hành động + 1 task Học tập trong cùng 1 ngày (Bonus thêm Xu).', 'star-circle', 'learn', 'combo', 'daily', 0, 0, null, null],
+        ['Ủ phân vỏ cà phê', 60, 'Action', 'Chụp ảnh quá trình ủ vỏ cà phê bằng men vi sinh tại rẫy.', 'shoveler', 'action', 'photo', 'weekly', 0, 1, null, null],
+        ['Làm quiz nông nghiệp', 40, 'Quiz', 'Trả lời câu hỏi trắc nghiệm về kỹ thuật canh tác cà phê xanh.', 'brain', 'learn', 'quiz', 'daily', 0, 0, '["A. 1 tuần","B. 30-45 ngày","C. 3 tháng","D. 1 năm"]', 'B'],
+        ['Báo cáo đốt rẫy', 0, 'Report', 'Chụp ảnh và lẩy tọa độ GPS điểm đang có khói bụi/đốt rẫy.', 'fire-alert', 'report', 'photo', 'daily', 1, 0, null, null],
     ];
 
     for (const t of tasks) {
@@ -862,6 +794,7 @@ async function seedAllTasks() {
             t
         );
     }
+}
     // 6. Library Table
     await db.query(`
         CREATE TABLE IF NOT EXISTS library (

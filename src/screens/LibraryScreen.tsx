@@ -35,16 +35,14 @@ export default function LibraryScreen() {
 
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState("ủ phân");
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<any | null>(null);
 
   const categories = [
-    { id: "all", label: t('library.cat_all') },
-    { id: t('library.cat_planting'), label: t('library.cat_planting') },
-    { id: t('library.cat_soil'), label: t('library.cat_soil') },
-    { id: t('library.cat_water'), label: t('library.cat_water') },
-    { id: t('library.cat_fertilizer'), label: t('library.cat_fertilizer') },
+    { id: "ủ phân", label: "Ủ phân vỏ cà phê" },
+    { id: "quiz", label: "Làm quiz" },
+    { id: "báo cáo", label: "Báo cáo đốt rẫy" },
   ];
 
   useEffect(() => {
@@ -52,19 +50,16 @@ export default function LibraryScreen() {
   }, []);
 
   const fetchLibrary = async () => {
-    try {
-      const data = await libraryService.getLibrary();
-      setItems(data);
-    } catch (error) {
-      console.error("Lỗi tải thư viện:", error);
-    } finally {
-      setLoading(false);
-    }
+    const mockData = [
+      { id: 1, title: "Kỹ thuật ủ vỏ cà phê hiệu quả", category: "ủ phân", image_url: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=800", description: "Hướng dẫn chi tiết cách tận dụng vỏ cà phê sau thu hoạch để làm phân bón hữu cơ.", type: 'article' },
+      { id: 2, title: "Kiểm tra kiến thức nông nghiệp xanh", category: "quiz", image_url: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800", description: "Cùng làm bài trắc nghiệm ngắn để nhận thêm xu và củng cố kiến thức canh tác.", type: 'article' },
+      { id: 3, title: "Cách báo cáo đốt rẫy trên bản đồ", category: "báo cáo", image_url: "https://images.unsplash.com/photo-1524350876685-274059332603?w=800", description: "Hướng dẫn sử dụng tính năng chụp ảnh khói bụi để bảo vệ bầu không khí buôn làng.", type: 'article' },
+    ];
+    setItems(mockData);
+    setLoading(false);
   };
 
-  const filteredItems = selectedCategory === "all" 
-    ? items 
-    : items.filter(i => i.category === selectedCategory);
+  const filteredItems = items.filter(i => i.category === selectedCategory);
 
   const getYoutubeId = (url: string) => {
     if (!url) return null;

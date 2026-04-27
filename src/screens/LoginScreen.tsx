@@ -45,12 +45,12 @@ export default function LoginScreen({ navigation, route }: any) {
   }, [route.params?.prefilledPhone]);
 
   const handleLogin = async () => {
-    if (!username || !password) {
+    if (!username) {
       showToast(t('common.error'));
       return;
     }
     setLoading(true);
-    const success = await login({ username: username.trim(), password });
+    const success = await login({ username: username.trim() });
     setLoading(false);
     if (!success) {
       setShowError(true);
@@ -67,58 +67,16 @@ export default function LoginScreen({ navigation, route }: any) {
             <View style={st.logoWrap}>
               <Image source={require("../../assets/logo.png")} style={st.logo} resizeMode="contain" />
             </View>
-            <Text style={st.subtitle}>{t('home.welcome')}</Text>
+            <Text style={st.subtitle}>Mùa Rẫy Không Khói</Text>
           </View>
 
           <View style={st.form}>
             <PillInput label={t('auth.phone')} icon="phone" placeholder={t('auth.phone')} value={username} onChangeText={(text: string) => { setUsername(text); if (showError) setShowError(false); }} keyboardType="phone-pad" />
 
-            {username.length > 0 && (
-              <Animated.View entering={FadeInDown.duration(400)} exiting={FadeOutUp}>
-                <PillInput label={t('auth.password')} icon="lock-outline" placeholder={t('auth.password')} value={password} onChangeText={(text: string) => { setPassword(text); if (showError) setShowError(false); }} secureTextEntry />
-                
-                <View style={st.optionsRow}>
-                  <TouchableOpacity onPress={() => setRememberMe(!rememberMe)} style={st.rememberWrap}>
-                    <MaterialCommunityIcons name={rememberMe ? "checkbox-marked" : "checkbox-blank-outline"} size={22} color={rememberMe ? "#154212" : "#9ca3af"} />
-                    <Text style={st.rememberText}>Ghi nhớ tôi</Text>
-                  </TouchableOpacity>
-                  {showError && (
-                    <TouchableOpacity>
-                      <Text style={st.forgotText}>Quên mật khẩu?</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </Animated.View>
-            )}
-
             <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.9} style={st.loginBtnWrap}>
               <LinearGradient colors={["#154212", "#2d5a27"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={st.loginBtn}>
                 {loading ? <ActivityIndicator color="white" /> : <Text style={st.loginBtnText}>{t('auth.login')}</Text>}
               </LinearGradient>
-            </TouchableOpacity>
-          </View>
-
-          <View style={st.dividerWrap}>
-            <View style={st.dividerLine} />
-            <Text style={st.dividerText}>Hoặc</Text>
-            <View style={st.dividerLine} />
-          </View>
-
-          <View style={st.socialWrap}>
-            <TouchableOpacity style={st.socialBtn}>
-              <MaterialCommunityIcons name="google" size={24} color="#ea4335" />
-              <Text style={st.socialText}>Đăng nhập bằng Google</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={st.socialBtn}>
-              <MaterialCommunityIcons name="facebook" size={24} color="#1877f2" />
-              <Text style={st.socialText}>Đăng nhập bằng Facebook</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={st.footer}>
-            <Text style={st.footerText}>{t('auth.no_account')} </Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-              <AnimatedPulseText text={t('auth.register')} />
             </TouchableOpacity>
           </View>
 

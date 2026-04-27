@@ -47,11 +47,9 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string; ico
 
 // ── MOCK fallback tasks ────────────────────────────────────────────────────────
 const MOCK_TASKS = [
-  { id: 1, title: "Gom rơm rạ/vỏ cà phê", reward: 60, category: "Action", description: "Chụp ảnh gom rơm rạ/vỏ cà phê thành đống sau thu hoạch.", icon: "camera", task_group: "action", task_type: "photo", needs_gps: false, needs_moderator: true, submissionStatus: "none" },
-  { id: 2, title: "Bón phân tự ủ cho cây", reward: 80, category: "Action", description: "Chụp ảnh đang bón phân tự ủ cho gốc cây cà phê.", icon: "leaf", task_group: "action", task_type: "photo", needs_gps: false, needs_moderator: true, submissionStatus: "none" },
-  { id: 3, title: "Báo cáo đốt rơm rạ", reward: 100, category: "Report", description: "Báo cáo tọa độ đang có đống rơm rạ bị đốt (kèm ảnh khói).", icon: "fire-alert", task_group: "report", task_type: "photo", needs_gps: true, needs_moderator: true, submissionStatus: "none" },
-  { id: 4, title: "Quiz: Ủ rơm mất bao lâu?", reward: 50, category: "Quiz", description: "Rơm rạ ủ men vi sinh mất bao lâu thì bón được cho cây?", icon: "brain", task_group: "learn", task_type: "quiz", needs_gps: false, needs_moderator: false, quiz_options: ["A. 1 tuần", "B. 30-45 ngày", "C. 3 tháng", "D. 1 năm"], quiz_answer: "B", submissionStatus: "none" },
-  { id: 5, title: "Điểm danh hôm nay", reward: 20, category: "Quiz", description: "Điểm danh: Đăng nhập mở app ngày hôm nay.", icon: "calendar-today", task_group: "learn", task_type: "checkin", needs_gps: false, needs_moderator: false, submissionStatus: "none" },
+  { id: 1, title: "Ủ phân vỏ cà phê", reward: 60, category: "Action", description: "Chụp ảnh quá trình ủ vỏ cà phê bằng men vi sinh tại rẫy.", icon: "shoveler", task_group: "action", task_type: "photo", needs_gps: false, needs_moderator: true, submissionStatus: "none" },
+  { id: 2, title: "Làm quiz nông nghiệp", reward: 40, category: "Quiz", description: "Trả lời câu hỏi trắc nghiệm về kỹ thuật canh tác cà phê xanh.", icon: "brain", task_group: "learn", task_type: "quiz", needs_gps: false, needs_moderator: false, quiz_options: ["A. 1 tuần", "B. 30-45 ngày", "C. 3 tháng", "D. 1 năm"], quiz_answer: "B", submissionStatus: "none" },
+  { id: 3, title: "Báo cáo đốt rẫy", reward: 0, category: "Report", description: "Chụp ảnh và lấy tọa độ GPS điểm đang có khói bụi/đốt rẫy.", icon: "fire-alert", task_group: "report", task_type: "photo", needs_gps: true, needs_moderator: false, submissionStatus: "none" },
 ];
 
 export default function TasksScreen({ navigation }: any) {
@@ -67,17 +65,10 @@ export default function TasksScreen({ navigation }: any) {
   const [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({});
 
   const fetchWeekly = useCallback(async () => {
-    try {
-      const data = await taskService.getWeeklyTasks(userId || 1);
-      setWeekNum(data.weekNum);
-      setTasks(data.tasks);
-    } catch {
-      setTasks(MOCK_TASKS);
-      setWeekNum(1);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+    setTasks(MOCK_TASKS);
+    setWeekNum(1);
+    setLoading(false);
+    setRefreshing(false);
   }, [userId]);
 
   useEffect(() => { fetchWeekly(); }, []);
@@ -205,9 +196,9 @@ export default function TasksScreen({ navigation }: any) {
                 <View style={{ flex: 1 }}>
                   <Text style={st.groupTitle}>{group === 'action' ? t('tasks.filter_action') : group === 'report' ? t('tasks.filter_report') : t('tasks.filter_quiz')}</Text>
                   <Text style={st.groupSub}>
-                    {group === "action" ? "Cần chụp ảnh · Moderator duyệt" :
-                     group === "report" ? "Cần GPS + ảnh · Moderator duyệt" :
-                     "Hệ thống tự động cộng Xu"}
+                    {group === "action" ? "Chụp ảnh minh chứng" :
+                     group === "report" ? "Ghi nhận tọa độ GPS" :
+                     "Hệ thống tự động ghi nhận"}
                   </Text>
                 </View>
                 <View style={[st.groupBadge, { backgroundColor: cfg.bg }]}>

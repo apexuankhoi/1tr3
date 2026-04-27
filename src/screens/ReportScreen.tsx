@@ -120,7 +120,7 @@ export default function ReportScreen({ navigation, route }: any) {
       setPopup({
         visible: true, type: "success",
         title: t('common.success'),
-        message: t('tasks.status_approved'),
+        message: isReport ? "Tọa độ đã được ghi nhận lên bản đồ!" : t('tasks.status_approved'),
       });
     } catch (err: any) {
       console.error("Upload error:", err);
@@ -249,7 +249,7 @@ export default function ReportScreen({ navigation, route }: any) {
             ? <ActivityIndicator size="small" color="#fff" />
             : <LinearGradient colors={gradientColors} style={st.submitGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                 <MaterialCommunityIcons name="send" size={20} color="#fff" />
-                <Text style={st.submitText}>{t('tasks.submit')}</Text>
+                <Text style={st.submitText}>{isReport ? "Ghi nhận tọa độ" : t('tasks.submit')}</Text>
               </LinearGradient>}
         </TouchableOpacity>
 

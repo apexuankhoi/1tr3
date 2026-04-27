@@ -8,80 +8,34 @@ import { useGameStore } from "../store/useGameStore";
 
 export default function RankingScreen() {
   const insets = useSafeAreaInsets();
-  const { t } = useGameStore();
-  const [activeTab, setActiveTab] = useState<"individual" | "village">("individual");
-  const [rankings, setRankings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  
+  const mockRanking = [
+    { id: 1, full_name: "Nguyễn Văn A", coins: 1200, avatar_url: null, rank: 1, score: 1200 },
+    { id: 2, full_name: "K'sor H'Bia", coins: 900, avatar_url: null, rank: 2, score: 900 },
+    { id: 3, full_name: "Y'Phúc Niê", coins: 750, avatar_url: null, rank: 3, score: 750 },
+    { id: 4, full_name: "H'Lâm Đắk", coins: 620, avatar_url: null, rank: 4, score: 620 },
+    { id: 5, full_name: "Ama H'rin", coins: 580, avatar_url: null, rank: 5, score: 580 },
+  ];
 
-  useEffect(() => {
-    fetchRankings();
-  }, [activeTab]);
-
-  const fetchRankings = async () => {
-    try {
-      const data = await communityService.getRankings(activeTab);
-      setRankings(data || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchRankings();
-  };
-
-  const top3 = (rankings || []).slice(0, 3).map((item, index) => {
-    if (index === 0) return { ...item, rank: 1, isFirst: true };
-    if (index === 1) return { ...item, rank: 2 };
-    if (index === 2) return { ...item, rank: 3 };
-    return item;
-  });
-
-  const podiumData = [top3[1], top3[0], top3[2]].filter(Boolean);
-  const others = (rankings || []).slice(3).map((item, index) => ({ ...item, rank: index + 4 }));
-
-  if (loading && !refreshing) return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator size="large" color="#154212" /></View>;
+  const podiumData = [mockRanking[1], mockRanking[0], mockRanking[2]];
+  const others = mockRanking.slice(3);
 
   return (
     <View style={st.root}>
       <View style={[st.header, { paddingTop: insets.top + 20 }]}>
-        <Text style={st.headerTitle}>{t('ranking.title')}</Text>
-        <Text style={st.headerSub}>{t('ranking.sub')}</Text>
+        <Text style={st.headerTitle}>Bảng vàng buôn làng</Text>
+        <Text style={st.headerSub}>Thi đua rẫy xanh - Tích xu đổi quà</Text>
       </View>
 
       <ScrollView 
         style={{ flex: 1 }} 
         contentContainerStyle={st.content} 
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        
-        <View style={st.tabsWrap}>
-          <TouchableOpacity 
-            onPress={() => setActiveTab("individual")}
-            activeOpacity={0.8}
-            style={[st.tabBtn, activeTab === "individual" && st.tabActive]}
-          >
-            <Text style={[st.tabText, activeTab === "individual" && st.tabTextActive]}>{t('ranking.tab_user')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={() => setActiveTab("village")}
-            activeOpacity={0.8}
-            style={[st.tabBtn, activeTab === "village" && st.tabActive]}
-          >
-            <Text style={[st.tabText, activeTab === "village" && st.tabTextActive]}>{t('ranking.tab_village')}</Text>
-          </TouchableOpacity>
-        </View>
-
         <View style={st.podiumWrap}>
-          {podiumData[0] && <View style={{ flex: 1 }}><PodiumItem {...podiumData[0]} /></View>}
-          {podiumData[1] && <View style={{ flex: 1.2, marginHorizontal: 10 }}><PodiumItem {...podiumData[1]} /></View>}
-          {podiumData[2] && <View style={{ flex: 1 }}><PodiumItem {...podiumData[2]} /></View>}
+          <View style={{ flex: 1 }}><PodiumItem {...podiumData[0]} /></View>
+          <View style={{ flex: 1.2, marginHorizontal: 10 }}><PodiumItem {...podiumData[1]} isFirst /></View>
+          <View style={{ flex: 1 }}><PodiumItem {...podiumData[2]} /></View>
         </View>
 
         <View style={st.listWrap}>

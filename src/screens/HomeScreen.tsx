@@ -224,16 +224,8 @@ export default function HomeScreen({ navigation }: any) {
   }, [userRole, userId]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setNow(Date.now());
-      pots.forEach(pot => {
-        if (pot.growingUntil > 0 && Date.now() >= pot.growingUntil) {
-          advancePotStage(pot.id);
-        }
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [pots, advancePotStage]);
+    // Timer removed as growth is now real-time based on water/fertilizer levels
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -251,27 +243,8 @@ export default function HomeScreen({ navigation }: any) {
     if (action === 'plant') plantSeed(selectedPot.id);
   };
 
-  const isGrowing = selectedPot && selectedPot.growingUntil > 0 && selectedPot.growingUntil > now;
-  const remainingTime = selectedPot ? Math.max(0, selectedPot.growingUntil - now) : 0;
-  const totalGrowTime = 3600000; 
-  
-  const currentWaterPct = isGrowing 
-    ? Math.round((remainingTime / totalGrowTime) * 100) 
-    : (selectedPot ? Math.round(selectedPot.waterLevel * 100) : 0);
-    
-  const currentFertilizerPct = isGrowing
-    ? Math.round((remainingTime / totalGrowTime) * 100)
-    : (selectedPot ? Math.round(selectedPot.fertilizerLevel * 100) : 0);
-
-  const formatTime = (ms: number) => {
-    const totalSec = Math.ceil(ms / 1000);
-    const h = Math.floor(totalSec / 3600);
-    const m = Math.floor((totalSec % 3600) / 60);
-    const s = totalSec % 60;
-    if (h > 0) return `${h}h ${m.toString().padStart(2, '0')}m`;
-    if (m > 0) return `${m} phút ${s.toString().padStart(2, '0')}s`;
-    return `${s} giây`; 
-  };
+  const currentWaterPct = selectedPot ? Math.round(selectedPot.waterLevel * 100) : 0;
+  const currentFertilizerPct = selectedPot ? Math.round(selectedPot.fertilizerLevel * 100) : 0;
 
   const hour = new Date().getHours();
   const isDaytime = hour >= 6 && hour < 18;
@@ -306,7 +279,7 @@ export default function HomeScreen({ navigation }: any) {
   const getTreeImage = (pot: PotData) => {
     if (!pot.hasPlant) return null;
     switch (pot.growthStage) {
-      case "Nảy mầm": return require("../../assets/1.png");
+      case "Hạt cà phê": return require("../../assets/1.png");
       case "Cây non": return require("../../assets/2.png");
       case "Cây trưởng thành": return require("../../assets/3.png");
       case "Ra hoa": return require("../../assets/4.png");
@@ -452,11 +425,6 @@ export default function HomeScreen({ navigation }: any) {
                 <TouchableOpacity onPress={() => handleAction('harvest')} activeOpacity={0.8} style={st.btnHarvestWrap}>
                   <LinearGradient colors={['#fbbf24', '#f59e0b']} style={st.btn}><Text style={st.btnText}>🌟 {t('garden.harvest')}</Text></LinearGradient>
                 </TouchableOpacity>
-              ) : isGrowing ? (
-                <View style={st.growingStateWrap}>
-                  <View style={st.growingStateIcon}><MaterialCommunityIcons name="timer-sand" size={26} color="#8b5cf6" /></View>
-                  <View style={st.growingStateTextWrap}><Text style={st.growingStateTitle}>{t('garden.growing')}...</Text><Text style={st.growingStateTime}>{formatTime(remainingTime)}</Text></View>
-                </View>
               ) : (
                 <View style={st.buttonGroup}>
                   <TouchableOpacity onPress={() => handleAction('water')} activeOpacity={0.8} style={st.btnAction}><LinearGradient colors={['#7DD3FC', '#3B82F6']} style={st.btn}><MaterialCommunityIcons name="water" size={20} color="#fff" /><Text style={st.btnText}>{t('garden.water')}</Text></LinearGradient></TouchableOpacity>
