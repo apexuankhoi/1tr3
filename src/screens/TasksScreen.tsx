@@ -275,41 +275,14 @@ export default function TasksScreen({ navigation }: any) {
                       {/* Description */}
                       {!isApproved && <Text style={st.cardDesc}>{task.description}</Text>}
 
-                      {/* Quiz options */}
-                      {isQuiz && !isApproved && options.length > 0 && (
-                        <View style={st.quizWrap}>
-                          {options.map((opt: string) => {
-                            const key = opt.startsWith("A.") ? "A" : opt.startsWith("B.") ? "B" : opt.startsWith("C.") ? "C" : opt.startsWith("D.") ? "D" : opt;
-                            const isCorrect = myAnswer && opt === options.find((o: string) => o.startsWith(task.quiz_answer));
-                            const isWrong = myAnswer === key && !isCorrect;
-                            const isChosen = myAnswer === key;
-                            return (
-                              <TouchableOpacity
-                                key={opt}
-                                onPress={() => handleQuizAnswer(task, key)}
-                                style={[st.quizOpt,
-                                  isChosen && isCorrect && st.quizCorrect,
-                                  isChosen && isWrong && st.quizWrong,
-                                  (isApproved || isPending) && { opacity: 0.6 },
-                                  !myAnswer && { borderColor: cfg.accent + "44" },
-                                ]}
-                              >
-                                <Text style={[st.quizOptText,
-                                  isChosen && isCorrect && { color: "#065f46" },
-                                  isChosen && isWrong && { color: "#991b1b" },
-                                ]}>
-                                  {opt}
-                                </Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                          
-                          {!!myAnswer && !!task.quiz_explanation && (
-                            <View style={st.inlineExplanation}>
-                              <Text style={st.inlineExplanationTitle}>💡 {t('tasks.inline_explanation')}:</Text>
-                              <Text style={st.inlineExplanationText}>{task.quiz_explanation}</Text>
-                            </View>
-                          )}
+                      {/* Quiz info banner if not approved */}
+                      {isQuiz && !isApproved && (
+                        <View style={[st.quizWrap, { backgroundColor: "#faf5ff", padding: 12, borderRadius: 12, borderStyle: 'dashed', borderWidth: 1, borderColor: '#7c3aed44' }]}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <MaterialCommunityIcons name="brain" size={18} color="#7c3aed" />
+                            <Text style={{ fontSize: 13, fontFamily: 'Nunito_700Bold', color: '#7c3aed' }}>Hệ thống trắc nghiệm đã sẵn sàng</Text>
+                          </View>
+                          <Text style={{ fontSize: 11, fontFamily: 'Nunito_600SemiBold', color: '#6b7280', marginTop: 4 }}>Nhấn vào nút "Bắt đầu" bên dưới để trả lời câu hỏi và nhận thưởng.</Text>
                         </View>
                       )}
 
@@ -324,7 +297,9 @@ export default function TasksScreen({ navigation }: any) {
                           {!isPending && !isApproved ? (
                             <LinearGradient colors={cfg.gradient} style={st.actionGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                               <MaterialCommunityIcons name={statusCfg.icon as any} size={16} color="#fff" />
-                              <Text style={[st.actionText, { color: "#fff" }]}>{status === 'rejected' ? t('common.edit') : t('tasks.submit')}</Text>
+                              <Text style={[st.actionText, { color: "#fff" }]}>
+                                {status === 'rejected' ? t('common.edit') : isQuiz ? t('common.start') : t('tasks.submit')}
+                              </Text>
                             </LinearGradient>
                           ) : (
                             <View style={st.actionInner}>

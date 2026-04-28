@@ -106,11 +106,14 @@ export const shopService = {
   getShopItems: async () => {
     return await api.get("shop");
   },
-  buyItem: async (userId: number, itemId: number, price: number) => {
-    return await api.post("shop/buy", { userId, itemId, price });
+  buyItem: async (userId: number, itemId: number, price: number, shippingData?: any) => {
+    return await api.post("shop/buy", { userId, itemId, price, ...shippingData });
   },
   getRedemptions: async (userId: number) => {
     return await api.get(`redemptions/${userId}`);
+  },
+  getInventory: async (userId: number) => {
+    return await api.get(`inventory/${userId}`);
   },
 };
 
@@ -174,6 +177,29 @@ export const adminService = {
   },
   rejectSubmission: async (submissionId: number) => {
     return await api.post("admin/reject", { submissionId });
+  },
+  // New Admin Methods
+  getUsers: async () => {
+    return await api.get("admin/users");
+  },
+  updateUser: async (userId: number, data: any) => {
+    return await api.patch(`admin/user/${userId}`, data);
+  },
+  getUserInventory: async (userId: number) => {
+    return await api.get(`admin/user/${userId}/inventory`);
+  },
+  deleteInventoryItem: async (inventoryId: number) => {
+    return await api.delete(`admin/inventory/${inventoryId}`);
+  },
+  addInventoryItem: async (userId: number, itemId: number) => {
+    return await api.post("admin/inventory/add", { userId, itemId });
+  },
+  // Redemption Management
+  getAdminRedemptions: async () => {
+    return await api.get("admin/redemptions");
+  },
+  updateRedemptionStatus: async (id: number, status: string) => {
+    return await api.patch(`admin/redemption/${id}`, { status });
   },
 };
 

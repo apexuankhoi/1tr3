@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { 
   View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert,
-  Image, StatusBar, StyleSheet, Platform
+  Image, StatusBar, StyleSheet, Platform, Modal, TextInput, KeyboardAvoidingView,
+  Dimensions
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { shopService } from "../services/api";
@@ -13,79 +14,116 @@ import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import * as haptics from "expo-haptics";
 
+const { width, height } = Dimensions.get("window");
+
 const SHADOW = Platform.select({
   ios: { shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 15, shadowOffset: { width: 0, height: 6 } },
   android: { elevation: 5 },
 });
 
+type MainTab = 'garden' | 'rewards';
+type GardenFilter = 'all' | 'seed' | 'pot_skin';
+
 export default function ShopScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { coins, seeds, userId, buyItem, t } = useGameStore();
+  const { coins, seeds, userId, buyItem, t, fullName, userName, inventory, fetchInventory } = useGameStore();
 
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'seed' | 'pot_skin'>('seed');
+  
+  const [activeMainTab, setActiveMainTab] = useState<MainTab>('garden');
+  const [gardenFilter, setGardenFilter] = useState<GardenFilter>('all');
+  
+  const [buyingId, setBuyingId] = useState<number | null>(null);
+  
+  // Real Gift Modal
+  const [shippingModalVisible, setShippingModalVisible] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [shippingInfo, setShippingInfo] = useState({
+    name: fullName || "",
+    phone: userName || "",
+    address: "",
+    notes: ""
+  });
+
+  const [qrModalVisible, setQrModalVisible] = useState(false);
+  const [currentQr, setCurrentQr] = useState("");
+  const [currentItemName, setCurrentItemName] = useState("");
 
   useEffect(() => {
     fetchItems();
+    fetchInventory();
   }, []);
 
   const fetchItems = async () => {
     try {
       const data: any = await shopService.getShopItems();
-      setItems(data);
+      setItems(data || []);
     } catch {
-      // Fallback
-      setItems([
-        { id: 101, name: 'Hạt giống Cà phê', price: 50, description: 'Hạt giống cà phê chất lượng cao.', image_url: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400", item_type: 'seed' },
-        { id: 102, name: 'Hạt giống Sầu riêng', price: 100, description: 'Hạt giống sầu riêng Đắk Lắk.', image_url: "https://images.unsplash.com/photo-1595455353724-640f1a92e861?w=400", item_type: 'seed' },
-        { id: 1, name: 'Chậu Gốm Đỏ', price: 500, description: 'Mẫu chậu gốm đỏ truyền thống.', image_url: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=400", item_type: 'pot_skin' },
-        { id: 2, name: 'Chậu Đất Nung', price: 800, description: 'Mẫu chậu đất nung bền bỉ.', image_url: "https://images.unsplash.com/photo-1599307734111-d138f6d66934?w=400", item_type: 'pot_skin' },
-      ]);
+      setItems([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredItems = items.filter(it => it.item_type === activeTab);
+  const filteredItems = items.filter(it => {
+    if (activeMainTab === 'rewards') {
+      return it.is_real === 1;
+    } else {
+      // Garden Tab
+      if (it.is_real === 1) return false;
+      if (gardenFilter === 'all') return true;
+      return it.item_type === gardenFilter;
+    }
+  });
 
-  const handleBuy = async (item: any) => {
+  const handleBuyPress = (item: any) => {
     if (coins < item.price) {
       Alert.alert(t('shop.not_enough_coins'), t('shop.not_enough_coins'));
       return;
     }
+    setSelectedItem(item);
+    if (item.is_real) {
+      setShippingModalVisible(true);
+    } else {
+      confirmVirtualBuy(item);
+    }
+  };
 
+  const confirmVirtualBuy = (item: any) => {
     Alert.alert(
       t('shop.buy'),
       t('shop.confirm_buy', { price: item.price, unit: t('common.coin_unit'), name: item.name }),
       [
         { text: t('common.cancel'), style: "cancel" },
-        { 
-          text: t('shop.buy'), 
-          onPress: async () => {
-            setBuyingId(item.id);
-            try {
-              const res = await buyItem(item.id, item.price);
-              if (res) {
-                haptics.notificationAsync(haptics.NotificationFeedbackType.Success);
-                // If it's a pot skin, we don't necessarily need a QR code for collection 
-                // but the current backend logic creates one. We'll show it anyway.
-                setCurrentQr(res.qrCode);
-                setCurrentItemName(item.name);
-                setQrModalVisible(true);
-              } else {
-                Alert.alert(t('common.error'), t('common.error'));
-              }
-            } catch (err: any) {
-              Alert.alert(t('common.error'), err?.response?.data?.message || t('common.error'));
-            } finally {
-              setBuyingId(null);
-            }
-          } 
-        }
+        { text: t('shop.buy'), onPress: () => executeBuy(item) }
       ]
     );
+  };
+
+  const executeBuy = async (item: any, shippingData?: any) => {
+    setBuyingId(item.id);
+    try {
+      const res = await buyItem(item.id, item.price, shippingData);
+      if (res) {
+        haptics.notificationAsync(haptics.NotificationFeedbackType.Success);
+        if (item.is_real) {
+          Alert.alert("Thành công", "Yêu cầu đổi quà đã được gửi! Admin sẽ sớm liên hệ bạn.");
+          setShippingModalVisible(false);
+        } else {
+          setCurrentQr(res.qrCode || "");
+          setCurrentItemName(item.name);
+          setQrModalVisible(true);
+        }
+        fetchItems(); // Refresh stock
+        fetchInventory(); // Refresh owned items
+      }
+    } catch (err: any) {
+      Alert.alert(t('common.error'), err.message || t('common.error'));
+    } finally {
+      setBuyingId(null);
+    }
   };
 
   return (
@@ -110,72 +148,162 @@ export default function ShopScreen() {
         </View>
       </View>
 
-      <View style={st.tabsContainer}>
-        <TouchableOpacity onPress={() => setActiveTab('seed')} style={[st.tab, activeTab === 'seed' && st.tabActive]}>
-          <MaterialCommunityIcons name="seed" size={20} color={activeTab === 'seed' ? "#fff" : "#154212"} />
-          <Text style={[st.tabText, activeTab === 'seed' && st.tabTextActive]}>{t('shop.seeds') || 'Hạt giống'}</Text>
+      {/* Main Tabs */}
+      <View style={st.mainTabs}>
+        <TouchableOpacity 
+          onPress={() => setActiveMainTab('garden')} 
+          style={[st.mainTab, activeMainTab === 'garden' && st.mainTabActive]}
+        >
+          <Text style={[st.mainTabText, activeMainTab === 'garden' && st.mainTabTextActive]}>Khu vườn</Text>
+          {activeMainTab === 'garden' && <View style={st.activeIndicator} />}
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => setActiveTab('pot_skin')} style={[st.tab, activeTab === 'pot_skin' && st.tabActive]}>
-          <MaterialCommunityIcons name="flower-poppy" size={20} color={activeTab === 'pot_skin' ? "#fff" : "#154212"} />
-          <Text style={[st.tabText, activeTab === 'pot_skin' && st.tabTextActive]}>{t('shop.pots') || 'Mẫu Chậu'}</Text>
+        <TouchableOpacity 
+          onPress={() => setActiveMainTab('rewards')} 
+          style={[st.mainTab, activeMainTab === 'rewards' && st.mainTabActive]}
+        >
+          <Text style={[st.mainTabText, activeMainTab === 'rewards' && st.mainTabTextActive]}>Quà tặng</Text>
+          {activeMainTab === 'rewards' && <View style={st.activeIndicator} />}
         </TouchableOpacity>
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={st.content} showsVerticalScrollIndicator={false}>
         <View style={st.titleBox}>
-          <Text style={st.title}>{activeTab === 'seed' ? t('shop.title') : (t('shop.pots_title') || 'Cửa hàng Chậu')}</Text>
-          <Text style={st.subtitle}>{t('home.balance')}</Text>
+          <Text style={st.title}>{activeMainTab === 'garden' ? "Khu Vườn Của Bạn" : "Đổi Quà Thực Tế"}</Text>
+          <Text style={st.subtitle}>
+            {activeMainTab === 'garden' 
+              ? "Mua sắm hạt giống và chậu cây để xây dựng nông trại xanh mát." 
+              : "Sử dụng xu tích lũy từ các hành động xanh để nhận quà thực tế."}
+          </Text>
         </View>
+
+        {activeMainTab === 'garden' && (
+          <View style={st.filterRow}>
+            <TouchableOpacity onPress={() => setGardenFilter('all')} style={[st.filterChip, gardenFilter === 'all' && st.filterChipActive]}>
+              <Text style={[st.filterChipText, gardenFilter === 'all' && st.filterChipTextActive]}>Tất cả</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setGardenFilter('seed')} style={[st.filterChip, gardenFilter === 'seed' && st.filterChipActive]}>
+              <Text style={[st.filterChipText, gardenFilter === 'seed' && st.filterChipTextActive]}>Hạt giống</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setGardenFilter('pot_skin')} style={[st.filterChip, gardenFilter === 'pot_skin' && st.filterChipActive]}>
+              <Text style={[st.filterChipText, gardenFilter === 'pot_skin' && st.filterChipTextActive]}>Chậu cây</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {loading ? (
           <View style={st.loader}>
             <ActivityIndicator size="large" color="#154212" />
-            <Text style={st.loaderText}>{t('common.loading')}</Text>
           </View>
         ) : filteredItems.length === 0 ? (
-          <View style={st.loader}>
-            <MaterialCommunityIcons name="archive-off-outline" size={48} color="#ccc" />
-            <Text style={st.loaderText}>{t('shop.no_items') || 'Chưa có vật phẩm nào'}</Text>
+          <View style={st.emptyState}>
+            <MaterialCommunityIcons name="archive-off-outline" size={60} color="#cbd5e1" />
+            <Text style={st.emptyText}>Hiện chưa có vật phẩm nào</Text>
           </View>
         ) : (
-          filteredItems.map((item, index) => (
-            <Animated.View key={item.id} entering={FadeInDown.delay(index * 100).duration(500)}>
-              <TouchableOpacity activeOpacity={0.9} onPress={() => handleBuy(item)} style={st.card}>
-                <View style={st.cardImgWrap}>
-                  <Image source={{ uri: item.image_url }} style={st.cardImg} resizeMode="cover" />
-                  <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={st.cardImgGrad}>
-                    <View style={st.pricePill}>
-                      <MaterialCommunityIcons name="star-four-points" size={16} color="#fbbf24" />
-                      <Text style={st.priceText}>{item.price} {t('common.coin_unit')}</Text>
-                    </View>
-                  </LinearGradient>
-                </View>
-                
-                <View style={st.cardBody}>
-                  <Text style={st.itemName}>{item.name}</Text>
-                  <Text style={st.itemDesc}>{item.description}</Text>
-                  
+          <View style={st.grid}>
+            {filteredItems.map((item, index) => {
+              const isOwned = item.item_type === 'pot_skin' && inventory.some(i => i.item_id === item.id);
+              return (
+                <Animated.View key={item.id} entering={FadeInDown.delay(index * 50).duration(400)} style={st.gridItem}>
                   <TouchableOpacity 
-                    onPress={() => handleBuy(item)}
-                    disabled={buyingId === item.id}
-                    style={st.buyBtn}
+                    activeOpacity={0.9} 
+                    onPress={() => !isOwned && handleBuyPress(item)} 
+                    style={[st.card, isOwned && { opacity: 0.8 }]}
                   >
-                    {buyingId === item.id ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <>
-                        <MaterialCommunityIcons name="gift-outline" size={20} color="white" />
-                        <Text style={st.buyBtnText}>{t('shop.buy')}</Text>
-                      </>
-                    )}
+                    <View style={st.cardImgWrap}>
+                      <Image source={{ uri: item.image_url }} style={st.cardImg} resizeMode="cover" />
+                      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.6)']} style={st.cardImgGrad}>
+                        <View style={st.pricePill}>
+                          <Text style={st.priceText}>{isOwned ? "Đã sở hữu" : `${item.price} xu`}</Text>
+                        </View>
+                      </LinearGradient>
+                    </View>
+                    <View style={st.cardBody}>
+                      <Text style={st.itemName} numberOfLines={1}>{item.name}</Text>
+                      <Text style={st.itemDesc} numberOfLines={1}>{item.description}</Text>
+                      <TouchableOpacity 
+                        onPress={() => handleBuyPress(item)}
+                        disabled={buyingId === item.id || isOwned}
+                        style={[
+                          st.buyBtn, 
+                          item.is_real && { backgroundColor: "#c2410c" },
+                          isOwned && { backgroundColor: "#94a3b8" }
+                        ]}
+                      >
+                        {buyingId === item.id ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <Text style={st.buyBtnText}>
+                            {isOwned ? "Sở hữu" : item.is_real ? "Đổi" : "Mua"}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
                   </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
-            </Animated.View>
-          ))
+                </Animated.View>
+              );
+            })}
+          </View>
         )}
-        <View style={{ height: 40 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Shipping Info Modal */}
+      <Modal visible={shippingModalVisible} animationType="slide" transparent>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+          <View style={st.modalOverlay}>
+            <View style={st.modalContent}>
+              <View style={st.modalHeader}>
+                <Text style={st.modalTitle}>Thông tin nhận quà</Text>
+                <TouchableOpacity onPress={() => setShippingModalVisible(false)}>
+                  <MaterialCommunityIcons name="close" size={24} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={st.inputLabel}>Tên người nhận</Text>
+                <TextInput 
+                  style={st.input}
+                  placeholder="Nhập tên..."
+                  value={shippingInfo.name}
+                  onChangeText={v => setShippingInfo({...shippingInfo, name: v})}
+                />
+
+                <Text style={st.inputLabel}>Số điện thoại</Text>
+                <TextInput 
+                  style={st.input}
+                  placeholder="Nhập SĐT..."
+                  keyboardType="phone-pad"
+                  value={shippingInfo.phone}
+                  onChangeText={v => setShippingInfo({...shippingInfo, phone: v})}
+                />
+
+                <Text style={st.inputLabel}>Địa chỉ giao hàng</Text>
+                <TextInput 
+                  style={[st.input, { height: 80, textAlignVertical: 'top', paddingTop: 12 }]}
+                  placeholder="Số nhà, đường, buôn/xã..."
+                  multiline
+                  value={shippingInfo.address}
+                  onChangeText={v => setShippingInfo({...shippingInfo, address: v})}
+                />
+
+                <View style={st.confirmSummary}>
+                  <Text style={st.summaryText}>Tổng thanh toán:</Text>
+                  <Text style={st.summaryPrice}>{selectedItem?.price} Xu</Text>
+                </View>
+
+                <TouchableOpacity 
+                  style={st.finalBuyBtn}
+                  onPress={() => executeBuy(selectedItem, shippingInfo)}
+                  disabled={!shippingInfo.address || !shippingInfo.phone || buyingId !== null}
+                >
+                  <Text style={st.finalBuyBtnText}>Xác nhận đổi quà</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       <QRModal 
         visible={qrModalVisible}
@@ -188,38 +316,60 @@ export default function ShopScreen() {
 }
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#fbfbf9" },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 24, paddingBottom: 10 },
-  backBtn: { width: 44, height: 44, backgroundColor: "#fff", borderRadius: 22, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#f3f4f6", ...SHADOW },
+  root: { flex: 1, backgroundColor: "#f8fafc" },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingBottom: 10 },
+  backBtn: { width: 44, height: 44, backgroundColor: "#fff", borderRadius: 22, alignItems: "center", justifyContent: "center", ...SHADOW },
   badges: { flexDirection: "row", gap: 10 },
-  badge: { backgroundColor: "#fff", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#f3f4f6", ...SHADOW },
+  badge: { backgroundColor: "#fff", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, flexDirection: "row", alignItems: "center", ...SHADOW },
   badgeText: { marginLeft: 6, fontSize: 14, fontFamily: "Nunito_800ExtraBold", color: "#374151" },
   
-  tabsContainer: { flexDirection: "row", paddingHorizontal: 24, gap: 12, marginTop: 10 },
-  tab: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12, borderRadius: 16, backgroundColor: "#fff", borderWidth: 1, borderColor: "#f3f4f6", gap: 8, ...SHADOW },
-  tabActive: { backgroundColor: "#154212", borderColor: "#154212" },
-  tabText: { fontSize: 14, fontFamily: "Nunito_700Bold", color: "#154212" },
-  tabTextActive: { color: "#fff", fontFamily: "Nunito_800ExtraBold" },
+  mainTabs: { flexDirection: "row", backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#f1f5f9" },
+  mainTab: { flex: 1, paddingVertical: 16, alignItems: "center", position: "relative" },
+  mainTabActive: {},
+  mainTabText: { fontSize: 15, fontFamily: "Nunito_700Bold", color: "#64748b" },
+  mainTabTextActive: { color: "#154212", fontFamily: "Nunito_800ExtraBold" },
+  activeIndicator: { position: "absolute", bottom: 0, width: "40%", height: 3, backgroundColor: "#154212", borderTopLeftRadius: 3, borderTopRightRadius: 3 },
 
-  content: { padding: 24 },
-  titleBox: { marginBottom: 24 },
-  title: { fontSize: 28, fontFamily: "Nunito_800ExtraBold", color: "#111827", marginBottom: 6 },
-  subtitle: { fontSize: 14, fontFamily: "Nunito_600SemiBold", color: "#6b7280", lineHeight: 20 },
+  content: { padding: 20 },
+  titleBox: { marginBottom: 20 },
+  title: { fontSize: 24, fontFamily: "Nunito_800ExtraBold", color: "#1e293b", marginBottom: 4 },
+  subtitle: { fontSize: 13, color: "#64748b", lineHeight: 20 },
 
-  loader: { alignItems: "center", justifyContent: "center", paddingVertical: 60 },
-  loaderText: { marginTop: 12, fontSize: 14, fontFamily: "Nunito_600SemiBold", color: "#9ca3af" },
+  filterRow: { flexDirection: "row", gap: 8, marginBottom: 20 },
+  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: "#fff", borderWidth: 1, borderColor: "#e2e8f0" },
+  filterChipActive: { backgroundColor: "#154212", borderColor: "#154212" },
+  filterChipText: { fontSize: 12, fontFamily: "Nunito_700Bold", color: "#64748b" },
+  filterChipTextActive: { color: "#fff" },
 
-  card: { backgroundColor: "#fff", borderRadius: 32, overflow: "hidden", marginBottom: 24, borderWidth: 1, borderColor: "#f3f4f6", ...SHADOW },
-  cardImgWrap: { height: 180, width: "100%", position: "relative" },
+  loader: { paddingVertical: 60, alignItems: "center" },
+  emptyState: { paddingVertical: 80, alignItems: "center" },
+  emptyText: { marginTop: 12, color: "#94a3b8", fontFamily: "Nunito_700Bold" },
+
+  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
+  gridItem: { width: "48%", marginBottom: 16 },
+
+  card: { backgroundColor: "#fff", borderRadius: 20, overflow: "hidden", ...SHADOW },
+  cardImgWrap: { height: 120, width: "100%" },
   cardImg: { width: "100%", height: "100%" },
-  cardImgGrad: { position: "absolute", bottom: 0, left: 0, right: 0, height: "60%", justifyContent: "flex-end", padding: 20 },
-  pricePill: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)", alignSelf: "flex-start", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, gap: 6 },
-  priceText: { color: "#fff", fontFamily: "Nunito_800ExtraBold", fontSize: 15 },
+  cardImgGrad: { position: "absolute", bottom: 0, left: 0, right: 0, height: "60%", justifyContent: "flex-end", padding: 10 },
+  pricePill: { backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, alignSelf: "flex-start" },
+  priceText: { color: "#fff", fontFamily: "Nunito_800ExtraBold", fontSize: 11 },
 
-  cardBody: { padding: 24 },
-  itemName: { fontSize: 20, fontFamily: "Nunito_800ExtraBold", color: "#111827", marginBottom: 8 },
-  itemDesc: { fontSize: 14, fontFamily: "Nunito_600SemiBold", color: "#6b7280", lineHeight: 22, marginBottom: 20 },
-  
-  buyBtn: { backgroundColor: "#154212", paddingVertical: 16, borderRadius: 20, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
-  buyBtnText: { color: "#fff", fontSize: 16, fontFamily: "Nunito_800ExtraBold" },
+  cardBody: { padding: 12 },
+  itemName: { fontSize: 15, fontFamily: "Nunito_800ExtraBold", color: "#1e293b" },
+  itemDesc: { fontSize: 11, color: "#94a3b8", marginVertical: 6 },
+  buyBtn: { backgroundColor: "#154212", paddingVertical: 8, borderRadius: 10, alignItems: "center" },
+  buyBtnText: { color: "#fff", fontSize: 13, fontFamily: "Nunito_800ExtraBold" },
+
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  modalContent: { backgroundColor: "#fff", borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: height * 0.85 },
+  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
+  modalTitle: { fontSize: 20, fontFamily: "Nunito_800ExtraBold", color: "#1e293b" },
+  inputLabel: { fontSize: 12, fontFamily: "Nunito_700Bold", color: "#64748b", marginBottom: 6, marginTop: 12 },
+  input: { backgroundColor: "#f1f5f9", borderRadius: 12, paddingHorizontal: 16, height: 50, fontSize: 15, fontFamily: "Nunito_600SemiBold" },
+  confirmSummary: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 20, borderTopWidth: 1, borderTopColor: "#f1f5f9", marginTop: 20 },
+  summaryText: { fontSize: 15, color: "#64748b" },
+  summaryPrice: { fontSize: 20, fontFamily: "Nunito_800ExtraBold", color: "#154212" },
+  finalBuyBtn: { backgroundColor: "#c2410c", paddingVertical: 16, borderRadius: 16, alignItems: "center" },
+  finalBuyBtnText: { color: "#fff", fontSize: 16, fontFamily: "Nunito_800ExtraBold" },
 });

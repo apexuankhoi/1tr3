@@ -12,6 +12,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
+app.use('/assets', express.static('../assets'));
 
 // Health Check Route
 app.get('/api/health', async (req, res) => {
@@ -359,10 +360,19 @@ app.patch('/api/stats/:id', async (req, res) => {
 app.get('/api/garden/:userId/pots', async (req, res) => {
     try {
         const [rows] = await db.query(
-            'SELECT pot_id, floor_id, has_plant, plant_type, growth_progress, growth_stage, is_wilted, growing_until, skin_id FROM user_pots WHERE user_id = ? ORDER BY floor_id, pot_id',
+            'SELECT pot_id as id, floor_id as floorId, has_plant as hasPlant, plant_type as plantType, growth_progress as growthProgress, growth_stage as growthStage, is_wilted as isWilted, growing_until as growingUntil, skin_id as skinId, has_pot as hasPot FROM user_pots WHERE user_id = ? ORDER BY floor_id, pot_id',
             [req.params.userId]
         );
-        return sendResponse(res, true, rows, 'Lấy danh sách chậu cây thành công');
+        
+        // Map 1/0 to true/false for boolean fields
+        const formatted = rows.map(r => ({
+            ...r,
+            hasPlant: !!r.hasPlant,
+            isWilted: !!r.isWilted,
+            hasPot: !!r.hasPot
+        }));
+        
+        return sendResponse(res, true, formatted, 'Lấy danh sách chậu cây thành công');
     } catch (err) {
         return sendResponse(res, false, null, err.message, 500);
     }
@@ -371,7 +381,7 @@ app.get('/api/garden/:userId/pots', async (req, res) => {
 // PUT: Save all pots for a user (full sync)
 app.put('/api/garden/:userId/pots', async (req, res) => {
     const userId = req.params.userId;
-    const { pots, seeds } = req.body; // pots = array of PotData, seeds = number
+    const { pots, seeds } = req.body;
     
     if (!Array.isArray(pots)) {
         return res.status(400).json({ message: 'pots must be an array' });
@@ -381,8 +391,8 @@ app.put('/api/garden/:userId/pots', async (req, res) => {
         // Upsert each pot
         for (const pot of pots) {
             await db.query(`
-                INSERT INTO user_pots (user_id, pot_id, floor_id, has_plant, plant_type, growth_progress, growth_stage, is_wilted, growing_until, skin_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO user_pots (user_id, pot_id, floor_id, has_plant, plant_type, growth_progress, growth_stage, is_wilted, growing_until, skin_id, has_pot)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                     floor_id = VALUES(floor_id),
                     has_plant = VALUES(has_plant),
@@ -391,10 +401,13 @@ app.put('/api/garden/:userId/pots', async (req, res) => {
                     growth_stage = VALUES(growth_stage),
                     is_wilted = VALUES(is_wilted),
                     growing_until = VALUES(growing_until),
-                    skin_id = VALUES(skin_id)
+                    skin_id = VALUES(skin_id),
+                    has_pot = VALUES(has_pot)
             `, [
-                userId, pot.id, pot.floorId, pot.hasPlant ? 1 : 0,
-                pot.plantType || 'cafe', pot.growthProgress || 0, pot.growthStage, pot.isWilted ? 1 : 0, pot.growingUntil || 0, pot.skinId || 'default'
+                userId, pot.id, pot.floorId || 1, pot.hasPlant ? 1 : 0,
+                pot.plantType || null, pot.growthProgress || 0, pot.growthStage || 'Nảy mầm', 
+                pot.isWilted ? 1 : 0, pot.growingUntil || 0, pot.skinId || 'default',
+                pot.hasPot ? 1 : 0
             ]);
         }
         
@@ -403,9 +416,10 @@ app.put('/api/garden/:userId/pots', async (req, res) => {
             await db.query('UPDATE users SET seeds = ? WHERE id = ?', [seeds, userId]);
         }
         
-        console.log(`[Garden] Synced ${pots.length} pots for user ${userId}`);
+        // console.log(`[Garden] Synced ${pots.length} pots for user ${userId}`);
         return sendResponse(res, true, null, 'Đồng bộ vườn thành công');
     } catch (err) {
+        console.error('[Garden Sync Error]:', err);
         return sendResponse(res, false, null, err.message, 500);
     }
 });
@@ -474,31 +488,95 @@ app.get('/api/shop', async (req, res) => {
     }
 });
 
-// Buy Item
+// POST: Buy/Redeem item
 app.post('/api/shop/buy', async (req, res) => {
-    const { userId, itemId, price } = req.body;
+    const { userId, itemId, price, shippingName, shippingPhone, shippingAddress, notes } = req.body;
+    
     try {
-        // 1. Check user coins
-        const [users] = await db.query('SELECT coins FROM users WHERE id = ?', [userId]);
-        if (users.length === 0) return res.status(404).json({ message: 'User not found' });
-        
+        // 1. Check user exists and get stats
+        const [users] = await db.query('SELECT id, coins, seeds FROM users WHERE id = ?', [userId]);
+        if (users.length === 0) return sendResponse(res, false, null, 'Người dùng không tồn tại', 404);
         if (users[0].coins < price) {
-            return res.status(400).json({ message: 'Not enough coins' });
+            return sendResponse(res, false, null, 'Bạn không đủ xu để mua vật phẩm này', 400);
         }
 
-        // 2. Subtract coins
+        // 2. Get item info
+        const [items] = await db.query('SELECT is_real, item_type, name FROM shop_items WHERE id = ?', [itemId]);
+        if (items.length === 0) return sendResponse(res, false, null, 'Vật phẩm không tồn tại', 404);
+        
+        const item = items[0];
+        const isReal = item.is_real === 1;
+
+        // 3. Special logic for Pot Skins (One-time purchase)
+        if (item.item_type === 'pot_skin') {
+            const [owned] = await db.query('SELECT 1 FROM inventory WHERE user_id = ? AND item_id = ?', [userId, itemId]);
+            if (owned.length > 0) {
+                return sendResponse(res, false, null, 'Bạn đã sở hữu skin này rồi', 400);
+            }
+        }
+
+        // 4. Check stock ONLY for Real Gifts
+        if (isReal) {
+            const [stock] = await db.query('SELECT quantity FROM inventory_stock WHERE item_id = ?', [itemId]);
+            if (!stock || stock.length === 0 || stock[0].quantity <= 0) {
+                return sendResponse(res, false, null, 'Vật phẩm này đã hết hàng', 400);
+            }
+        }
+
+        // 5. Deduct coins
         await db.query('UPDATE users SET coins = coins - ? WHERE id = ?', [price, userId]);
-        
-        // 3. Add to inventory
-        await db.query('INSERT IGNORE INTO inventory (user_id, item_id) VALUES (?, ?)', [userId, itemId]);
-        
-        // 4. Create a redemption record with a unique QR code
-        const qrCode = `REDEEM-${userId}-${itemId}-${Date.now()}`;
-        await db.query('INSERT INTO redemptions (user_id, item_id, qr_code) VALUES (?, ?, ?)', [userId, itemId, qrCode]);
-        
-        res.json({ message: 'Purchase successful', remainingCoins: users[0].coins - price, qrCode });
+
+        // 6. Distribution logic
+        if (isReal) {
+            // Real Gift -> Create Redemption and Deduct Stock
+            await db.query(`
+                INSERT INTO redemptions (user_id, item_id, status, shipping_name, shipping_phone, shipping_address, notes)
+                VALUES (?, ?, 'pending', ?, ?, ?, ?)
+            `, [userId, itemId, shippingName || null, shippingPhone || null, shippingAddress || null, notes || null]);
+            
+            await db.query('UPDATE inventory_stock SET quantity = quantity - 1 WHERE item_id = ?', [itemId]);
+        } else if (item.item_type === 'seed') {
+            // Seed -> Just increment user's seed count
+            await db.query('UPDATE users SET seeds = seeds + 1 WHERE id = ?', [userId]);
+            // (Optional) also add to inventory log
+            await db.query('INSERT IGNORE INTO inventory (user_id, item_id) VALUES (?, ?)', [userId, itemId]);
+        } else {
+            // Pot Skin or other virtual items -> Add to inventory
+            await db.query('INSERT IGNORE INTO inventory (user_id, item_id) VALUES (?, ?)', [userId, itemId]);
+        }
+
+        const msg = isReal ? 'Đã gửi yêu cầu đổi quà thành công' : `Bạn đã mua thành công ${item.name}`;
+        return sendResponse(res, true, { remainingCoins: users[0].coins - price }, msg);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return sendResponse(res, false, null, err.message, 500);
+    }
+});
+
+// Admin: Get all redemptions
+app.get('/api/admin/redemptions', async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT r.*, u.username, u.full_name as user_full_name, s.name as item_name, s.image_url as item_image, s.price
+            FROM redemptions r
+            JOIN users u ON r.user_id = u.id
+            JOIN shop_items s ON r.item_id = s.id
+            ORDER BY r.redeemed_at DESC
+        `);
+        return sendResponse(res, true, rows, 'Lấy danh sách đổi quà thành công');
+    } catch (err) {
+        return sendResponse(res, false, null, err.message, 500);
+    }
+});
+
+// Admin: Update redemption status
+app.patch('/api/admin/redemption/:id', async (req, res) => {
+    const { status } = req.body;
+    try {
+        await db.query('UPDATE redemptions SET status = ?, collected_at = ? WHERE id = ?', 
+            [status, status === 'completed' ? new Date() : null, req.params.id]);
+        return sendResponse(res, true, null, 'Cập nhật trạng thái đổi quà thành công');
+    } catch (err) {
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -527,6 +605,20 @@ app.post('/api/moderator/collect', async (req, res) => {
         res.json({ message: 'Xác nhận đổi quà thành công!' });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/inventory/:userId', async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT i.*, s.name, s.item_type, s.image_url 
+            FROM inventory i
+            JOIN shop_items s ON i.item_id = s.id
+            WHERE i.user_id = ?
+        `, [req.params.userId]);
+        return sendResponse(res, true, rows, 'Lấy kho đồ thành công');
+    } catch (err) {
+        return sendResponse(res, false, null, err.message, 500);
     }
 });
 
@@ -570,18 +662,27 @@ async function ensureShopTables() {
     const [count] = await db.query('SELECT COUNT(*) as n FROM shop_items');
     if (count[0].n === 0) {
         const items = [
-            ['Hạt giống Cà phê', 50, 'Hạt giống cà phê chất lượng cao.', 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400', 'seed'],
-            ['Hạt giống Sầu riêng', 100, 'Hạt giống sầu riêng Đắk Lắk.', 'https://images.unsplash.com/photo-1595455353724-640f1a92e861?w=400', 'seed'],
-            ['Chậu Gốm Đỏ', 500, 'Mẫu chậu gốm đỏ truyền thống.', 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=400', 'pot_skin'],
-            ['Chậu Đất Nung', 800, 'Mẫu chậu đất nung bền bỉ.', 'https://images.unsplash.com/photo-1599307734111-d138f6d66934?w=400', 'pot_skin'],
-            ['Chậu Sứ Xanh', 1200, 'Mẫu chậu sứ xanh trang nhã.', 'https://images.unsplash.com/photo-1628352081506-83c43123ed6d?w=400', 'pot_skin'],
-            ['Chậu Sứ Trắng', 1500, 'Mẫu chậu sứ trắng hiện đại.', 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?w=400', 'pot_skin'],
-            ['Chậu Cổ Điển', 2000, 'Mẫu chậu mang phong cách cổ điển.', 'https://images.unsplash.com/photo-1581447100595-3a74a5af060f?w=400', 'pot_skin'],
-            ['Chậu Vàng Hoàng Gia', 5000, 'Mẫu chậu mạ vàng sang trọng.', 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?w=400', 'pot_skin'],
+            ['Hạt giống Cà phê', 50, 'Hạt giống cà phê chất lượng cao.', 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400', 'seed', 0],
+            ['Hạt giống Sầu riêng', 100, 'Hạt giống sầu riêng Đắk Lắk.', 'https://images.unsplash.com/photo-1595455353724-640f1a92e861?w=400', 'seed', 0],
+            
+            ['Chậu Gốm Đỏ', 500, 'Mẫu chậu gốm đỏ truyền thống.', 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=400', 'pot_skin', 0],
+            ['Chậu Đất Nung', 800, 'Mẫu chậu đất nung bền bỉ.', 'https://images.unsplash.com/photo-1599307734111-d138f6d66934?w=400', 'pot_skin', 0],
+            ['Chậu Sứ Xanh', 1200, 'Mẫu chậu sứ xanh trang nhã.', 'https://images.unsplash.com/photo-1628352081506-83c43123ed6d?w=400', 'pot_skin', 0],
+            ['Chậu Sứ Trắng', 1500, 'Mẫu chậu sứ trắng hiện đại.', 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?w=400', 'pot_skin', 0],
+            ['Chậu Cổ Điển', 2000, 'Mẫu chậu mang phong cách cổ điển.', 'https://images.unsplash.com/photo-1581447100595-3a74a5af060f?w=400', 'pot_skin', 0],
+            ['Chậu Vàng Hoàng Gia', 5000, 'Mẫu chậu mạ vàng sang trọng.', 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?w=400', 'pot_skin', 0],
+            ['Chậu Ngọc Bích', 3500, 'Mẫu chậu làm từ đá ngọc bích quý hiếm.', 'https://images.unsplash.com/photo-1520412099551-62b6bafdf5bb?w=400', 'pot_skin', 0],
+            ['Chậu Họa Tiết', 1800, 'Chậu vẽ tay họa tiết truyền thống.', 'https://images.unsplash.com/photo-1574362848149-11496d93a7c7?w=400', 'pot_skin', 0],
+            ['Chậu Cao Cấp', 4500, 'Chậu gốm sứ cao cấp xuất khẩu.', 'https://images.unsplash.com/photo-1516706562681-37d4052309e3?w=400', 'pot_skin', 0],
+            ['Chậu Đặc Biệt', 10000, 'Phiên bản giới hạn dành cho đại gia.', 'https://images.unsplash.com/photo-1493119508027-2b584f234d6c?w=400', 'pot_skin', 0],
+
+            ['Áo phông Nông Nghiệp Xanh', 2000, 'Áo thun cotton cao cấp in logo ứng dụng.', 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400', 'tool', 1],
+            ['Mũ bảo hiểm Đắk Lắk', 1500, 'Mũ bảo hiểm chất lượng cao bảo vệ an toàn.', 'https://images.unsplash.com/photo-1558507652-2d9626c4e67a?w=400', 'tool', 1],
+            ['Túi ủ men vi sinh Trichoderma', 500, 'Gói 1kg men vi sinh giúp ủ vỏ cà phê nhanh chóng.', 'https://images.unsplash.com/photo-1585314062340-f1a5acc23555?w=400', 'fertilizer', 1]
         ];
         for (const item of items) {
-            const [res] = await db.query('INSERT INTO shop_items (name, price, description, image_url, item_type) VALUES (?, ?, ?, ?, ?)', item);
-            await db.query('INSERT INTO inventory_stock (item_id, quantity) VALUES (?, ?)', [res.insertId, 100]);
+            const [res] = await db.query('INSERT INTO shop_items (name, price, description, image_url, item_type, is_real) VALUES (?, ?, ?, ?, ?, ?)', item);
+            await db.query('INSERT INTO inventory_stock (item_id, quantity) VALUES (?, ?)', [res.insertId, 50]);
         }
     }
 }
@@ -821,6 +922,77 @@ app.get('/api/admin/submissions', async (req, res) => {
             ORDER BY ts.submitted_at DESC
         `);
         return sendResponse(res, true, rows, 'Lấy danh sách chờ duyệt thành công');
+    } catch (err) {
+        return sendResponse(res, false, null, err.message, 500);
+    }
+});
+
+// ── Admin: User Management ───────────────────────────────────────────────────
+// Get all users
+app.get('/api/admin/users', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT id, username, full_name, email, role, coins, seeds, level, exp, is_locked, avatar_url FROM users ORDER BY created_at DESC');
+        return sendResponse(res, true, rows, 'Lấy danh sách người dùng thành công');
+    } catch (err) {
+        return sendResponse(res, false, null, err.message, 500);
+    }
+});
+
+// Update User Stats (Admin only)
+app.patch('/api/admin/user/:id', async (req, res) => {
+    const { fullName, email, role, coins, seeds, level, exp, is_locked } = req.body;
+    try {
+        await db.query(
+            `UPDATE users SET 
+                full_name = COALESCE(?, full_name), 
+                email = COALESCE(?, email), 
+                role = COALESCE(?, role), 
+                coins = COALESCE(?, coins), 
+                seeds = COALESCE(?, seeds), 
+                level = COALESCE(?, level), 
+                exp = COALESCE(?, exp), 
+                is_locked = COALESCE(?, is_locked) 
+             WHERE id = ?`,
+            [fullName, email, role, coins, seeds, level, exp, is_locked, req.params.id]
+        );
+        return sendResponse(res, true, null, 'Cập nhật thông tin người dùng thành công');
+    } catch (err) {
+        return sendResponse(res, false, null, err.message, 500);
+    }
+});
+
+// ── Admin: Inventory Management ──────────────────────────────────────────────
+// Get user inventory
+app.get('/api/admin/user/:id/inventory', async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT i.id as inventory_id, i.item_id, s.name, s.price, s.image_url, s.item_type
+            FROM inventory i
+            JOIN shop_items s ON i.item_id = s.id
+            WHERE i.user_id = ?
+        `, [req.params.id]);
+        return sendResponse(res, true, rows, 'Lấy kho đồ thành công');
+    } catch (err) {
+        return sendResponse(res, false, null, err.message, 500);
+    }
+});
+
+// Delete item from inventory
+app.delete('/api/admin/inventory/:inventoryId', async (req, res) => {
+    try {
+        await db.query('DELETE FROM inventory WHERE id = ?', [req.params.inventoryId]);
+        return sendResponse(res, true, null, 'Xóa vật phẩm khỏi kho đồ thành công');
+    } catch (err) {
+        return sendResponse(res, false, null, err.message, 500);
+    }
+});
+
+// Add item to inventory
+app.post('/api/admin/inventory/add', async (req, res) => {
+    const { userId, itemId } = req.body;
+    try {
+        await db.query('INSERT IGNORE INTO inventory (user_id, item_id) VALUES (?, ?)', [userId, itemId]);
+        return sendResponse(res, true, null, 'Thêm vật phẩm vào kho đồ thành công');
     } catch (err) {
         return sendResponse(res, false, null, err.message, 500);
     }
@@ -1134,20 +1306,20 @@ app.get('/api/redemptions/:userId', async (req, res) => {
 
 // Admin: Manage Shop Items
 app.post('/api/admin/shop', async (req, res) => {
-    const { id, name, price, description, image_url } = req.body;
+    const { id, name, price, description, image_url, item_type, is_real } = req.body;
     try {
         if (id) {
             await db.query(`
                 UPDATE shop_items SET 
-                name = ?, price = ?, description = ?, image_url = ?
+                name = ?, price = ?, description = ?, image_url = ?, item_type = ?, is_real = ?
                 WHERE id = ?
-            `, [name, price, description, image_url, id]);
+            `, [name, price, description, image_url, item_type || 'seed', is_real || 0, id]);
             return sendResponse(res, true, null, 'Cập nhật sản phẩm thành công');
         } else {
             const [result] = await db.query(`
-                INSERT INTO shop_items (name, price, description, image_url)
-                VALUES (?, ?, ?, ?)
-            `, [name, price, description, image_url]);
+                INSERT INTO shop_items (name, price, description, image_url, item_type, is_real)
+                VALUES (?, ?, ?, ?, ?, ?)
+            `, [name, price, description, image_url, item_type || 'seed', is_real || 0]);
             // Also initialize stock
             await db.query('INSERT INTO inventory_stock (item_id, quantity) VALUES (?, 100)', [result.insertId]);
             return sendResponse(res, true, null, 'Thêm sản phẩm thành công');

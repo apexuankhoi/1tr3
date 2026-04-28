@@ -191,6 +191,32 @@ export default function AdminShopScreen() {
               onChangeText={t => setCurrentItem({ ...currentItem, description: t })}
             />
 
+            <Text style={st.label}>Loại vật phẩm (Item Type)</Text>
+            <View style={st.typeOptions}>
+              {['seed', 'pot_skin', 'fertilizer', 'tool'].map(type => (
+                <TouchableOpacity 
+                  key={type} 
+                  onPress={() => setCurrentItem({ ...currentItem, item_type: type })}
+                  style={[st.typeBtn, currentItem?.item_type === type && st.typeBtnActive]}
+                >
+                  <Text style={[st.typeBtnText, currentItem?.item_type === type && st.typeBtnTextActive]}>{type}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={st.toggleRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={st.label}>Vật phẩm thật (Real Gift)</Text>
+                <Text style={st.hint}>Người dùng cần nhập thông tin giao hàng khi đổi</Text>
+              </View>
+              <TouchableOpacity 
+                onPress={() => setCurrentItem({ ...currentItem, is_real: currentItem.is_real === 1 ? 0 : 1 })}
+                style={[st.toggle, currentItem?.is_real === 1 && st.toggleActive]}
+              >
+                <View style={[st.toggleCircle, currentItem?.is_real === 1 && st.toggleCircleActive]} />
+              </TouchableOpacity>
+            </View>
+
             <View style={st.modalBtns}>
               <TouchableOpacity onPress={() => setEditModalVisible(false)} style={st.cancelBtn}><Text style={st.cancelBtnText}>{t('common.cancel')}</Text></TouchableOpacity>
               <TouchableOpacity onPress={handleSave} style={st.saveBtn}><Text style={st.saveBtnText}>{t('common.save')}</Text></TouchableOpacity>
@@ -265,5 +291,18 @@ const st = StyleSheet.create({
   stockCard: { backgroundColor: '#fff', borderRadius: 24, padding: 24 },
   stockRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   stockName: { flex: 1, fontSize: 15, fontFamily: "Nunito_700Bold", color: "#1e293b" },
-  stockInput: { width: 60, backgroundColor: '#f1f5f9', padding: 8, borderRadius: 8, textAlign: 'center', fontFamily: "Nunito_800ExtraBold" }
+  stockInput: { width: 60, backgroundColor: '#f1f5f9', padding: 8, borderRadius: 8, textAlign: 'center', fontFamily: "Nunito_800ExtraBold" },
+  
+  typeOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  typeBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#e2e8f0' },
+  typeBtnActive: { backgroundColor: '#154212', borderColor: '#154212' },
+  typeBtnText: { fontSize: 12, fontFamily: 'Nunito_700Bold', color: '#64748b' },
+  typeBtnTextActive: { color: '#fff' },
+
+  toggleRow: { flexDirection: 'row', alignItems: 'center', marginTop: 20, backgroundColor: '#f8fafc', padding: 16, borderRadius: 16 },
+  hint: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
+  toggle: { width: 50, height: 28, borderRadius: 14, backgroundColor: '#e2e8f0', padding: 2 },
+  toggleActive: { backgroundColor: '#10b981' },
+  toggleCircle: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff' },
+  toggleCircleActive: { alignSelf: 'flex-end' },
 });

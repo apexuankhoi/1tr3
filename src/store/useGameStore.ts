@@ -12,12 +12,13 @@ export interface PotData {
   id: string; 
   floorId: number;
   hasPlant: boolean;
-  plantType?: 'cafe' | 'saurieng';
+  plantType?: 'cafe' | 'saurieng' | null;
   growthProgress: number; // 0-100
   growthStage: string;
   isWilted: boolean;
   growingUntil: number;
   skinId: string;
+  hasPot: boolean;
 }
 
 interface GameState {
@@ -36,6 +37,8 @@ interface GameState {
   exp: number;
   userStats: { tasksCompleted: number; redemptions: number };
   submissions: any[];
+  inventory: any[];
+  fetchInventory: () => Promise<void>;
   
   // Language
   language: Language;
@@ -52,15 +55,19 @@ interface GameState {
   
   // New Pot Actions
   plantSeed: (potId: string, type?: 'cafe' | 'saurieng') => void;
+  waterPot: (potId: string) => void;
+  fertilizePot: (potId: string) => void;
   addGrowth: (amount: number) => void;
   checkDailyStatus: () => Promise<void>;
   harvestPot: (potId: string) => void;
   advancePotStage: (potId: string) => void;
+  placePot: (potId: string, skinId: string) => void;
+  changePotSkin: (potId: string, skinId: string) => void;
   
   syncStats: () => Promise<void>;
   syncGarden: () => Promise<void>;
   fetchUserData: (userId: number) => Promise<void>;
-  buyItem: (itemId: number, price: number) => Promise<any>;
+  buyItem: (itemId: number, price: number, shippingData?: any) => Promise<any>;
   buySeed: (price: number) => boolean;
   setRole: (role: 'farmer' | 'buyer' | 'moderator' | 'admin') => void;
   toast: { message: string; type: 'error' | 'success' } | null;
@@ -94,7 +101,7 @@ const POT_STAGE_TO_I18N: Record<string, string> = {
 };
 
 export const POT_SKINS: Record<string, any> = {
-  'default': { name: 'Mặc định', image: null }, 
+  'default': { id: 'default', name: 'Chậu Gỗ', image: require('../../assets/chau/11.png'), price: 0 },
   '1': { name: 'Chậu Gốm Đỏ', image: require('../../assets/chau/1.png') },
   '2': { name: 'Chậu Đất Nung', image: require('../../assets/chau/2.png') },
   '3': { name: 'Chậu Sứ Xanh', image: require('../../assets/chau/3.png') },
@@ -142,8 +149,9 @@ const GROWTH_STAGE_ORDER = [
 
 const generateInitialPots = (): PotData[] => {
   const defaultPots: PotData[] = [];
-  for (let floor = 1; floor <= 2; floor++) {
+  for (let floor = 1; floor <= 3; floor++) {
     for (let p = 1; p <= 3; p++) {
+      const globalIdx = (floor - 1) * 3 + (p - 1);
       defaultPots.push({
         id: `floor${floor}_pot${p}`,
         floorId: floor,
@@ -154,6 +162,7 @@ const generateInitialPots = (): PotData[] => {
         isWilted: false,
         growingUntil: 0,
         skinId: 'default',
+        hasPot: globalIdx < 3 ? true : false,
       });
     }
   }
@@ -185,6 +194,17 @@ const useGameStore = create<GameState>((set, get) => ({
   userStats: { tasksCompleted: 0, redemptions: 0 },
   redemptions: [],
   submissions: [],
+  inventory: [],
+  fetchInventory: async () => {
+    const { userId } = get();
+    if (!userId) return;
+    try {
+      const res: any = await shopService.getInventory(userId);
+      set({ inventory: res || [] });
+    } catch (err) {
+      console.error("Fetch inventory error:", err);
+    }
+  },
 
   pots: generateInitialPots(),
   seeds: 2,
@@ -222,6 +242,8 @@ const useGameStore = create<GameState>((set, get) => ({
     });
     setTimeout(() => set({ toast: null }), 3000);
   },
+
+  setRedemptions: (reds) => set({ redemptions: reds }),
 
   addCoins: async (amount) => {
     set((state) => ({ coins: state.coins + amount }));
@@ -344,10 +366,74 @@ const useGameStore = create<GameState>((set, get) => ({
     
     set((state) => ({
       coins: state.coins + 50,
-      pots: state.pots.map(p => p.id === potId ? { ...p, hasPlant: false, growthProgress: 0, growthStage: "Nảy mầm" } : p)
+      pots: state.pots.map(p => p.id === potId ? { ...p, hasPlant: false, growthProgress: 0, growthStage: "Nảy mầm", plantType: null } : p)
     }));
     get().showToast("🎉 Thu hoạch thành công! +50 xu", 'success');
     get().syncStats();
+    get().syncGarden();
+  },
+
+  waterPot: (potId) => {
+    set((state) => ({
+      pots: state.pots.map(p => {
+        if (p.id !== potId || !p.hasPlant) return p;
+        // Speeds up growth or just updates status
+        return { ...p, isWilted: false, growthProgress: Math.min(100, p.growthProgress + 5) };
+      })
+    }));
+    get().showToast("💧 Đã tưới nước cho cây", 'success');
+    get().syncGarden();
+  },
+
+  fertilizePot: (potId) => {
+    set((state) => ({
+      pots: state.pots.map(p => {
+        if (p.id !== potId || !p.hasPlant) return p;
+        return { ...p, growthProgress: Math.min(100, p.growthProgress + 15) };
+      })
+    }));
+    get().showToast("✨ Đã bón phân cho cây", 'success');
+    get().syncGarden();
+  },
+
+  advancePotStage: (potId) => {
+    const stages = ["Nảy mầm", "Cây non", "Cây trưởng thành", "Ra hoa", "Kết trái"];
+    set((state) => ({
+      pots: state.pots.map(p => {
+        if (p.id !== potId || !p.hasPlant) return p;
+        const currentIdx = stages.indexOf(p.growthStage);
+        if (currentIdx >= 0 && currentIdx < stages.length - 1) {
+          return { ...p, growthStage: stages[currentIdx + 1], growthProgress: 0 };
+        }
+        return p;
+      })
+    }));
+    get().syncGarden();
+  },
+
+  changePotSkin: (potId, skinId) => {
+    set((state) => ({
+      pots: state.pots.map(p => p.id === potId ? { ...p, skinId } : p)
+    }));
+    get().syncGarden();
+  },
+
+  placePot: (potId, skinId) => {
+    set((state) => ({
+      pots: state.pots.map((p) =>
+        p.id === potId ? { 
+          ...p, 
+          hasPot: true, 
+          skinId: skinId,
+          hasPlant: false,
+          plantType: null,
+          growthStage: "Nảy mầm",
+          growthProgress: 0,
+          isWilted: false,
+          growingUntil: 0
+        } : p
+      ),
+    }));
     get().syncGarden();
   },
 
@@ -377,17 +463,17 @@ const useGameStore = create<GameState>((set, get) => ({
     try {
       const data: any = await userService.getUserInfo(userId);
       set({ 
-        userId: data.id, 
-        userName: data.username,
+        userId: data.id || 0, 
+        userName: data.username || "",
         fullName: data.full_name || data.fullName || "",
         dob: data.dob || "",
-        userRole: data.role as any,
-        coins: data.coins,
-        level: data.level || 1,
-        exp: data.exp || 0,
-        seeds: data.seeds ?? 2,
-        avatarUrl: data.avatar_url,
-        coverUrl: data.cover_url,
+        userRole: (data.role as any) || "farmer",
+        coins: Number(data.coins) || 0,
+        level: Number(data.level) || 1,
+        exp: Number(data.exp) || 0,
+        seeds: Number(data.seeds ?? 2),
+        avatarUrl: data.avatar_url || "",
+        coverUrl: data.cover_url || "",
         bio: data.bio || "",
         location: data.location || get().t('common.not_updated'),
         createdAt: data.created_at || "",
@@ -396,39 +482,38 @@ const useGameStore = create<GameState>((set, get) => ({
 
       try {
         const res: any = await gardenService.loadPots(userId);
-        const savedPots = res?.data || res;
-        if (Array.isArray(savedPots)) {
-          const uniquePots: PotData[] = [];
-          const seenIds = new Set();
-          
-          for (const p of savedPots) {
-            if (p && p.pot_id && !seenIds.has(p.pot_id)) {
-              seenIds.add(p.pot_id);
-              uniquePots.push({
-                id: p.pot_id,
-                floorId: p.floor_id,
-                hasPlant: !!p.has_plant,
-                plantType: p.plant_type || 'cafe',
-                growthProgress: p.growth_progress || 0,
-                growthStage: p.growth_stage || "Nảy mầm",
-                isWilted: !!p.is_wilted,
-                growingUntil: Number(p.growing_until) || 0,
-                skinId: p.skin_id || 'default',
-              });
+        
+        let potsFromDb = res || [];
+        const defaultPots = generateInitialPots();
+        
+        if (potsFromDb.length === 0) {
+          set({ pots: defaultPots });
+          get().syncGarden();
+        } else {
+          const mergedPots = defaultPots.map(dp => {
+            const sp = potsFromDb.find((up: any) => up.id === dp.id);
+            if (sp) {
+              return {
+                ...dp,
+                ...sp,
+                hasPlant: Boolean(sp.hasPlant),
+                isWilted: Boolean(sp.isWilted),
+                hasPot: Boolean(sp.hasPot),
+                growthProgress: Number(sp.growthProgress) || 0,
+                growingUntil: Number(sp.growingUntil) || 0,
+                floorId: Number(sp.floorId) || dp.floorId
+              };
             }
-          }
-          if (uniquePots.length > 0) {
-            const defaultPots = generateInitialPots();
-            const mergedPots = defaultPots.map(dp => {
-              const sp = uniquePots.find(up => up.id === dp.id);
-              return sp || dp;
-            });
-            set({ pots: mergedPots });
-          }
+            return dp;
+          });
+          set({ pots: mergedPots });
         }
-      } catch (e) { console.log("Garden load error:", e); }
-    } catch (error) {
-      console.error("fetchUserData failed:", error);
+      } catch (err) {
+        console.error("⚠️ Failed to load pots from DB:", err);
+        set({ pots: generateInitialPots() });
+      }
+    } catch (err) {
+      console.error("❌ fetchUserData failed:", err);
     }
   },
 
@@ -460,56 +545,25 @@ const useGameStore = create<GameState>((set, get) => ({
     try {
       const data: any = await userService.login({ username: phone });
       set({
-        userId: data.id,
-        userName: data.username,
+        userId: data.id || 0,
+        userName: data.username || "",
         fullName: data.full_name || data.fullName || "",
         dob: data.dob || "",
-        userRole: data.role,
-        coins: data.coins,
-        level: data.level || 1,
-        exp: data.exp || 0,
-        seeds: data.seeds ?? 2,
-        avatarUrl: data.avatar_url,
-        coverUrl: data.cover_url,
+        userRole: data.role || "farmer",
+        coins: Number(data.coins) || 0,
+        level: Number(data.level) || 1,
+        exp: Number(data.exp) || 0,
+        seeds: Number(data.seeds ?? 2),
+        avatarUrl: data.avatar_url || "",
+        coverUrl: data.cover_url || "",
         bio: data.bio || "",
         location: data.location || get().t('common.not_updated'),
         createdAt: data.created_at || "",
         userStats: data.stats || { tasksCompleted: 0, redemptions: 0 }
       });
       
-      // Load garden
-      try {
-        const res: any = await gardenService.loadPots(data.id);
-        const savedPots = res?.data || res;
-        if (Array.isArray(savedPots)) {
-          const uniquePots: PotData[] = [];
-          const seenIds = new Set();
-          for (const p of savedPots) {
-            if (p && p.pot_id && !seenIds.has(p.pot_id)) {
-              seenIds.add(p.pot_id);
-              uniquePots.push({
-                id: p.pot_id,
-                floorId: p.floor_id,
-                hasPlant: !!p.has_plant,
-                plantType: p.plant_type || 'cafe',
-                growthProgress: p.growth_progress || 0,
-                growthStage: p.growth_stage || "Nảy mầm",
-                isWilted: !!p.is_wilted,
-                growingUntil: Number(p.growing_until) || 0,
-                skinId: p.skin_id || 'default',
-              });
-            }
-          }
-          if (uniquePots.length > 0) {
-            const defaultPots = generateInitialPots();
-            const mergedPots = defaultPots.map(dp => {
-              const sp = uniquePots.find(up => up.id === dp.id);
-              return sp || dp;
-            });
-            set({ pots: mergedPots });
-          }
-        }
-      } catch (e) { console.log("Garden load error:", e); }
+      // Load detailed garden and stats
+      await get().fetchUserData(data.id);
 
       get().fetchRedemptions();
       get().fetchSubmissions();
@@ -522,13 +576,17 @@ const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  buyItem: async (itemId, price) => {
+  buyItem: async (itemId, price, shippingData?: any) => {
     const { userId, coins } = get();
     if (!userId || coins < price) return false;
     try {
-      const data: any = await shopService.buyItem(userId, itemId, price);
+      const data: any = await shopService.buyItem(userId, itemId, price, shippingData);
       get().showToast(data.message || get().t('shop.redeem_success'), 'success');
-      set({ coins: data.remainingCoins });
+      
+      // Update coins from response if available, else deduct locally
+      const newCoins = data.remainingCoins !== undefined ? data.remainingCoins : (get().coins - price);
+      set({ coins: newCoins });
+      
       get().fetchRedemptions();
       return data;
     } catch (error: any) {
