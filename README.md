@@ -4,7 +4,6 @@
 [![Framework](https://img.shields.io/badge/Framework-React%20Native%20%7C%20Expo-61DAFB.svg)]()
 [![Backend](https://img.shields.io/badge/Backend-Node.js%20%7C%20Express-339933.svg)]()
 [![Database](https://img.shields.io/badge/Database-MySQL-4479A1.svg)]()
-[![AI](https://img.shields.io/badge/AI-Gemini%202.0%20Flash-blue.svg)]()
 
 > **Nông Nghiệp Xanh** là một nền tảng chuyển đổi số nông nghiệp hiện đại, kết hợp giữa mô phỏng trò chơi (Gamification) và các nhiệm vụ thực tế để khuyến khích bà con nông dân canh tác bền vững, bảo vệ môi trường.
 
