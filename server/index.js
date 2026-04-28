@@ -254,7 +254,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
     try {
         let [rows] = await db.query(
-            'SELECT id, username, full_name, dob, role, is_locked, coins, avatar_url, created_at FROM users WHERE username = ?',
+            'SELECT id, username, full_name, dob, role, is_locked, coins, seeds, level, exp, avatar_url, created_at FROM users WHERE username = ?',
             [username]
         );
 
@@ -266,7 +266,7 @@ app.post('/api/auth/login', async (req, res) => {
                 [username, 'no-pass', 'farmer', null, null, 'Buôn Làng']
             );
             const [newRows] = await db.query(
-                'SELECT id, username, full_name, dob, role, is_locked, coins, avatar_url, created_at FROM users WHERE id = ?',
+                'SELECT id, username, full_name, dob, role, is_locked, coins, seeds, level, exp, avatar_url, created_at FROM users WHERE id = ?',
                 [result.insertId]
             );
             user = newRows[0];
@@ -282,10 +282,30 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
+// Register User
+app.post('/api/auth/register', async (req, res) => {
+    const { username, fullName, dob, villageName } = req.body;
+    if (!username) return sendResponse(res, false, null, 'Số điện thoại là bắt buộc', 400);
+    try {
+        const [existing] = await db.query('SELECT id FROM users WHERE username = ?', [username]);
+        if (existing.length > 0) return sendResponse(res, false, null, 'Số điện thoại đã được đăng ký', 400);
+
+        const [result] = await db.query(
+            'INSERT INTO users (username, password, role, full_name, dob, village_name) VALUES (?, ?, ?, ?, ?, ?)',
+            [username, 'no-pass', 'farmer', fullName || null, dob || null, villageName || 'Buôn Làng']
+        );
+        
+        const [user] = await db.query('SELECT * FROM users WHERE id = ?', [result.insertId]);
+        return sendResponse(res, true, user[0], 'Đăng ký thành công');
+    } catch (err) {
+        return sendResponse(res, false, null, err.message, 500);
+    }
+});
+
 // Get User Info
 app.get('/api/user/:id', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT id, username, full_name, email, dob, role, coins, water_level, energy_level, growth_stage, growing_until, avatar_url, cover_url, bio, location, created_at FROM users WHERE id = ?', [req.params.id]);
+        const [rows] = await db.query('SELECT id, username, full_name, email, dob, role, coins, seeds, level, exp, avatar_url, cover_url, bio, location, created_at FROM users WHERE id = ?', [req.params.id]);
         if (rows.length === 0) return res.status(404).json({ message: 'User not found' });
         
         const user = rows[0];
@@ -340,14 +360,14 @@ app.patch('/api/user/profile/:id', async (req, res) => {
     }
 });
 
-// Update User Stats (Coins + Seeds) — using /api/stats/ to avoid Express v5 param conflict
+// Update User Stats (Coins + Seeds + Level + Exp) — using /api/stats/ to avoid Express v5 param conflict
 app.patch('/api/stats/:id', async (req, res) => {
-    const { coins, seeds, waterLevel, energyLevel, growthStage, growingUntil } = req.body;
-    console.log(`[Sync] Updating stats for user ${req.params.id}: Coins=${coins}, Seeds=${seeds}`);
+    const { coins, seeds, waterLevel, energyLevel, growthStage, growingUntil, level, exp } = req.body;
+    console.log(`[Sync] Updating stats for user ${req.params.id}: Coins=${coins}, Seeds=${seeds}, Lvl=${level}, Exp=${exp}`);
     try {
         await db.query(
-            'UPDATE users SET coins = ?, seeds = ?, water_level = ?, energy_level = ?, growth_stage = ?, growing_until = ? WHERE id = ?',
-            [coins, seeds ?? 2, waterLevel, energyLevel, growthStage, growingUntil || 0, req.params.id]
+            'UPDATE users SET coins = ?, seeds = ?, water_level = ?, energy_level = ?, growth_stage = ?, growing_until = ?, level = ?, exp = ? WHERE id = ?',
+            [coins, seeds ?? 2, waterLevel, energyLevel, growthStage, growingUntil || 0, level || 1, exp || 0, req.params.id]
         );
         return sendResponse(res, true, null, 'Đồng bộ chỉ số thành công');
     } catch (err) {
@@ -1167,12 +1187,7 @@ app.get('/api/community/data', async (req, res) => {
     }
 });
 
-// Get Map Data (Users + POIs from Submissions)
-app.get('/api/map/data', async (req, res) => {
-    try {
-        // 1. Get all users with location + online status (active in last 5 min)
-        const [users] = await db.query(`
-            SELECT id, username, full_name, role, avatar_url, cover_url, bio, coins,
+// [REDUNDANT ROUTE REMOVED]
             (SELECT COUNT(*) FROM task_submissions WHERE user_id = users.id AND status = 'approved') as tasksCompleted,
             last_lat as lat, last_lng as lng,
             (last_seen > NOW() - INTERVAL 5 MINUTE) as isOnline
@@ -1371,28 +1386,6 @@ app.delete('/api/admin/:type/:id', async (req, res) => {
     }
 });
 
-// Reject Submission
-app.post('/api/admin/reject', async (req, res) => {
-    const { submissionId } = req.body;
-    try {
-        await db.query('UPDATE task_submissions SET status = "rejected" WHERE id = ?', [submissionId]);
-        return sendResponse(res, true, null, 'Đã từ chối nhiệm vụ');
-    } catch (err) {
-        return sendResponse(res, false, null, err.message, 500);
-    }
-});
-
-// ── Admin: User Management ──────────────────────────────────────────────────
-
-// Get all users (Admin only)
-app.get('/api/admin/users', async (req, res) => {
-    try {
-        const [rows] = await db.query('SELECT id, username, full_name, email, role, is_locked, coins, avatar_url, created_at FROM users ORDER BY created_at DESC');
-        return sendResponse(res, true, rows, 'Lấy danh sách người dùng thành công');
-    } catch (err) {
-        return sendResponse(res, false, null, err.message, 500);
-    }
-});
 
 // Lock/Unlock user
 app.patch('/api/admin/users/:id/status', async (req, res) => {

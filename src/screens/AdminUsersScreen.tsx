@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { 
   View, Text, ScrollView, StyleSheet, TouchableOpacity, 
   ActivityIndicator, Alert, Modal, TextInput, FlatList, Image,
-  Dimensions, RefreshControl, KeyboardAvoidingView, Platform
+  Dimensions, RefreshControl, KeyboardAvoidingView, Platform, StatusBar
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

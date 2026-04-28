@@ -39,6 +39,7 @@ interface GameState {
   submissions: any[];
   inventory: any[];
   fetchInventory: () => Promise<void>;
+  gardenLoaded: boolean;
   
   // Language
   language: Language;
@@ -173,12 +174,13 @@ let gardenSyncTimer: any = null;
 const debouncedGardenSync = (syncFn: () => Promise<void>) => {
   if (gardenSyncTimer) clearTimeout(gardenSyncTimer);
   gardenSyncTimer = setTimeout(() => {
-    syncFn();
-  }, 2000);
+    syncFn().catch(err => console.error("[Sync] Debounced garden sync failed:", err));
+  }, 1000); // 1 second debounce
 };
 
 const useGameStore = create<GameState>((set, get) => ({
   userId: 0,
+  gardenLoaded: false,
   userName: "",
   fullName: "",
   dob: "",
@@ -438,10 +440,10 @@ const useGameStore = create<GameState>((set, get) => ({
   },
 
   syncStats: async () => {
-    const { userId, coins, seeds } = get();
+    const { userId, coins, seeds, level, exp } = get();
     if (userId) {
       try {
-        await userService.updateStats(userId, { coins, seeds } as any);
+        await userService.updateStats(userId, { coins, seeds, level, exp } as any);
       } catch (error) {
         console.error("syncStats failed:", error);
       }
@@ -449,13 +451,15 @@ const useGameStore = create<GameState>((set, get) => ({
   },
 
   syncGarden: async () => {
-    const { userId, pots, seeds } = get();
-    if (userId) {
-      try {
-        await gardenService.savePots(userId, pots, seeds);
-      } catch (error) {
-        console.error("syncGarden failed:", error);
-      }
+    const { userId, pots, seeds, gardenLoaded } = get();
+    if (userId && gardenLoaded) {
+      debouncedGardenSync(async () => {
+        try {
+          await gardenService.savePots(userId, pots, seeds);
+        } catch (error) {
+          console.error("syncGarden failed:", error);
+        }
+      });
     }
   },
 
@@ -487,7 +491,7 @@ const useGameStore = create<GameState>((set, get) => ({
         const defaultPots = generateInitialPots();
         
         if (potsFromDb.length === 0) {
-          set({ pots: defaultPots });
+          set({ pots: defaultPots, gardenLoaded: true });
           get().syncGarden();
         } else {
           const mergedPots = defaultPots.map(dp => {
@@ -506,11 +510,11 @@ const useGameStore = create<GameState>((set, get) => ({
             }
             return dp;
           });
-          set({ pots: mergedPots });
+          set({ pots: mergedPots, gardenLoaded: true });
         }
       } catch (err) {
         console.error("⚠️ Failed to load pots from DB:", err);
-        set({ pots: generateInitialPots() });
+        // Do NOT reset pots to default on error, keep current state
       }
     } catch (err) {
       console.error("❌ fetchUserData failed:", err);
@@ -588,6 +592,7 @@ const useGameStore = create<GameState>((set, get) => ({
       set({ coins: newCoins });
       
       get().fetchRedemptions();
+      get().fetchInventory(); // <--- ADDED
       return data;
     } catch (error: any) {
       console.error("Buy item error:", error);

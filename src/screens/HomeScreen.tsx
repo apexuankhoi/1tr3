@@ -34,7 +34,9 @@ import * as Location from "expo-location";
 import { userService } from "../services/api";
 import FeedbackPopup from "../components/FeedbackPopup";
 
-const { width, height } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const width = SCREEN_WIDTH || 375;
+const height = SCREEN_HEIGHT || 812;
 
 // ── Con Bướm 3D ──
 function Butterfly({ startX, startY, delay }: { startX: number; startY: number; delay: number }) {
@@ -213,6 +215,8 @@ export default function HomeScreen({ navigation }: any) {
   const advancePotStage = useGameStore(s => s.advancePotStage);
   const changePotSkin = useGameStore(s => s.changePotSkin);
   const redemptions = useGameStore(s => s.redemptions);
+  const inventory = useGameStore(s => s.inventory);
+  const fetchInventory = useGameStore(s => s.fetchInventory);
   const t = useGameStore(s => s.t);
   const showToast = useGameStore(s => s.showToast);
   const hasSeenTutorial = useGameStore(s => s.hasSeenTutorial);
@@ -227,11 +231,12 @@ export default function HomeScreen({ navigation }: any) {
   const [showPlantPicker, setShowPlantPicker] = useState(false);
 
   useEffect(() => {
-    // Timer removed as growth is now real-time based on water/fertilizer levels
+    fetchInventory();
   }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
+    await fetchInventory();
     setTimeout(() => setRefreshing(false), 1500);
   };
 
@@ -479,7 +484,7 @@ export default function HomeScreen({ navigation }: any) {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.skinList}>
               {Object.keys(POT_SKINS).map(skinKey => {
                 const skin = POT_SKINS[skinKey];
-                const isOwned = skinKey === 'default' || redemptions.some(r => r.item_id === parseInt(skinKey));
+                const isOwned = skinKey === 'default' || inventory.some(i => i.item_id === parseInt(skinKey));
 
                 return (
                   <TouchableOpacity

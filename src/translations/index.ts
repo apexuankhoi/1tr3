@@ -350,9 +350,10 @@ export const translations = {
       default_desc: "Chọn đáp án đúng để nhận Xu.",
       badge_label: "Quiz",
       result_wrong_title: "Bạn đã trả lời chưa đúng",
-      result_wrong_sub: "Vui lòng xem kỹ giải thích và quay lại sau.",
+      result_wrong_sub: "Vui lòng xem kỹ giải thích và thử lại nhé.",
       explanation_title: "Giải thích từ chuyên gia",
       explanation_fallback: "Đáp án đúng là {answer}. Hãy tìm hiểu thêm kiến thức trong Thư viện để trả lời đúng vào lần tới nhé!",
+      retry: "Thử lại",
     },
     admin_dash: {
       pending_tasks: "Nhiệm vụ chờ duyệt",
@@ -783,9 +784,10 @@ export const translations = {
       default_desc: "Choose the correct answer to earn coins.",
       badge_label: "Quiz",
       result_wrong_title: "Your answer is incorrect",
-      result_wrong_sub: "Please review the explanation and try again later.",
+      result_wrong_sub: "Please review the explanation and try again.",
       explanation_title: "Expert explanation",
       explanation_fallback: "The correct answer is {answer}. Learn more in the Library to get it right next time!",
+      retry: "Retry",
     },
     admin_dash: {
       pending_tasks: "Pending",

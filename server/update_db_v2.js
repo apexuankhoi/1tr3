@@ -11,7 +11,8 @@ async function migrate() {
             "ALTER TABLE user_pots ADD COLUMN plant_type VARCHAR(50) DEFAULT 'cafe'",
             "ALTER TABLE user_pots ADD COLUMN growth_progress INT DEFAULT 0",
             "ALTER TABLE user_pots ADD COLUMN is_wilted BOOLEAN DEFAULT FALSE",
-            "ALTER TABLE user_pots ADD COLUMN skin_id VARCHAR(50) DEFAULT 'default'"
+            "ALTER TABLE user_pots ADD COLUMN skin_id VARCHAR(50) DEFAULT 'default'",
+            "ALTER TABLE user_pots ADD COLUMN has_pot BOOLEAN DEFAULT FALSE"
         ];
 
         for (const sql of addCols) {
@@ -31,6 +32,9 @@ async function migrate() {
         console.log('2. Cập nhật bảng users...');
         try {
             await db.query("ALTER TABLE users ADD COLUMN last_activity_date DATE DEFAULT NULL");
+            await db.query("ALTER TABLE users ADD COLUMN last_lat DOUBLE DEFAULT NULL");
+            await db.query("ALTER TABLE users ADD COLUMN last_lng DOUBLE DEFAULT NULL");
+            await db.query("ALTER TABLE users ADD COLUMN last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
         } catch (e) {}
 
         // 3. Cập nhật bảng shop_items để phân loại

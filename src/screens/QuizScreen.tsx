@@ -106,6 +106,11 @@ export default function QuizScreen({ navigation, route }: any) {
     }
   };
 
+  const handleRetry = () => {
+    setQuizState("idle");
+    setSelected(null);
+  };
+
   const isCorrect = quizState === "correct";
   const isWrong = quizState === "wrong";
 
@@ -218,20 +223,36 @@ export default function QuizScreen({ navigation, route }: any) {
               <MaterialCommunityIcons name="arrow-right-circle" size={20} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
-        ) : (
+        ) : isCorrect ? (
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             activeOpacity={0.85}
             style={st.confirmBtn}
           >
             <LinearGradient
-              colors={isCorrect ? ["#0f9b58", "#1dba6e"] : ["#7c3aed", "#9d5cef"]}
+              colors={["#0f9b58", "#1dba6e"]}
               style={st.confirmGrad}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
             >
-              <Text style={st.confirmText}>{isCorrect ? t('common.success') : t('common.back')}</Text>
-              <MaterialCommunityIcons name="arrow-right-circle" size={20} color="#fff" />
+              <Text style={st.confirmText}>{t('common.back')}</Text>
+              <MaterialCommunityIcons name="check-circle" size={20} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            onPress={handleRetry}
+            activeOpacity={0.85}
+            style={st.confirmBtn}
+          >
+            <LinearGradient
+              colors={["#7c3aed", "#9d5cef"]}
+              style={st.confirmGrad}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Text style={st.confirmText}>{t('quiz.retry') || "Thử lại"}</Text>
+              <MaterialCommunityIcons name="refresh" size={20} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
         )}

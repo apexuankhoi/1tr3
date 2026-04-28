@@ -29,11 +29,27 @@ export default function RankingScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const t = useGameStore(s => s.t);
+  const [loading, setLoading] = React.useState(true);
+  const [data, setData] = React.useState<any[]>([]);
 
-  const demoName = (id: number) => t(DEMO_NAME_KEYS[id - 1] ?? DEMO_NAME_KEYS[0]);
+  const fetchRankings = async () => {
+    try {
+      const { communityService } = await import("../services/api");
+      const res: any = await communityService.getRankings('individual');
+      setData(res || []);
+    } catch (err) {
+      console.error("Fetch rankings error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const top3 = RANKING_DATA.slice(0, 3);
-  const others = RANKING_DATA.slice(3);
+  React.useEffect(() => {
+    fetchRankings();
+  }, []);
+
+  const top3 = data.slice(0, 3);
+  const others = data.slice(3);
 
   return (
     <View style={st.root}>
@@ -52,13 +68,13 @@ export default function RankingScreen() {
           {/* Rank 2 */}
           <Animated.View entering={FadeInUp.delay(300)} style={[st.podiumItem, st.rank2]}>
             <View style={st.avatarContainer}>
-              <Image source={{ uri: top3[1].avatar }} style={st.avatar} />
+              <Image source={top3[1]?.imageUri ? { uri: top3[1].imageUri } : require("../../assets/avatar_premium.png")} style={st.avatar} />
               <View style={[st.rankBadge, { backgroundColor: '#cbd5e1' }]}>
                 <Text style={st.rankBadgeText}>2</Text>
               </View>
             </View>
-            <Text style={st.podiumName} numberOfLines={1}>{demoName(top3[1].id)}</Text>
-            <Text style={st.podiumCoins}>{top3[1].coins} {t('common.coin_unit')}</Text>
+            <Text style={st.podiumName} numberOfLines={1}>{top3[1]?.name || "---"}</Text>
+            <Text style={st.podiumCoins}>{top3[1]?.points || 0} {t('common.coin_unit')}</Text>
             <View style={[st.podiumBase, { height: 60, backgroundColor: 'rgba(255,255,255,0.1)' }]} />
           </Animated.View>
 
@@ -66,26 +82,26 @@ export default function RankingScreen() {
           <Animated.View entering={FadeInUp.delay(100)} style={[st.podiumItem, st.rank1]}>
             <MaterialCommunityIcons name="crown" size={30} color="#fcd34d" style={st.crown} />
             <View style={[st.avatarContainer, st.avatarLarge]}>
-              <Image source={{ uri: top3[0].avatar }} style={st.avatar} />
+              <Image source={top3[0]?.imageUri ? { uri: top3[0].imageUri } : require("../../assets/avatar_premium.png")} style={st.avatar} />
               <View style={[st.rankBadge, { backgroundColor: '#fcd34d', width: 28, height: 28 }]}>
                 <Text style={[st.rankBadgeText, { color: '#92400e' }]}>1</Text>
               </View>
             </View>
-            <Text style={[st.podiumName, st.podiumNameLarge]} numberOfLines={1}>{demoName(top3[0].id)}</Text>
-            <Text style={[st.podiumCoins, st.podiumCoinsLarge]}>{top3[0].coins} {t('common.coin_unit')}</Text>
+            <Text style={[st.podiumName, st.podiumNameLarge]} numberOfLines={1}>{top3[0]?.name || "---"}</Text>
+            <Text style={[st.podiumCoins, st.podiumCoinsLarge]}>{top3[0]?.points || 0} {t('common.coin_unit')}</Text>
             <View style={[st.podiumBase, { height: 90, backgroundColor: 'rgba(255,255,255,0.2)' }]} />
           </Animated.View>
 
           {/* Rank 3 */}
           <Animated.View entering={FadeInUp.delay(500)} style={[st.podiumItem, st.rank3]}>
             <View style={st.avatarContainer}>
-              <Image source={{ uri: top3[2].avatar }} style={st.avatar} />
+              <Image source={top3[2]?.imageUri ? { uri: top3[2].imageUri } : require("../../assets/avatar_premium.png")} style={st.avatar} />
               <View style={[st.rankBadge, { backgroundColor: '#fb923c' }]}>
                 <Text style={st.rankBadgeText}>3</Text>
               </View>
             </View>
-            <Text style={st.podiumName} numberOfLines={1}>{demoName(top3[2].id)}</Text>
-            <Text style={st.podiumCoins}>{top3[2].coins} {t('common.coin_unit')}</Text>
+            <Text style={st.podiumName} numberOfLines={1}>{top3[2]?.name || "---"}</Text>
+            <Text style={st.podiumCoins}>{top3[2]?.points || 0} {t('common.coin_unit')}</Text>
             <View style={[st.podiumBase, { height: 45, backgroundColor: 'rgba(255,255,255,0.05)' }]} />
           </Animated.View>
         </View>
@@ -100,15 +116,15 @@ export default function RankingScreen() {
               entering={FadeInDown.delay(700 + index * 100)} 
               style={st.rankRow}
             >
-              <Text style={st.rowRank}>{item.rank}</Text>
-              <Image source={{ uri: item.avatar }} style={st.rowAvatar} />
+              <Text style={st.rowRank}>{index + 4}</Text>
+              <Image source={item.imageUri ? { uri: item.imageUri } : require("../../assets/avatar_premium.png")} style={st.rowAvatar} />
               <View style={st.rowInfo}>
-                <Text style={st.rowName}>{demoName(item.id)}</Text>
+                <Text style={st.rowName}>{item.name}</Text>
                 <Text style={st.rowLevel}>{t('ranking.level_label', { level: item.level })}</Text>
               </View>
               <View style={st.rowCoinsWrap}>
                 <MaterialCommunityIcons name="star-circle" size={18} color="#f59e0b" />
-                <Text style={st.rowCoins}>{item.coins} {t('common.coin_unit')}</Text>
+                <Text style={st.rowCoins}>{item.points} {t('common.coin_unit')}</Text>
               </View>
             </Animated.View>
           ))}

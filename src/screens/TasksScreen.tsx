@@ -4,6 +4,7 @@ import {
   ActivityIndicator, StatusBar, StyleSheet,
   RefreshControl, Platform, Dimensions, Alert
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -90,6 +91,12 @@ export default function TasksScreen({ navigation }: any) {
   }, [userId, t]);
 
   useEffect(() => { fetchWeekly(); }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchWeekly();
+    }, [fetchWeekly])
+  );
 
   const onRefresh = () => { setRefreshing(true); fetchWeekly(); };
 
@@ -286,29 +293,38 @@ export default function TasksScreen({ navigation }: any) {
                         </View>
                       )}
 
-                      {/* Action button */}
-                      {!isQuiz && (
-                        <TouchableOpacity
-                          onPress={() => handleAction(task)}
-                          activeOpacity={0.85}
-                          disabled={isPending || isApproved}
-                          style={[st.actionBtn, (isPending || isApproved) && { backgroundColor: statusCfg.bg }]}
-                        >
-                          {!isPending && !isApproved ? (
-                            <LinearGradient colors={cfg.gradient} style={st.actionGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                              <MaterialCommunityIcons name={statusCfg.icon as any} size={16} color="#fff" />
-                              <Text style={[st.actionText, { color: "#fff" }]}>
-                                {status === 'rejected' ? t('common.edit') : isQuiz ? t('common.start') : t('tasks.submit')}
-                              </Text>
-                            </LinearGradient>
-                          ) : (
-                            <View style={st.actionInner}>
-                              <MaterialCommunityIcons name={statusCfg.icon as any} size={16} color={statusCfg.color} />
-                              <Text style={[st.actionText, { color: statusCfg.color }]}>{isApproved ? t('tasks.status_approved') : t('tasks.status_pending')}</Text>
-                            </View>
-                          )}
-                        </TouchableOpacity>
+                      {/* Completed message for Quiz */}
+                      {isQuiz && isApproved && (
+                        <View style={[st.quizWrap, { backgroundColor: "#d1fae5", padding: 12, borderRadius: 12, borderStyle: 'solid', borderWidth: 1, borderColor: '#10b98144' }]}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <MaterialCommunityIcons name="check-circle" size={18} color="#10b981" />
+                            <Text style={{ fontSize: 13, fontFamily: 'Nunito_700Bold', color: '#065f46' }}>Bạn đã làm đúng rồi!</Text>
+                          </View>
+                          <Text style={{ fontSize: 11, fontFamily: 'Nunito_600SemiBold', color: '#065f46', marginTop: 4 }}>Nhiệm vụ này đã hoàn thành. Hãy tiếp tục với các thử thách khác nhé.</Text>
+                        </View>
                       )}
+
+                      {/* Action button */}
+                      <TouchableOpacity
+                        onPress={() => handleAction(task)}
+                        activeOpacity={0.85}
+                        disabled={isPending || isApproved}
+                        style={[st.actionBtn, (isPending || isApproved) && { backgroundColor: statusCfg.bg }]}
+                      >
+                        {!isPending && !isApproved ? (
+                          <LinearGradient colors={cfg.gradient} style={st.actionGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                            <MaterialCommunityIcons name={statusCfg.icon as any} size={16} color="#fff" />
+                            <Text style={[st.actionText, { color: "#fff" }]}>
+                              {status === 'rejected' ? t('common.edit') : isQuiz ? "Bắt đầu" : t('tasks.submit')}
+                            </Text>
+                          </LinearGradient>
+                        ) : (
+                          <View style={st.actionInner}>
+                            <MaterialCommunityIcons name={statusCfg.icon as any} size={16} color={statusCfg.color} />
+                            <Text style={[st.actionText, { color: statusCfg.color }]}>{isApproved ? t('tasks.status_approved') : t('tasks.status_pending')}</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
                     </View>
                   </View>
                 </Animated.View>
@@ -365,7 +381,7 @@ const st = StyleSheet.create({
   groupBadgeText: { fontSize: 12, fontFamily: "Nunito_700Bold" },
 
   card: { backgroundColor: "#fff", borderRadius: 20, marginBottom: 12, flexDirection: "row", overflow: "hidden", ...SHADOW },
-  cardDone: { opacity: 0.65 },
+  cardDone: { opacity: 0.65, backgroundColor: "#f3f4f6" },
   stripe: { width: 5 },
   cardInner: { flex: 1, padding: 16 },
   cardHead: { flexDirection: "row", alignItems: "flex-start", marginBottom: 10 },
