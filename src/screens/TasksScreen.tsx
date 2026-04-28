@@ -55,7 +55,7 @@ const getMockTasks = (t: (key: string, params?: Record<string, any>) => any) => 
 
 export default function TasksScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
-  const { seeds, coins, userId, addCoins, t } = useGameStore();
+  const { seeds, coins, userId, addCoins, addGrowth, t } = useGameStore();
 
   const [weekNum, setWeekNum] = useState(0);
   const [tasks, setTasks] = useState<any[]>([]);
@@ -131,6 +131,7 @@ export default function TasksScreen({ navigation }: any) {
         const res: any = await taskService.submitTask(userId || 1, task.id, "auto");
         if (res?.autoApproved) {
           addCoins(res.reward);
+          addGrowth(20); // Tăng 20% tiến trình sinh trưởng
           Alert.alert(t('common.success'), t('tasks.auto_approved_message', { reward: res.reward, unit: t('common.coin_unit') }));
         } else {
           Alert.alert(t('tasks.submitted_title'), t('tasks.submitted_message'));
@@ -150,6 +151,7 @@ export default function TasksScreen({ navigation }: any) {
         const res = await taskService.submitTask(userId || 1, task.id, "quiz-correct");
         if (res.data?.autoApproved) {
           addCoins(res.data.reward);
+          addGrowth(20); // Tăng 20% khi trả lời đúng Quiz
         }
         fetchWeekly();
       }, 800);

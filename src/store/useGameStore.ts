@@ -8,32 +8,16 @@ import * as Notifications from "expo-notifications";
 // Detect Expo Go
 const isExpoGo = Constants.appOwnership === 'expo';
 
-// ── Push Notification Config ──────────────────────────────────────────────────
-/*
-try {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-      shouldShowBanner: true,
-      shouldFlashScreen: false,
-      shouldShowList: true,
-    }),
-  });
-} catch (e) {
-  console.log('[Push] Notification handler setup failed');
-}
-*/
-
 export interface PotData {
   id: string; 
   floorId: number;
   hasPlant: boolean;
-  waterLevel: number;
-  fertilizerLevel: number;
+  plantType?: 'cafe' | 'saurieng';
+  growthProgress: number; // 0-100
   growthStage: string;
+  isWilted: boolean;
   growingUntil: number;
+  skinId: string;
 }
 
 interface GameState {
@@ -67,9 +51,9 @@ interface GameState {
   spendCoins: (amount: number) => boolean;
   
   // New Pot Actions
-  plantSeed: (potId: string) => void;
-  waterPot: (potId: string) => void;
-  fertilizePot: (potId: string) => void;
+  plantSeed: (potId: string, type?: 'cafe' | 'saurieng') => void;
+  addGrowth: (amount: number) => void;
+  checkDailyStatus: () => Promise<void>;
   harvestPot: (potId: string) => void;
   advancePotStage: (potId: string) => void;
   
@@ -91,6 +75,7 @@ interface GameState {
   scheduleWaterReminder: () => Promise<void>;
   updateProfile: (data: { fullName?: string; dob?: string; email?: string; avatarUrl?: string; coverUrl?: string; bio?: string; location?: string }) => Promise<any>;
   logout: () => void;
+  changePotSkin: (potId: string, skinId: string) => void;
   hasSeenTutorial: boolean;
   setHasSeenTutorial: (val: boolean) => void;
 }
@@ -108,6 +93,37 @@ const POT_STAGE_TO_I18N: Record<string, string> = {
   "Kết trái": "garden.stage_fruit",
 };
 
+export const POT_SKINS: Record<string, any> = {
+  'default': { name: 'Mặc định', image: null }, 
+  '1': { name: 'Chậu Gốm Đỏ', image: require('../../assets/chau/1.png') },
+  '2': { name: 'Chậu Đất Nung', image: require('../../assets/chau/2.png') },
+  '3': { name: 'Chậu Sứ Xanh', image: require('../../assets/chau/3.png') },
+  '4': { name: 'Chậu Sứ Trắng', image: require('../../assets/chau/4.png') },
+  '5': { name: 'Chậu Cổ Điển', image: require('../../assets/chau/5.png') },
+  '6': { name: 'Chậu Vàng Hoàng Gia', image: require('../../assets/chau/6.png') },
+  '7': { name: 'Chậu Ngọc Bích', image: require('../../assets/chau/7.png') },
+  '8': { name: 'Chậu Họa Tiết', image: require('../../assets/chau/8.png') },
+  '9': { name: 'Chậu Cao Cấp', image: require('../../assets/chau/9.png') },
+  '10': { name: 'Chậu Đặc Biệt', image: require('../../assets/chau/10.png') },
+};
+
+export const PLANT_ASSETS: Record<string, Record<string, any>> = {
+  'cafe': {
+    'Nảy mầm': require('../../assets/cay/cafe/mamcay.png'),
+    'Cây non': require('../../assets/cay/cafe/naymam.png'),
+    'Cây trưởng thành': require('../../assets/cay/cafe/caytruongthanh.png'),
+    'Ra hoa': require('../../assets/cay/cafe/rahoa.png'),
+    'Kết trái': require('../../assets/cay/cafe/raqua.png'),
+  },
+  'saurieng': {
+    'Nảy mầm': require('../../assets/cay/saurieng/mamcay.png'),
+    'Cây non': require('../../assets/cay/saurieng/naymam.png'),
+    'Cây trưởng thành': require('../../assets/cay/saurieng/caytruongthanh.png'),
+    'Ra hoa': require('../../assets/cay/saurieng/rahoa.png'),
+    'Kết trái': require('../../assets/cay/saurieng/raqua.png'),
+  }
+};
+
 export function translatePotStage(
   stage: string,
   t: (path: string, params?: Record<string, unknown>) => unknown
@@ -116,8 +132,7 @@ export function translatePotStage(
   return pathKey ? String(t(pathKey)) : stage;
 }
 
-const WATER_FERTILIZE_STAGE_ORDER = [
-  "Hạt cà phê",
+const GROWTH_STAGE_ORDER = [
   "Nảy mầm",
   "Cây non",
   "Cây trưởng thành",
@@ -132,11 +147,13 @@ const generateInitialPots = (): PotData[] => {
       defaultPots.push({
         id: `floor${floor}_pot${p}`,
         floorId: floor,
-        hasPlant: floor === 1 && p === 1,
-        waterLevel: 0,
-        fertilizerLevel: 0,
-        growthStage: "Hạt cà phê",
+        hasPlant: false,
+        plantType: 'cafe',
+        growthProgress: 0,
+        growthStage: "Nảy mầm",
+        isWilted: false,
         growingUntil: 0,
+        skinId: 'default',
       });
     }
   }
@@ -231,11 +248,11 @@ const useGameStore = create<GameState>((set, get) => ({
       get().syncGarden();
       return true;
     }
-    get().showToast("Không đủ xu để mua hạt giống!", 'error');
+    get().showToast(get().t('garden.toast_buy_seed_no_coins'), 'error');
     return false;
   },
 
-  plantSeed: (potId) => {
+  plantSeed: (potId, type: 'cafe' | 'saurieng' = 'cafe') => {
     const state = get();
     if (state.seeds <= 0) {
       state.showToast(state.t('garden.toast_no_seeds_shop'), 'error');
@@ -247,9 +264,10 @@ const useGameStore = create<GameState>((set, get) => ({
       pots: state.pots.map(pot => pot.id === potId ? {
         ...pot,
         hasPlant: true,
-        waterLevel: 0,
-        fertilizerLevel: 0,
+        plantType: type,
+        growthProgress: 0,
         growthStage: "Nảy mầm",
+        isWilted: false,
         growingUntil: 0,
       } : pot)
     }));
@@ -257,75 +275,48 @@ const useGameStore = create<GameState>((set, get) => ({
     debouncedGardenSync(() => get().syncGarden());
   },
 
-  waterPot: (potId) => {
+  addGrowth: (amount: number) => {
     set((state) => ({
       pots: state.pots.map(pot => {
-        if (pot.id !== potId || !pot.hasPlant) return pot;
-        const newWater = Math.round(Math.min(1, pot.waterLevel + 0.5) * 10) / 10;
+        if (!pot.hasPlant || pot.growthStage === "Kết trái") return pot;
         
+        let newProgress = pot.growthProgress + amount;
         let newStage = pot.growthStage;
-        let newWaterFinal = newWater;
-        let newFertilizerFinal = pot.fertilizerLevel;
-
-        if (newWater >= 0.99 && pot.fertilizerLevel >= 0.99) {
-          const stages = WATER_FERTILIZE_STAGE_ORDER;
-          const idx = stages.indexOf(pot.growthStage as (typeof stages)[number]);
-          if (idx >= 0 && idx < stages.length - 1) {
-            newStage = stages[idx + 1];
-            newWaterFinal = 0;
-            newFertilizerFinal = 0;
+        
+        if (newProgress >= 100) {
+          const idx = GROWTH_STAGE_ORDER.indexOf(pot.growthStage as any);
+          if (idx >= 0 && idx < GROWTH_STAGE_ORDER.length - 1) {
+            newStage = GROWTH_STAGE_ORDER[idx + 1];
+            newProgress = 0;
             const tt = get().t;
             get().showToast(
               tt('garden.toast_stage_advanced', { stage: translatePotStage(newStage, tt as any) }),
               'success'
             );
+          } else {
+            newProgress = 100;
           }
         }
-        return { ...pot, waterLevel: newWaterFinal, fertilizerLevel: newFertilizerFinal, growthStage: newStage };
+        
+        return { ...pot, growthProgress: newProgress, growthStage: newStage, isWilted: false };
       })
     }));
-    debouncedGardenSync(() => get().syncGarden());
+    get().syncGarden();
   },
 
-  fertilizePot: (potId) => {
-    set((state) => ({
-      pots: state.pots.map(pot => {
-        if (pot.id !== potId || !pot.hasPlant) return pot;
-        const newFertilizer = Math.round(Math.min(1, pot.fertilizerLevel + 0.5) * 10) / 10;
-        
-        let newStage = pot.growthStage;
-        let newWaterFinal = pot.waterLevel;
-        let newFertilizerFinal = newFertilizer;
-
-        if (pot.waterLevel >= 0.99 && newFertilizer >= 0.99) {
-          const stages = WATER_FERTILIZE_STAGE_ORDER;
-          const idx = stages.indexOf(pot.growthStage as (typeof stages)[number]);
-          if (idx >= 0 && idx < stages.length - 1) {
-            newStage = stages[idx + 1];
-            newWaterFinal = 0;
-            newFertilizerFinal = 0;
-            const tt = get().t;
-            get().showToast(
-              tt('garden.toast_stage_advanced', { stage: translatePotStage(newStage, tt as any) }),
-              'success'
-            );
-          }
-        }
-        return { ...pot, waterLevel: newWaterFinal, fertilizerLevel: newFertilizerFinal, growthStage: newStage };
-      })
-    }));
-    debouncedGardenSync(() => get().syncGarden());
+  checkDailyStatus: async () => {
+    // This would ideally check with the backend for last activity
+    // For now, it's a placeholder for the wilting logic
   },
 
   advancePotStage: (potId) => {
     set((state) => ({
       pots: state.pots.map(pot => {
-        if (pot.id !== potId || pot.growingUntil === 0 || Date.now() < pot.growingUntil) return pot;
+        if (pot.id !== potId) return pot;
         
-        const stages = ["Nảy mầm", "Cây non", "Cây trưởng thành", "Ra hoa", "Kết trái"];
-        const currentIndex = stages.indexOf(pot.growthStage);
-        if (currentIndex >= 0 && currentIndex < stages.length - 1) {
-          const nextStage = stages[currentIndex + 1];
+        const idx = GROWTH_STAGE_ORDER.indexOf(pot.growthStage as any);
+        if (idx >= 0 && idx < GROWTH_STAGE_ORDER.length - 1) {
+          const nextStage = GROWTH_STAGE_ORDER[idx + 1];
           const tt = get().t;
           get().showToast(
             tt('garden.toast_stage_developed', { stage: translatePotStage(nextStage, tt as any) }),
@@ -334,8 +325,7 @@ const useGameStore = create<GameState>((set, get) => ({
           return {
             ...pot,
             growthStage: nextStage,
-            waterLevel: 0,
-            fertilizerLevel: 0,
+            growthProgress: 0,
             growingUntil: 0
           };
         }
@@ -354,7 +344,7 @@ const useGameStore = create<GameState>((set, get) => ({
     
     set((state) => ({
       coins: state.coins + 50,
-      pots: state.pots.map(p => p.id === potId ? { ...p, hasPlant: false } : p)
+      pots: state.pots.map(p => p.id === potId ? { ...p, hasPlant: false, growthProgress: 0, growthStage: "Nảy mầm" } : p)
     }));
     get().showToast("🎉 Thu hoạch thành công! +50 xu", 'success');
     get().syncStats();
@@ -418,10 +408,12 @@ const useGameStore = create<GameState>((set, get) => ({
                 id: p.pot_id,
                 floorId: p.floor_id,
                 hasPlant: !!p.has_plant,
-                waterLevel: p.water_level || 0,
-                fertilizerLevel: p.fertilizer_level || 0,
+                plantType: p.plant_type || 'cafe',
+                growthProgress: p.growth_progress || 0,
                 growthStage: p.growth_stage || "Nảy mầm",
+                isWilted: !!p.is_wilted,
                 growingUntil: Number(p.growing_until) || 0,
+                skinId: p.skin_id || 'default',
               });
             }
           }
@@ -488,7 +480,7 @@ const useGameStore = create<GameState>((set, get) => ({
       // Load garden
       try {
         const res: any = await gardenService.loadPots(data.id);
-        const savedPots = res?.data || res; // Handle both direct array and wrapped response
+        const savedPots = res?.data || res;
         if (Array.isArray(savedPots)) {
           const uniquePots: PotData[] = [];
           const seenIds = new Set();
@@ -499,10 +491,12 @@ const useGameStore = create<GameState>((set, get) => ({
                 id: p.pot_id,
                 floorId: p.floor_id,
                 hasPlant: !!p.has_plant,
-                waterLevel: p.water_level || 0,
-                fertilizerLevel: p.fertilizer_level || 0,
+                plantType: p.plant_type || 'cafe',
+                growthProgress: p.growth_progress || 0,
                 growthStage: p.growth_stage || "Nảy mầm",
+                isWilted: !!p.is_wilted,
                 growingUntil: Number(p.growing_until) || 0,
+                skinId: p.skin_id || 'default',
               });
             }
           }
@@ -632,6 +626,13 @@ const useGameStore = create<GameState>((set, get) => ({
       pots: generateInitialPots(),
       redemptions: [],
     });
+  },
+
+  changePotSkin: (potId, skinId) => {
+    set((state) => ({
+      pots: state.pots.map(p => p.id === potId ? { ...p, skinId } : p)
+    }));
+    get().syncGarden();
   },
 }));
 

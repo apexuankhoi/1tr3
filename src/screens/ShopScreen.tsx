@@ -25,11 +25,7 @@ export default function ShopScreen() {
 
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [buyingId, setBuyingId] = useState<number | null>(null);
-
-  const [qrModalVisible, setQrModalVisible] = useState(false);
-  const [currentQr, setCurrentQr] = useState("");
-  const [currentItemName, setCurrentItemName] = useState("");
+  const [activeTab, setActiveTab] = useState<'seed' | 'pot_skin'>('seed');
 
   useEffect(() => {
     fetchItems();
@@ -37,18 +33,22 @@ export default function ShopScreen() {
 
   const fetchItems = async () => {
     try {
-      const data = await shopService.getShopItems();
+      const data: any = await shopService.getShopItems();
       setItems(data);
     } catch {
       // Fallback
       setItems([
-        { id: 1, name: t('shop.fallback_item_1_name'), price: 500, description: t('shop.fallback_item_1_desc'), image_url: "https://images.unsplash.com/photo-1628352081506-83c43123ed6d?w=400" },
-        { id: 2, name: t('shop.fallback_item_2_name'), price: 1200, description: t('shop.fallback_item_2_desc'), image_url: "https://images.unsplash.com/photo-1599307734111-d138f6d66934?w=400" },
+        { id: 101, name: 'Hạt giống Cà phê', price: 50, description: 'Hạt giống cà phê chất lượng cao.', image_url: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400", item_type: 'seed' },
+        { id: 102, name: 'Hạt giống Sầu riêng', price: 100, description: 'Hạt giống sầu riêng Đắk Lắk.', image_url: "https://images.unsplash.com/photo-1595455353724-640f1a92e861?w=400", item_type: 'seed' },
+        { id: 1, name: 'Chậu Gốm Đỏ', price: 500, description: 'Mẫu chậu gốm đỏ truyền thống.', image_url: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=400", item_type: 'pot_skin' },
+        { id: 2, name: 'Chậu Đất Nung', price: 800, description: 'Mẫu chậu đất nung bền bỉ.', image_url: "https://images.unsplash.com/photo-1599307734111-d138f6d66934?w=400", item_type: 'pot_skin' },
       ]);
     } finally {
       setLoading(false);
     }
   };
+
+  const filteredItems = items.filter(it => it.item_type === activeTab);
 
   const handleBuy = async (item: any) => {
     if (coins < item.price) {
@@ -69,6 +69,8 @@ export default function ShopScreen() {
               const res = await buyItem(item.id, item.price);
               if (res) {
                 haptics.notificationAsync(haptics.NotificationFeedbackType.Success);
+                // If it's a pot skin, we don't necessarily need a QR code for collection 
+                // but the current backend logic creates one. We'll show it anyway.
                 setCurrentQr(res.qrCode);
                 setCurrentItemName(item.name);
                 setQrModalVisible(true);
@@ -108,9 +110,20 @@ export default function ShopScreen() {
         </View>
       </View>
 
+      <View style={st.tabsContainer}>
+        <TouchableOpacity onPress={() => setActiveTab('seed')} style={[st.tab, activeTab === 'seed' && st.tabActive]}>
+          <MaterialCommunityIcons name="seed" size={20} color={activeTab === 'seed' ? "#fff" : "#154212"} />
+          <Text style={[st.tabText, activeTab === 'seed' && st.tabTextActive]}>{t('shop.seeds') || 'Hạt giống'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setActiveTab('pot_skin')} style={[st.tab, activeTab === 'pot_skin' && st.tabActive]}>
+          <MaterialCommunityIcons name="flower-poppy" size={20} color={activeTab === 'pot_skin' ? "#fff" : "#154212"} />
+          <Text style={[st.tabText, activeTab === 'pot_skin' && st.tabTextActive]}>{t('shop.pots') || 'Mẫu Chậu'}</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView style={{ flex: 1 }} contentContainerStyle={st.content} showsVerticalScrollIndicator={false}>
         <View style={st.titleBox}>
-          <Text style={st.title}>{t('shop.title')}</Text>
+          <Text style={st.title}>{activeTab === 'seed' ? t('shop.title') : (t('shop.pots_title') || 'Cửa hàng Chậu')}</Text>
           <Text style={st.subtitle}>{t('home.balance')}</Text>
         </View>
 
@@ -119,8 +132,13 @@ export default function ShopScreen() {
             <ActivityIndicator size="large" color="#154212" />
             <Text style={st.loaderText}>{t('common.loading')}</Text>
           </View>
+        ) : filteredItems.length === 0 ? (
+          <View style={st.loader}>
+            <MaterialCommunityIcons name="archive-off-outline" size={48} color="#ccc" />
+            <Text style={st.loaderText}>{t('shop.no_items') || 'Chưa có vật phẩm nào'}</Text>
+          </View>
         ) : (
-          items.map((item, index) => (
+          filteredItems.map((item, index) => (
             <Animated.View key={item.id} entering={FadeInDown.delay(index * 100).duration(500)}>
               <TouchableOpacity activeOpacity={0.9} onPress={() => handleBuy(item)} style={st.card}>
                 <View style={st.cardImgWrap}>
@@ -177,6 +195,12 @@ const st = StyleSheet.create({
   badge: { backgroundColor: "#fff", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#f3f4f6", ...SHADOW },
   badgeText: { marginLeft: 6, fontSize: 14, fontFamily: "Nunito_800ExtraBold", color: "#374151" },
   
+  tabsContainer: { flexDirection: "row", paddingHorizontal: 24, gap: 12, marginTop: 10 },
+  tab: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12, borderRadius: 16, backgroundColor: "#fff", borderWidth: 1, borderColor: "#f3f4f6", gap: 8, ...SHADOW },
+  tabActive: { backgroundColor: "#154212", borderColor: "#154212" },
+  tabText: { fontSize: 14, fontFamily: "Nunito_700Bold", color: "#154212" },
+  tabTextActive: { color: "#fff", fontFamily: "Nunito_800ExtraBold" },
+
   content: { padding: 24 },
   titleBox: { marginBottom: 24 },
   title: { fontSize: 28, fontFamily: "Nunito_800ExtraBold", color: "#111827", marginBottom: 6 },

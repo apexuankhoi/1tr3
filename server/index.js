@@ -289,6 +289,19 @@ app.get('/api/user/:id', async (req, res) => {
         
         const user = rows[0];
         
+        // --- Wilt Check Logic ---
+        if (user.role === 'farmer') {
+            const [[lastAct]] = await db.query('SELECT last_activity_date FROM users WHERE id = ?', [req.params.id]);
+            const today = new Date().toISOString().split('T')[0];
+            const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+            
+            if (lastAct && lastAct.last_activity_date && lastAct.last_activity_date < yesterday) {
+                // Inactive for more than 1 day -> wilt plants
+                await db.query('UPDATE user_pots SET is_wilted = 1 WHERE user_id = ? AND has_plant = 1', [req.params.id]);
+            }
+        }
+        // -------------------------
+
         // Fetch stats
         const [[taskCount]] = await db.query('SELECT COUNT(*) as n FROM task_submissions WHERE user_id = ? AND status = "approved"', [req.params.id]);
         const [[redemptionCount]] = await db.query('SELECT COUNT(*) as n FROM redemptions WHERE user_id = ?', [req.params.id]);
@@ -346,7 +359,7 @@ app.patch('/api/stats/:id', async (req, res) => {
 app.get('/api/garden/:userId/pots', async (req, res) => {
     try {
         const [rows] = await db.query(
-            'SELECT pot_id, floor_id, has_plant, water_level, fertilizer_level, growth_stage, growing_until FROM user_pots WHERE user_id = ? ORDER BY floor_id, pot_id',
+            'SELECT pot_id, floor_id, has_plant, plant_type, growth_progress, growth_stage, is_wilted, growing_until, skin_id FROM user_pots WHERE user_id = ? ORDER BY floor_id, pot_id',
             [req.params.userId]
         );
         return sendResponse(res, true, rows, 'Lấy danh sách chậu cây thành công');
@@ -368,18 +381,20 @@ app.put('/api/garden/:userId/pots', async (req, res) => {
         // Upsert each pot
         for (const pot of pots) {
             await db.query(`
-                INSERT INTO user_pots (user_id, pot_id, floor_id, has_plant, water_level, fertilizer_level, growth_stage, growing_until)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO user_pots (user_id, pot_id, floor_id, has_plant, plant_type, growth_progress, growth_stage, is_wilted, growing_until, skin_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                     floor_id = VALUES(floor_id),
                     has_plant = VALUES(has_plant),
-                    water_level = VALUES(water_level),
-                    fertilizer_level = VALUES(fertilizer_level),
+                    plant_type = VALUES(plant_type),
+                    growth_progress = VALUES(growth_progress),
                     growth_stage = VALUES(growth_stage),
-                    growing_until = VALUES(growing_until)
+                    is_wilted = VALUES(is_wilted),
+                    growing_until = VALUES(growing_until),
+                    skin_id = VALUES(skin_id)
             `, [
                 userId, pot.id, pot.floorId, pot.hasPlant ? 1 : 0,
-                pot.waterLevel, pot.fertilizerLevel, pot.growthStage, pot.growingUntil || 0
+                pot.plantType || 'cafe', pot.growthProgress || 0, pot.growthStage, pot.isWilted ? 1 : 0, pot.growingUntil || 0, pot.skinId || 'default'
             ]);
         }
         
@@ -555,13 +570,17 @@ async function ensureShopTables() {
     const [count] = await db.query('SELECT COUNT(*) as n FROM shop_items');
     if (count[0].n === 0) {
         const items = [
-            ['Hạt giống Cà chua', 50, 'Hạt giống F1 nảy mầm nhanh', 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?w=400'],
-            ['Phân hữu cơ vi sinh 5kg', 200, 'Phân bón giàu dinh dưỡng', 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=400'],
-            ['Bình tưới cây 2L', 150, 'Bình xịt áp suất cao', 'https://images.unsplash.com/photo-1416879598056-0cbb04922ba4?w=400'],
-            ['Bộ cuốc xẻng mini', 300, 'Dụng cụ làm vườn tiện lợi', 'https://images.unsplash.com/photo-1416879598056-0cbb04922ba4?w=400'],
+            ['Hạt giống Cà phê', 50, 'Hạt giống cà phê chất lượng cao.', 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400', 'seed'],
+            ['Hạt giống Sầu riêng', 100, 'Hạt giống sầu riêng Đắk Lắk.', 'https://images.unsplash.com/photo-1595455353724-640f1a92e861?w=400', 'seed'],
+            ['Chậu Gốm Đỏ', 500, 'Mẫu chậu gốm đỏ truyền thống.', 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=400', 'pot_skin'],
+            ['Chậu Đất Nung', 800, 'Mẫu chậu đất nung bền bỉ.', 'https://images.unsplash.com/photo-1599307734111-d138f6d66934?w=400', 'pot_skin'],
+            ['Chậu Sứ Xanh', 1200, 'Mẫu chậu sứ xanh trang nhã.', 'https://images.unsplash.com/photo-1628352081506-83c43123ed6d?w=400', 'pot_skin'],
+            ['Chậu Sứ Trắng', 1500, 'Mẫu chậu sứ trắng hiện đại.', 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?w=400', 'pot_skin'],
+            ['Chậu Cổ Điển', 2000, 'Mẫu chậu mang phong cách cổ điển.', 'https://images.unsplash.com/photo-1581447100595-3a74a5af060f?w=400', 'pot_skin'],
+            ['Chậu Vàng Hoàng Gia', 5000, 'Mẫu chậu mạ vàng sang trọng.', 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?w=400', 'pot_skin'],
         ];
         for (const item of items) {
-            const [res] = await db.query('INSERT INTO shop_items (name, price, description, image_url) VALUES (?, ?, ?, ?)', item);
+            const [res] = await db.query('INSERT INTO shop_items (name, price, description, image_url, item_type) VALUES (?, ?, ?, ?, ?)', item);
             await db.query('INSERT INTO inventory_stock (item_id, quantity) VALUES (?, ?)', [res.insertId, 100]);
         }
     }
@@ -761,6 +780,10 @@ app.post('/api/tasks/submit', async (req, res) => {
         } else if (!task.needs_moderator) {
             await db.query('UPDATE users SET coins = coins + ? WHERE id = ?', [task.reward, userId]);
             const { level, leveledUp } = await awardExp(userId, task.exp_reward || 20);
+            
+            // Advance growth by 20%
+            await advanceUserPlants(userId, 20);
+
             res.json({ 
                 message: 'Task completed and reward granted', 
                 autoApproved: true, 
@@ -823,6 +846,35 @@ async function awardExp(userId, expAmount) {
     return { level, exp, leveledUp };
 }
 
+// Helper: Advance plants growth
+async function advanceUserPlants(userId, growthAmount) {
+    const [pots] = await db.query('SELECT id, growth_progress, growth_stage FROM user_pots WHERE user_id = ? AND has_plant = 1', [userId]);
+    const stages = ["Nảy mầm", "Cây non", "Cây trưởng thành", "Ra hoa", "Kết trái"];
+    
+    for (const pot of pots) {
+        let newProgress = pot.growth_progress + growthAmount;
+        let newStage = pot.growth_stage;
+        
+        if (newProgress >= 100) {
+            const currentIdx = stages.indexOf(pot.growth_stage);
+            if (currentIdx >= 0 && currentIdx < stages.length - 1) {
+                newStage = stages[currentIdx + 1];
+                newProgress = 0;
+            } else {
+                newProgress = 100;
+            }
+        }
+        
+        await db.query(
+            'UPDATE user_pots SET growth_progress = ?, growth_stage = ?, is_wilted = 0 WHERE id = ?',
+            [newProgress, newStage, pot.id]
+        );
+    }
+    
+    // Update last activity
+    await db.query('UPDATE users SET last_activity_date = CURRENT_DATE WHERE id = ?', [userId]);
+}
+
 // Approve Submission
 app.post('/api/admin/approve', async (req, res) => {
     const { submissionId } = req.body;
@@ -847,6 +899,9 @@ app.post('/api/admin/approve', async (req, res) => {
         await db.query('UPDATE users SET coins = coins + ? WHERE id = ?', [sub.reward, sub.user_id]);
         
         const { level, leveledUp } = await awardExp(sub.user_id, sub.exp_reward || 20);
+        
+        // Advance growth by 20%
+        await advanceUserPlants(sub.user_id, 20);
 
         // Send Push Notification
         sendPush(sub.user_id, "Nhiệm vụ đã được duyệt! 🎉", `Bạn vừa nhận được ${sub.reward} xu thưởng.`, { type: 'TASK_APPROVED' });

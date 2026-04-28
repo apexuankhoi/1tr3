@@ -14,9 +14,15 @@ import {
   Modal,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useGameStore, PotData, translatePotStage } from "../store/useGameStore";
+import { useGameStore, PotData, translatePotStage, POT_SKINS, PLANT_ASSETS } from "../store/useGameStore";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withSequence,
+  Easing,
   FadeInDown,
   FadeInUp,
   FadeIn,
@@ -193,6 +199,8 @@ export default function HomeScreen({ navigation }: any) {
   const fertilizePot = useGameStore(s => s.fertilizePot);
   const harvestPot = useGameStore(s => s.harvestPot);
   const advancePotStage = useGameStore(s => s.advancePotStage);
+  const changePotSkin = useGameStore(s => s.changePotSkin);
+  const redemptions = useGameStore(s => s.redemptions);
   const t = useGameStore(s => s.t);
   const showToast = useGameStore(s => s.showToast);
   const hasSeenTutorial = useGameStore(s => s.hasSeenTutorial);
@@ -204,6 +212,31 @@ export default function HomeScreen({ navigation }: any) {
   const [selectedPotId, setSelectedPotId] = useState<string | null>(null);
   const [activeFloor, setActiveFloor] = useState(1);
   const [showTutorial, setShowTutorial] = useState(!hasSeenTutorial);
+  const [showSkinPicker, setShowSkinPicker] = useState(false);
+  const [showPlantPicker, setShowPlantPicker] = useState(false);
+
+  // Animation for plants
+  const plantAnim = useSharedValue(0);
+
+  useEffect(() => {
+    plantAnim.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 2500, easing: Easing.inOut(Easing.sine) }),
+        withTiming(0, { duration: 2500, easing: Easing.inOut(Easing.sine) })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const animatedPlantStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { scale: 1 + plantAnim.value * 0.05 }, // Nhịp thở nhẹ
+        { rotate: `${plantAnim.value * 2}deg` }, // Đu đưa nhẹ
+      ],
+    };
+  });
 
   useEffect(() => {
     if (userRole === 'farmer') {
@@ -258,8 +291,7 @@ export default function HomeScreen({ navigation }: any) {
     if (action === 'plant') plantSeed(selectedPot.id);
   };
 
-  const currentWaterPct = selectedPot ? Math.round(selectedPot.waterLevel * 100) : 0;
-  const currentFertilizerPct = selectedPot ? Math.round(selectedPot.fertilizerLevel * 100) : 0;
+  const currentGrowthPct = selectedPot ? Math.round(selectedPot.growthProgress) : 0;
 
   const hour = new Date().getHours();
   const isDaytime = hour >= 6 && hour < 18;
@@ -296,18 +328,9 @@ export default function HomeScreen({ navigation }: any) {
 
   const getTreeImage = (pot: PotData) => {
     if (!pot.hasPlant) return null;
-    switch (pot.growthStage) {
-      case "Hạt cà phê":
-      case "Nảy mầm":
-        return require("../../assets/1.png");
-      case "Cây non": return require("../../assets/2.png");
-      case "Cây trưởng thành":
-      case "Trưởng thành":
-        return require("../../assets/3.png");
-      case "Ra hoa": return require("../../assets/4.png");
-      case "Kết trái": return require("../../assets/5.png");
-      default: return require("../../assets/1.png");
-    }
+    const type = pot.plantType || 'cafe';
+    const stage = pot.growthStage || 'Nảy mầm';
+    return PLANT_ASSETS[type][stage];
   };
 
   const floorPots = pots.filter(p => p.floorId === activeFloor);
@@ -396,7 +419,16 @@ export default function HomeScreen({ navigation }: any) {
                   {isLocked ? (
                     <MaterialCommunityIcons name="lock" size={32} color="#64748b" style={{ position: 'absolute', bottom: 35, zIndex: 10 }} />
                   ) : pot.hasPlant ? (
-                    <Image source={treeImg} style={[st.plantImg, { width: getPlantSize(pot), height: getPlantSize(pot) }]} resizeMode="contain" />
+                    <Animated.Image 
+                      source={treeImg} 
+                      style={[
+                        st.plantImg, 
+                        { width: getPlantSize(pot), height: getPlantSize(pot) }, 
+                        pot.isWilted && { tintColor: '#666', opacity: 0.8 },
+                        !pot.isWilted && animatedPlantStyle
+                      ]} 
+                      resizeMode="contain" 
+                    />
                   ) : (
                     <View style={st.addBtnWrap}>
                       <LinearGradient colors={['#A8E8DF', '#83D6D2']} style={st.addBtnGradient}>
@@ -404,10 +436,11 @@ export default function HomeScreen({ navigation }: any) {
                       </LinearGradient>
                     </View>
                   )}
-                  <View style={st.cloud}>
-                    <LinearGradient colors={['#FFFFFF', '#D8F2FB']} style={st.cloudGradient} />
-                    <View style={st.cloudBefore} />
-                    <View style={st.cloudAfter} />
+                  {pot.skinId !== 'default' && POT_SKINS[pot.skinId] && (
+                    <Image source={POT_SKINS[pot.skinId].image} style={st.potSkinImg} resizeMode="contain" />
+                  )}
+                  <View style={st.cloudWrap}>
+                    <Image source={require('../../assets/may/may.png')} style={st.cloudImg} resizeMode="contain" />
                   </View>
                 </View>
               </TouchableOpacity>
@@ -425,7 +458,7 @@ export default function HomeScreen({ navigation }: any) {
               <View style={st.emptyStateIconWrap}><MaterialCommunityIcons name="seed-outline" size={48} color="#10B981" /></View>
               <Text style={st.emptyStateTitle}>{t('garden.empty_plot')}</Text>
               <Text style={st.emptyStateSub}>{t('home.balance')}: {seeds} {t('garden.plant')}</Text>
-              <TouchableOpacity onPress={() => handleAction('plant')} activeOpacity={0.8} style={st.btnPlantWrap}>
+              <TouchableOpacity onPress={() => setShowPlantPicker(true)} activeOpacity={0.8} style={st.btnPlantWrap}>
                 <LinearGradient colors={['#4ADE80', '#22C55E']} start={{x: 0, y: 0}} end={{x: 1, y: 0}} style={st.btnPlant}>
                   <MaterialCommunityIcons name="seed" size={20} color="#fff" />
                   <Text style={st.btnPlantText}>{t('garden.plant')}</Text>
@@ -440,24 +473,28 @@ export default function HomeScreen({ navigation }: any) {
                   <MaterialCommunityIcons name="leaf" size={14} color="#0284C7" />
                   <Text style={st.statusBadgeText}>{translatePotStage(selectedPot.growthStage, t)}</Text>
                 </View>
+                <TouchableOpacity onPress={() => setShowSkinPicker(true)} style={st.skinBtn}>
+                  <MaterialCommunityIcons name="palette-outline" size={20} color="#6366f1" />
+                </TouchableOpacity>
               </View>
               <View style={st.progressItem}>
-                <View style={st.progressHeader}><Text style={st.progressLabel}>{t('garden.water')}</Text><Text style={[st.progressValue, st.blueText]}>{currentWaterPct}%</Text></View>
-                <View style={st.progressTrack}><LinearGradient colors={['#60A5FA', '#3B82F6']} style={[st.progressFill, {width: `${currentWaterPct}%`}]} /></View>
+                <View style={st.progressHeader}><Text style={st.progressLabel}>{t('garden.growth_progress') || 'Tiến trình Sinh trưởng'}</Text><Text style={[st.progressValue, st.greenText]}>{currentGrowthPct}%</Text></View>
+                <View style={st.progressTrack}><LinearGradient colors={['#4ADE80', '#22C55E']} style={[st.progressFill, {width: `${currentGrowthPct}%`}]} /></View>
               </View>
-              <View style={st.progressItem}>
-                <View style={st.progressHeader}><Text style={st.progressLabel}>{t('garden.fertilize')}</Text><Text style={[st.progressValue, st.greenText]}>{currentFertilizerPct}%</Text></View>
-                <View style={st.progressTrack}><LinearGradient colors={['#4ADE80', '#22C55E']} style={[st.progressFill, {width: `${currentFertilizerPct}%`}]} /></View>
-              </View>
+              {selectedPot.isWilted && (
+                <View style={st.wiltWarning}>
+                  <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#ef4444" />
+                  <Text style={st.wiltWarningText}>{t('garden.is_wilted') || 'Cây đang bị héo! Hãy làm nhiệm vụ ngay.'}</Text>
+                </View>
+              )}
               {selectedPot.growthStage === "Kết trái" ? (
                 <TouchableOpacity onPress={() => handleAction('harvest')} activeOpacity={0.8} style={st.btnHarvestWrap}>
                   <LinearGradient colors={['#fbbf24', '#f59e0b']} style={st.btn}><Text style={st.btnText}>🌟 {t('garden.harvest')}</Text></LinearGradient>
                 </TouchableOpacity>
               ) : (
-                <View style={st.buttonGroup}>
-                  <TouchableOpacity onPress={() => handleAction('water')} activeOpacity={0.8} style={st.btnAction}><LinearGradient colors={['#7DD3FC', '#3B82F6']} style={st.btn}><MaterialCommunityIcons name="water" size={20} color="#fff" /><Text style={st.btnText}>{t('garden.water')}</Text></LinearGradient></TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleAction('fertilize')} activeOpacity={0.8} style={st.btnAction}><LinearGradient colors={['#86EFAC', '#22C55E']} style={st.btn}><MaterialCommunityIcons name="leaf" size={20} color="#fff" /><Text style={st.btnText}>{t('garden.fertilize')}</Text></LinearGradient></TouchableOpacity>
-                </View>
+                <TouchableOpacity onPress={() => { setSelectedPotId(null); navigation.navigate("Tasks"); }} activeOpacity={0.8} style={st.btnHarvestWrap}>
+                  <LinearGradient colors={['#6366f1', '#4f46e5']} style={st.btn}><MaterialCommunityIcons name="clipboard-text-play-outline" size={20} color="#fff" /><Text style={st.btnText}>{t('garden.go_to_tasks') || 'Đi làm nhiệm vụ'}</Text></LinearGradient>
+                </TouchableOpacity>
               )}
             </>
           )}
@@ -465,6 +502,89 @@ export default function HomeScreen({ navigation }: any) {
       </Animated.View>
 
       <FeedbackPopup visible={popup.visible} type={popup.type} title={popup.title} message={popup.message} onClose={() => setPopup({ ...popup, visible: false })} />
+
+      {/* Skin Picker Modal */}
+      <Modal visible={showSkinPicker} transparent animationType="slide">
+        <View style={st.modalOverlay}>
+          <View style={st.skinPickerCard}>
+            <View style={st.modalHeader}>
+              <Text style={st.modalTitle}>{t('garden.change_skin') || 'Đổi mẫu Chậu'}</Text>
+              <TouchableOpacity onPress={() => setShowSkinPicker(false)}><MaterialCommunityIcons name="close" size={24} color="#64748b" /></TouchableOpacity>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.skinList}>
+              {Object.keys(POT_SKINS).map(skinKey => {
+                const skin = POT_SKINS[skinKey];
+                const isOwned = skinKey === 'default' || redemptions.some(r => r.item_id === parseInt(skinKey));
+                const isSelected = selectedPot?.skinId === skinKey;
+                
+                return (
+                  <TouchableOpacity 
+                    key={skinKey} 
+                    disabled={!isOwned}
+                    onPress={() => {
+                      if (selectedPot) {
+                        changePotSkin(selectedPot.id, skinKey);
+                        setShowSkinPicker(false);
+                      }
+                    }}
+                    style={[st.skinItem, isSelected && st.skinItemActive, !isOwned && st.skinItemLocked]}
+                  >
+                    <View style={[st.skinImgWrap, isSelected && st.skinItemActiveWrap]}>
+                      {skin.image ? (
+                        <Image source={skin.image} style={st.skinImgSmall} resizeMode="contain" />
+                      ) : (
+                        <View style={st.defaultSkinPreview} />
+                      )}
+                      {!isOwned && <MaterialCommunityIcons name="lock" size={16} color="#fff" style={st.lockIcon} />}
+                    </View>
+                    <Text style={st.skinName} numberOfLines={1}>{skin.name}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <TouchableOpacity 
+              style={st.shopRedirectBtn} 
+              onPress={() => { setShowSkinPicker(false); navigation.navigate("Shop"); }}
+            >
+              <Text style={st.shopRedirectText}>{t('garden.go_to_shop') || 'Đến cửa hàng mua thêm chậu'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Plant Picker Modal */}
+      <Modal visible={showPlantPicker} transparent animationType="slide">
+        <View style={st.modalOverlay}>
+          <View style={st.skinPickerCard}>
+            <View style={st.modalHeader}>
+              <Text style={st.modalTitle}>{t('garden.choose_seed') || 'Chọn hạt giống'}</Text>
+              <TouchableOpacity onPress={() => setShowPlantPicker(false)}><MaterialCommunityIcons name="close" size={24} color="#64748b" /></TouchableOpacity>
+            </View>
+            <View style={st.plantPickerList}>
+              <TouchableOpacity 
+                style={st.plantOption}
+                onPress={() => {
+                  if (selectedPotId) plantSeed(selectedPotId, 'cafe');
+                  setShowPlantPicker(false);
+                }}
+              >
+                <View style={st.plantOptionIcon}><Text style={{fontSize: 30}}>☕</Text></View>
+                <Text style={st.plantOptionName}>Hạt giống Cà phê</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={st.plantOption}
+                onPress={() => {
+                  if (selectedPotId) plantSeed(selectedPotId, 'saurieng');
+                  setShowPlantPicker(false);
+                }}
+              >
+                <View style={st.plantOptionIcon}><Text style={{fontSize: 30}}>🍈</Text></View>
+                <Text style={st.plantOptionName}>Hạt giống Sầu riêng</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -499,10 +619,9 @@ const st = StyleSheet.create({
   addBtnWrap: { position: 'absolute', bottom: 20, zIndex: 3, borderRadius: 18 },
   addBtnGradient: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: '#fff', justifyContent: 'center', alignItems: 'center' },
   addBtnText: { color: '#fff', fontSize: 24, fontFamily: 'Nunito_600SemiBold' },
-  cloud: { width: 140, height: 58, zIndex: 1 },
-  cloudGradient: { ...StyleSheet.absoluteFillObject, borderRadius: 50 },
-  cloudBefore: { position: 'absolute', width: 70, height: 70, backgroundColor: '#FFFFFF', borderRadius: 35, top: -33, left: 18 },
-  cloudAfter: { position: 'absolute', width: 53, height: 53, backgroundColor: '#FFFFFF', borderRadius: 26.5, top: -23, right: 22 },
+  cloudWrap: { width: 140, height: 60, zIndex: 1, justifyContent: 'center', alignItems: 'center' },
+  cloudImg: { width: '100%', height: '100%' },
+  potSkinImg: { width: 100, height: 60, position: 'absolute', bottom: 10, zIndex: 2 },
   actionPanel: { position: 'absolute', bottom: 85, left: 15, right: 15, backgroundColor: '#fff', borderRadius: 24, padding: 24 },
   emptyStateContainer: { alignItems: 'center' },
   emptyStateIconWrap: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#ECFDF5', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
@@ -515,6 +634,7 @@ const st = StyleSheet.create({
   panelTitle: { fontSize: 15, color: '#1E293B', fontFamily: 'Nunito_800ExtraBold' },
   statusBadge: { backgroundColor: '#E0F2FE', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 6 },
   statusBadgeText: { fontSize: 12, color: '#0284C7', fontFamily: 'Nunito_800ExtraBold' },
+  skinBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f5f3ff', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#e0e7ff' },
   progressItem: { marginBottom: 15 },
   progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   progressLabel: { fontSize: 14, color: '#1E293B', fontFamily: 'Nunito_600SemiBold' },
@@ -543,4 +663,26 @@ const st = StyleSheet.create({
   dotActive: { width: 24, backgroundColor: '#154212' },
   tutorialBtn: { backgroundColor: '#154212', paddingVertical: 16, paddingHorizontal: 40, borderRadius: 20 },
   tutorialBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Nunito_800ExtraBold' },
+  
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  skinPickerCard: { backgroundColor: '#fff', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 40 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 20, fontFamily: 'Nunito_800ExtraBold', color: '#1e293b' },
+  skinList: { paddingVertical: 10, gap: 16 },
+  skinItem: { width: 100, alignItems: 'center', gap: 8 },
+  skinItemActive: { opacity: 1 },
+  skinItemLocked: { opacity: 0.5 },
+  skinImgWrap: { width: 80, height: 80, borderRadius: 20, backgroundColor: '#f1f5f9', justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden', borderWidth: 2, borderColor: 'transparent' },
+  skinItemActiveWrap: { borderColor: '#6366f1' },
+  skinImgSmall: { width: '80%', height: '80%' },
+  defaultSkinPreview: { width: 40, height: 20, backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: '#cbd5e1' },
+  lockIcon: { position: 'absolute', top: 5, right: 5, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 10, padding: 2 },
+  skinName: { fontSize: 12, fontFamily: 'Nunito_700Bold', color: '#64748b', textAlign: 'center' },
+  shopRedirectBtn: { marginTop: 20, alignItems: 'center' },
+  wiltWarning: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fee2e2', padding: 8, borderRadius: 12, marginBottom: 15, gap: 6 },
+  wiltWarningText: { fontSize: 12, color: '#ef4444', fontFamily: 'Nunito_700Bold' },
+  plantPickerList: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 20 },
+  plantOption: { alignItems: 'center', gap: 10 },
+  plantOptionIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#e5e7eb' },
+  plantOptionName: { fontSize: 14, fontFamily: 'Nunito_800ExtraBold', color: '#1e293b' },
 });

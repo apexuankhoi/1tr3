@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS `shop_items` (
   `price` int(11) NOT NULL,
   `description` text DEFAULT NULL,
   `image_url` varchar(255) DEFAULT NULL,
+  `item_type` enum('seed', 'tool', 'pot_skin') DEFAULT 'seed',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -161,6 +162,7 @@ CREATE TABLE IF NOT EXISTS `user_pots` (
   `fertilizer_level` float DEFAULT 0,
   `growth_stage` varchar(100) DEFAULT 'Nảy mầm',
   `growing_until` bigint(20) DEFAULT 0,
+  `skin_id` varchar(50) DEFAULT 'default',
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
@@ -193,9 +195,12 @@ INSERT IGNORE INTO `users` (`id`, `username`, `password`, `full_name`, `email`, 
 
 -- Dumping data for table shop_items
 INSERT IGNORE INTO `shop_items` (`id`, `name`, `price`, `description`, `image_url`) VALUES
-	(1, 'Hạt giống Cà chua', 50, 'Hạt giống F1 nảy mầm nhanh', 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?w=400'),
-	(2, 'Phân hữu cơ vi sinh 5kg', 200, 'Phân bón giàu dinh dưỡng', 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=400'),
-	(3, 'Bình tưới cây 2L', 150, 'Bình xịt áp suất cao', 'https://images.unsplash.com/photo-1416879598056-0cbb04922ba4?w=400');
+	(1, 'Hạt giống Cà chua', 50, 'Hạt giống F1 nảy mầm nhanh', 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?w=400', 'seed'),
+	(2, 'Phân hữu cơ vi sinh 5kg', 200, 'Phân bón giàu dinh dưỡng', 'https://images.unsplash.com/photo-1622383563227-04401ab4e5ea?w=400', 'tool'),
+	(3, 'Bình tưới cây 2L', 150, 'Bình xịt áp suất cao', 'https://images.unsplash.com/photo-1416879598056-0cbb04922ba4?w=400', 'tool'),
+	(4, 'Chậu Sứ Trắng', 300, 'Chậu sứ trắng tinh khôi, sang trọng.', 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=400', 'pot_skin'),
+	(5, 'Chậu Gốm Đất Nung', 200, 'Phong cách cổ điển, mộc mạc.', 'https://images.unsplash.com/photo-1599307734111-d138f6d66934?w=400', 'pot_skin'),
+	(6, 'Chậu Vàng Hoàng Gia', 1000, 'Dành cho các đại gia nông nghiệp.', 'https://images.unsplash.com/photo-1581447100595-3a74a5af060f?w=400', 'pot_skin');
 
 -- Dumping data for table inventory_stock
 INSERT IGNORE INTO `inventory_stock` (`item_id`, `quantity`) VALUES
