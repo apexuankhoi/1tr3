@@ -323,6 +323,7 @@ export default function HomeScreen({ navigation }: any) {
           >
             <MaterialCommunityIcons name="ladder" size={22} color="#B45309" />
           </TouchableOpacity>
+        </View>
       </View>
 
       <View style={st.levelContainer}>
