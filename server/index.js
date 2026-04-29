@@ -255,11 +255,19 @@ async function startServer() {
         // --- Price Scraping API ---
 app.get('/api/prices', async (req, res) => {
   try {
-    const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36';
+    const browserHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      'Accept-Language': 'vi-VN,vi;q=0.9,fr-FR;q=0.8,fr;q=0.7,en-US;q=0.6,en;q=0.5',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+      'Upgrade-Insecure-Requests': '1',
+      'Referer': 'https://giacaphe.com/'
+    };
     
     // 1. Scrape Coffee Price
     const coffeeRes = await axios.get('https://giacaphe.com/gia-ca-phe-dak-lak/', {
-      headers: { 'User-Agent': userAgent }
+      headers: browserHeaders
     });
     const coffeeHtml = coffeeRes.data;
     
@@ -270,7 +278,7 @@ app.get('/api/prices', async (req, res) => {
 
     // 2. Scrape Fertilizer Prices
     const fertRes = await axios.get('https://giacaphe.com/gia-phan-bon/', {
-      headers: { 'User-Agent': userAgent }
+      headers: browserHeaders
     });
     const fertHtml = fertRes.data;
     
@@ -1506,20 +1514,20 @@ app.post('/api/admin/tasks', async (req, res) => {
 
 // Admin: Manage Library (Create/Update)
 app.post('/api/admin/library', async (req, res) => {
-    const { id, title, category, duration, description, image_url, category_color } = req.body;
+    const { id, title, category, duration, description, image_url, category_color, type, video_url } = req.body;
     try {
         if (id) {
             await db.query(`
                 UPDATE library SET 
-                title = ?, category = ?, duration = ?, description = ?, image_url = ?, category_color = ?
+                title = ?, category = ?, duration = ?, description = ?, image_url = ?, category_color = ?, type = ?, video_url = ?
                 WHERE id = ?
-            `, [title, category, duration, description, image_url, category_color, id]);
+            `, [title, category, duration, description, image_url, category_color, type || 'image', video_url || '', id]);
             return sendResponse(res, true, null, 'Cập nhật thư viện thành công');
         } else {
             await db.query(`
-                INSERT INTO library (title, category, duration, description, image_url, category_color)
-                VALUES (?, ?, ?, ?, ?, ?)
-            `, [title, category, duration, description, image_url, category_color]);
+                INSERT INTO library (title, category, duration, description, image_url, category_color, type, video_url)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `, [title, category, duration, description, image_url, category_color, type || 'image', video_url || '']);
             return sendResponse(res, true, null, 'Thêm bài đăng thành công');
         }
     } catch (err) {

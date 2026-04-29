@@ -558,18 +558,28 @@ export default function HomeScreen({ navigation }: any) {
             </View>
             <View style={st.plantPickerList}>
               {(() => {
-                const seeds = useGameStore.getState().seeds;
+                const currentSeeds = seeds; // Use the value from state
                 const cafeSeeds = inventory.find(i => i.item_id === 1)?.quantity || 0;
-                const sauriengSeeds = inventory.find(i => i.item_id === 2)?.quantity || 0;
+                const sauriengSeedsCount = inventory.find(i => i.item_id === 2)?.quantity || 0;
+                const displayCafeSeedsCount = Math.max(cafeSeeds, currentSeeds);
                 
-                // Effective counts for display
-                const displayCafeSeeds = Math.max(cafeSeeds, seeds);
-                
+                // Store in component scope by defining them before or passing them
+                // But simpler: just move the logic up before the return
+                return null;
+              })() || null}
+              
+              {/* Calculating values in component scope for accessibility */}
+              {(() => {
+                const currentSeeds = seeds;
+                const cafeSeeds = inventory.find(i => i.item_id === 1)?.quantity || 0;
+                const sauriengSeedsCount = inventory.find(i => i.item_id === 2)?.quantity || 0;
+                const displayCafeSeedsCount = Math.max(cafeSeeds, currentSeeds);
+
                 return (
                   <>
                     <TouchableOpacity
-                      style={[st.plantOption, displayCafeSeeds <= 0 && { opacity: 0.5 }]}
-                      disabled={displayCafeSeeds <= 0}
+                      style={[st.plantOption, displayCafeSeedsCount <= 0 && { opacity: 0.5 }]}
+                      disabled={displayCafeSeedsCount <= 0}
                       onPress={() => {
                         if (selectedPotId) plantSeed(selectedPotId, 'cafe');
                         setShowPlantPicker(false);
@@ -578,14 +588,14 @@ export default function HomeScreen({ navigation }: any) {
                       <View style={st.plantOptionIcon}><Text style={{ fontSize: 30 }}>☕</Text></View>
                       <View style={{ flex: 1 }}>
                         <Text style={st.plantOptionName}>{t('garden.seed_cafe')}</Text>
-                        <Text style={{ color: '#64748b', fontSize: 12 }}>{t('common.quantity')}: {displayCafeSeeds}</Text>
+                        <Text style={{ color: '#64748b', fontSize: 12 }}>{t('common.quantity')}: {displayCafeSeedsCount}</Text>
                       </View>
-                      {displayCafeSeeds > 0 && <MaterialCommunityIcons name="chevron-right" size={20} color="#cbd5e1" />}
+                      {displayCafeSeedsCount > 0 && <MaterialCommunityIcons name="chevron-right" size={20} color="#cbd5e1" />}
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={[st.plantOption, sauriengSeeds <= 0 && { opacity: 0.5 }]}
-                      disabled={sauriengSeeds <= 0}
+                      style={[st.plantOption, sauriengSeedsCount <= 0 && { opacity: 0.5 }]}
+                      disabled={sauriengSeedsCount <= 0}
                       onPress={() => {
                         if (selectedPotId) plantSeed(selectedPotId, 'saurieng');
                         setShowPlantPicker(false);
@@ -594,22 +604,23 @@ export default function HomeScreen({ navigation }: any) {
                       <View style={st.plantOptionIcon}><Text style={{ fontSize: 30 }}>🍈</Text></View>
                       <View style={{ flex: 1 }}>
                         <Text style={st.plantOptionName}>{t('garden.seed_saurieng')}</Text>
-                        <Text style={{ color: '#64748b', fontSize: 12 }}>{t('common.quantity')}: {sauriengSeeds}</Text>
+                        <Text style={{ color: '#64748b', fontSize: 12 }}>{t('common.quantity')}: {sauriengSeedsCount}</Text>
                       </View>
-                      {sauriengSeeds > 0 && <MaterialCommunityIcons name="chevron-right" size={20} color="#cbd5e1" />}
+                      {sauriengSeedsCount > 0 && <MaterialCommunityIcons name="chevron-right" size={20} color="#cbd5e1" />}
                     </TouchableOpacity>
+
+                    {displayCafeSeedsCount <= 0 && sauriengSeedsCount <= 0 && (
+                      <TouchableOpacity
+                        style={[st.shopRedirectBtn, { marginTop: 10 }]}
+                        onPress={() => { setShowPlantPicker(false); navigation.navigate("Shop"); }}
+                      >
+                        <Text style={st.shopRedirectText}>{t('garden.go_to_shop_buy_seeds') || "Mua thêm hạt giống"}</Text>
+                      </TouchableOpacity>
+                    )}
                   </>
                 );
               })()}
             </View>
-            {displayCafeSeeds <= 0 && sauriengSeeds <= 0 && (
-              <TouchableOpacity
-                style={[st.shopRedirectBtn, { marginTop: 10 }]}
-                onPress={() => { setShowPlantPicker(false); navigation.navigate("Shop"); }}
-              >
-                <Text style={st.shopRedirectText}>{t('garden.go_to_shop_buy_seeds') || "Mua thêm hạt giống"}</Text>
-              </TouchableOpacity>
-            )}
           </View>
         </View>
       </Modal>

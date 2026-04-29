@@ -102,9 +102,16 @@ export default function LibraryScreen() {
   };
 
   const renderItem = (item: any, index: number) => {
-    const isVideo = item.type === 'video';
+    // Better video detection: check type OR existence of video_url
+    const isVideo = item.type === 'video' || (item.video_url && item.video_url.length > 5);
     const ytId = isVideo && item.video_url ? getYoutubeId(item.video_url) : null;
-    const thumbUrl = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : item.image_url;
+    
+    // Thumbnail logic: YouTube > Image > Fallback
+    const thumbUrl = ytId 
+      ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` 
+      : (item.image_url && item.image_url.trim() !== "") 
+        ? item.image_url 
+        : "https://images.unsplash.com/photo-1592724212522-88806a03c136?w=800";
 
     return (
       <Animated.View 
@@ -114,7 +121,7 @@ export default function LibraryScreen() {
       >
         <TouchableOpacity 
           activeOpacity={0.9}
-          onPress={() => isVideo ? setSelectedVideo(item.video_url) : setSelectedArticle(item)}
+          onPress={() => setSelectedArticle(item)}
         >
           <View style={st.cardImageContainer}>
             <Image 
@@ -307,46 +314,7 @@ export default function LibraryScreen() {
         </ScrollView>
       )}
 
-      {/* Video Modal */}
-      <Modal visible={!!selectedVideo} transparent animationType="fade">
-        <View style={st.modalRoot}>
-          <View style={st.modalContent}>
-            <TouchableOpacity style={st.closeBtn} onPress={() => setSelectedVideo(null)}>
-              <MaterialCommunityIcons name="close" size={28} color="#fff" />
-            </TouchableOpacity>
-            {selectedVideo && (
-              <View style={st.videoWrapper}>
-                {getYoutubeId(selectedVideo) ? (
-                  <WebView
-                    style={{ flex: 1, backgroundColor: '#000' }}
-                    javaScriptEnabled={true}
-                    domStorageEnabled={true}
-                    allowsFullscreenVideo={true}
-                    mediaPlaybackRequiresUserAction={false}
-                    userAgent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-                    source={{ 
-                      uri: `https://www.youtube.com/embed/${getYoutubeId(selectedVideo)}?autoplay=1&modestbranding=1` 
-                    }}
-                  />
-                ) : (
-                  <Video
-                    source={{ uri: selectedVideo }}
-                    rate={1.0}
-                    volume={1.0}
-                    isMuted={false}
-                    resizeMode={ResizeMode.CONTAIN}
-                    shouldPlay
-                    useNativeControls
-                    style={{ flex: 1 }}
-                  />
-                )}
-              </View>
-            )}
-          </View>
-        </View>
-      </Modal>
-
-      {/* Article Modal */}
+      {/* Integrated Article & Video Detail Modal */}
       <Modal visible={!!selectedArticle} transparent animationType="slide">
         <View style={st.articleModalRoot}>
           <View style={st.articleModalContent}>
@@ -357,13 +325,48 @@ export default function LibraryScreen() {
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={st.articleScroll}>
-              {selectedArticle?.image_url ? (
-                <Image source={{ uri: selectedArticle.image_url }} style={st.articleImg} />
-              ) : (
-                <View style={[st.articleImg, { backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center' }]}>
-                  <MaterialCommunityIcons name="image-off" size={48} color="#9ca3af" />
-                </View>
-              )}
+              
+              {/* Media Section (Video or Image) */}
+              <View style={st.detailMediaContainer}>
+                {selectedArticle?.video_url ? (
+                  // If it has a video, show the player
+                  <View style={{ height: 220, backgroundColor: '#000' }}>
+                    {getYoutubeId(selectedArticle.video_url) ? (
+                      <WebView
+                        style={{ flex: 1 }}
+                        javaScriptEnabled={true}
+                        domStorageEnabled={true}
+                        allowsFullscreenVideo={true}
+                        mediaPlaybackRequiresUserAction={false}
+                        source={{ 
+                          uri: `https://www.youtube.com/embed/${getYoutubeId(selectedArticle.video_url)}?autoplay=0&modestbranding=1` 
+                        }}
+                      />
+                    ) : (
+                      <Video
+                        source={{ uri: selectedArticle.video_url }}
+                        rate={1.0}
+                        volume={1.0}
+                        isMuted={false}
+                        resizeMode={ResizeMode.CONTAIN}
+                        shouldPlay={false}
+                        useNativeControls
+                        style={{ flex: 1 }}
+                      />
+                    )}
+                  </View>
+                ) : (
+                  // If no video, show the image
+                  selectedArticle?.image_url ? (
+                    <Image source={{ uri: selectedArticle.image_url }} style={st.articleImg} />
+                  ) : (
+                    <View style={[st.articleImg, { backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center' }]}>
+                      <MaterialCommunityIcons name="image-off" size={48} color="#9ca3af" />
+                    </View>
+                  )
+                )}
+              </View>
+
               <View style={st.articleBody}>
                 <View style={[st.catBadgeSmall, { backgroundColor: selectedArticle?.category_color || "#154212" }]}>
                   <Text style={st.catTextSmall}>{selectedArticle?.category}</Text>
@@ -438,6 +441,21 @@ const st = StyleSheet.create({
   categoryButtonActive: { backgroundColor: '#154212', borderColor: '#154212' },
   categoryButtonText: { fontSize: 13, fontFamily: 'Nunito_700Bold', color: '#6b7280' },
   categoryButtonTextActive: { color: '#fff' },
+  playOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.1)' },
+  detailMediaContainer: { width: '100%', height: 220, overflow: 'hidden' },
+  articleModalRoot: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  articleModalContent: { backgroundColor: '#fff', borderTopLeftRadius: 32, borderTopRightRadius: 32, height: '90%', overflow: 'hidden' },
+  articleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  articleHeaderTitle: { fontSize: 18, fontFamily: 'Nunito_800ExtraBold', color: '#154212' },
+  articleCloseBtn: { padding: 4 },
+  articleScroll: { paddingBottom: 40 },
+  articleImg: { width: '100%', height: 220 },
+  articleBody: { padding: 24 },
+  articleTitle: { fontSize: 24, fontFamily: 'Nunito_800ExtraBold', color: '#111827', marginTop: 12 },
+  articleDesc: { fontSize: 16, fontFamily: 'Nunito_600SemiBold', color: '#4b5563', lineHeight: 26, marginTop: 16 },
+  catBadgeSmall: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
+  catTextSmall: { fontSize: 12, fontFamily: 'Nunito_800ExtraBold', color: '#fff' },
+  divider: { height: 1, backgroundColor: '#f3f4f6', marginVertical: 20 },
 
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 60 },
   loadingText: { marginTop: 12, fontSize: 14, fontFamily: 'Nunito_600SemiBold', color: '#9ca3af' },
