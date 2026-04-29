@@ -111,9 +111,10 @@ export default function TasksScreen({ navigation }: any) {
   const handleAction = async (task: any) => {
     const status = (task.submissionStatus || "none").toLowerCase();
     if (status === "approved" || status === "pending") return;
-    if (task.task_type === "quiz") {
+    if (task.task_type === "quiz" || task.task_type === "quiz_bundle") {
       navigation.navigate("Quiz", {
         taskId: task.id,
+        taskType: task.task_type,
         taskTitle: task.title,
         taskDesc: task.description,
         taskReward: task.reward,
@@ -137,7 +138,7 @@ export default function TasksScreen({ navigation }: any) {
       try {
         const res: any = await taskService.submitTask(userId || 1, task.id, "auto");
         if (res?.autoApproved) {
-          addCoins(res.reward);
+          addCoins(res.reward, task.exp_reward || 20, res.level, res.exp);
           addGrowth(20); // Tăng 20% tiến trình sinh trưởng
           Alert.alert(t('common.success'), t('tasks.auto_approved_message', { reward: res.reward, unit: t('common.coin_unit') }));
         } else {
@@ -157,7 +158,7 @@ export default function TasksScreen({ navigation }: any) {
       setTimeout(async () => {
         const res = await taskService.submitTask(userId || 1, task.id, "quiz-correct");
         if (res.data?.autoApproved) {
-          addCoins(res.data.reward);
+          addCoins(res.data.reward, task.exp_reward || 20, res.data.level, res.data.exp);
           addGrowth(20); // Tăng 20% khi trả lời đúng Quiz
         }
         fetchWeekly();
@@ -245,7 +246,7 @@ export default function TasksScreen({ navigation }: any) {
                 const statusCfg = STATUS_CFG[status] || STATUS_CFG.none;
                 const isApproved = status === "approved";
                 const isPending = status === "pending";
-                const isQuiz = task.task_type === "quiz";
+                const isQuiz = task.task_type === "quiz" || task.task_type === "quiz_bundle";
                 const myAnswer = quizAnswers[task.id];
                 const options = task.quiz_options
                   ? (typeof task.quiz_options === "string" ? JSON.parse(task.quiz_options) : task.quiz_options)

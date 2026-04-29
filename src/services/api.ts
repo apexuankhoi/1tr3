@@ -139,6 +139,9 @@ export const taskService = {
   submitTask: async (userId: number, taskId: number, imageUrl: string) => {
     return await api.post("tasks/submit", { userId, taskId, imageUrl });
   },
+  getQuizQuestions: async () => {
+    return await api.get("quiz/questions");
+  },
 };
 
 export const libraryService = {

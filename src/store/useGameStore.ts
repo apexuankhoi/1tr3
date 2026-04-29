@@ -82,6 +82,7 @@ interface GameState {
   registerPushToken: () => Promise<void>;
   scheduleWaterReminder: () => Promise<void>;
   updateProfile: (data: { fullName?: string; dob?: string; email?: string; avatarUrl?: string; coverUrl?: string; bio?: string; location?: string }) => Promise<any>;
+  addExp: (amount: number) => Promise<void>;
   logout: () => void;
   changePotSkin: (potId: string, skinId: string) => void;
   hasSeenTutorial: boolean;
@@ -102,33 +103,33 @@ const POT_STAGE_TO_I18N: Record<string, string> = {
 };
 
 export const POT_SKINS: Record<string, any> = {
-  'default': { id: 'default', name: 'Chậu Gỗ', image: require('../../assets/chau/11.png'), price: 0 },
-  '1': { name: 'Chậu Gốm Đỏ', image: require('../../assets/chau/1.png') },
-  '2': { name: 'Chậu Đất Nung', image: require('../../assets/chau/2.png') },
-  '3': { name: 'Chậu Sứ Xanh', image: require('../../assets/chau/3.png') },
-  '4': { name: 'Chậu Sứ Trắng', image: require('../../assets/chau/4.png') },
-  '5': { name: 'Chậu Cổ Điển', image: require('../../assets/chau/5.png') },
-  '6': { name: 'Chậu Vàng Hoàng Gia', image: require('../../assets/chau/6.png') },
-  '7': { name: 'Chậu Ngọc Bích', image: require('../../assets/chau/7.png') },
-  '8': { name: 'Chậu Họa Tiết', image: require('../../assets/chau/8.png') },
-  '9': { name: 'Chậu Cao Cấp', image: require('../../assets/chau/9.png') },
-  '10': { name: 'Chậu Đặc Biệt', image: require('../../assets/chau/10.png') },
+  'default': { id: 'default', name: 'Chậu Gỗ', image: { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777455984/nongnghiepxanh/chau/11.png' }, price: 0 },
+  '1': { name: 'Chậu Gốm Đỏ', image: { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777455981/nongnghiepxanh/chau/1.png' } },
+  '2': { name: 'Chậu Đất Nung', image: { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777455985/nongnghiepxanh/chau/2.png' } },
+  '3': { name: 'Chậu Sứ Xanh', image: { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777455986/nongnghiepxanh/chau/3.png' } },
+  '4': { name: 'Chậu Sứ Trắng', image: { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777455987/nongnghiepxanh/chau/4.png' } },
+  '5': { name: 'Chậu Cổ Điển', image: { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777455988/nongnghiepxanh/chau/5.png' } },
+  '6': { name: 'Chậu Vàng Hoàng Gia', image: { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777455989/nongnghiepxanh/chau/6.png' } },
+  '7': { name: 'Chậu Ngọc Bích', image: { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777455990/nongnghiepxanh/chau/7.png' } },
+  '8': { name: 'Chậu Họa Tiết', image: { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777455991/nongnghiepxanh/chau/8.png' } },
+  '9': { name: 'Chậu Cao Cấp', image: { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777455992/nongnghiepxanh/chau/9.png' } },
+  '10': { name: 'Chậu Đặc Biệt', image: { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777455982/nongnghiepxanh/chau/10.png' } },
 };
 
 export const PLANT_ASSETS: Record<string, Record<string, any>> = {
   'cafe': {
-    'Nảy mầm': require('../../assets/cay/cafe/mamcay.png'),
-    'Cây non': require('../../assets/cay/cafe/naymam.png'),
-    'Cây trưởng thành': require('../../assets/cay/cafe/caytruongthanh.png'),
-    'Ra hoa': require('../../assets/cay/cafe/rahoa.png'),
-    'Kết trái': require('../../assets/cay/cafe/raqua.png'),
+    'Nảy mầm': { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777455996/nongnghiepxanh/cay/cafe/mamcay.png' },
+    'Cây non': { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777455997/nongnghiepxanh/cay/cafe/naymam.png' },
+    'Cây trưởng thành': { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777455995/nongnghiepxanh/cay/cafe/caytruongthanh.png' },
+    'Ra hoa': { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777455998/nongnghiepxanh/cay/cafe/rahoa.png' },
+    'Kết trái': { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777455999/nongnghiepxanh/cay/cafe/raqua.png' },
   },
   'saurieng': {
-    'Nảy mầm': require('../../assets/cay/saurieng/mamcay.png'),
-    'Cây non': require('../../assets/cay/saurieng/naymam.png'),
-    'Cây trưởng thành': require('../../assets/cay/saurieng/caytruongthanh.png'),
-    'Ra hoa': require('../../assets/cay/saurieng/rahoa.png'),
-    'Kết trái': require('../../assets/cay/saurieng/raqua.png'),
+    'Nảy mầm': { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777456002/nongnghiepxanh/cay/saurieng/mamcay.png' },
+    'Cây non': { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777456003/nongnghiepxanh/cay/saurieng/naymam.png' },
+    'Cây trưởng thành': { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777456000/nongnghiepxanh/cay/saurieng/caytruongthanh.png' },
+    'Ra hoa': { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777456004/nongnghiepxanh/cay/saurieng/rahoa.png' },
+    'Kết trái': { uri: 'https://res.cloudinary.com/dnxuaugmx/image/upload/v1777456005/nongnghiepxanh/cay/saurieng/raqua.png' },
   }
 };
 
@@ -247,8 +248,24 @@ const useGameStore = create<GameState>((set, get) => ({
 
   setRedemptions: (reds) => set({ redemptions: reds }),
 
-  addCoins: async (amount) => {
-    set((state) => ({ coins: state.coins + amount }));
+  addCoins: async (amount, expAmount = 0, levelOverride?: number, expOverride?: number) => {
+    let { coins, exp, level } = get();
+    
+    coins += amount;
+    
+    if (levelOverride !== undefined && expOverride !== undefined) {
+      level = levelOverride;
+      exp = expOverride;
+    } else if (expAmount > 0) {
+      exp += expAmount;
+      while (exp >= level * 100) {
+        exp -= level * 100;
+        level += 1;
+        get().showToast(get().t('profile.level_up', { level }), 'success');
+      }
+    }
+    
+    set({ coins, exp, level });
     await get().syncStats();
   },
 
@@ -296,7 +313,7 @@ const useGameStore = create<GameState>((set, get) => ({
       } : pot)
     }));
     get().showToast(get().t('garden.toast_plant_success'), 'success');
-    debouncedGardenSync(() => get().syncGarden());
+    get().syncGarden();
   },
 
   addGrowth: (amount: number) => {
@@ -473,8 +490,8 @@ const useGameStore = create<GameState>((set, get) => ({
         dob: data.dob || "",
         userRole: (data.role as any) || "farmer",
         coins: Number(data.coins) || 0,
-        level: Number(data.level) || 1,
-        exp: Number(data.exp) || 0,
+        level: (data.level !== undefined && data.level !== null) ? Number(data.level) : 1,
+        exp: (data.exp !== undefined && data.exp !== null) ? Number(data.exp) : 0,
         seeds: Number(data.seeds ?? 2),
         avatarUrl: data.avatar_url || "",
         coverUrl: data.cover_url || "",
@@ -555,8 +572,8 @@ const useGameStore = create<GameState>((set, get) => ({
         dob: data.dob || "",
         userRole: data.role || "farmer",
         coins: Number(data.coins) || 0,
-        level: Number(data.level) || 1,
-        exp: Number(data.exp) || 0,
+        level: (data.level !== undefined && data.level !== null) ? Number(data.level) : 1,
+        exp: (data.exp !== undefined && data.exp !== null) ? Number(data.exp) : 0,
         seeds: Number(data.seeds ?? 2),
         avatarUrl: data.avatar_url || "",
         coverUrl: data.cover_url || "",
@@ -669,6 +686,26 @@ const useGameStore = create<GameState>((set, get) => ({
       get().showToast(error.message || get().t('profile.toast_save_failed'), 'error');
       return false;
     }
+  },
+
+  addExp: async (amount: number) => {
+    let { exp, level } = get();
+    exp += amount;
+    
+    let leveledUp = false;
+    while (exp >= level * 100) {
+      exp -= level * 100;
+      level += 1;
+      leveledUp = true;
+    }
+    
+    set({ exp, level });
+    
+    if (leveledUp) {
+      get().showToast(get().t('profile.level_up', { level }), 'success');
+    }
+    
+    await get().syncStats();
   },
 
   logout: () => {

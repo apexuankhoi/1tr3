@@ -409,6 +409,7 @@ app.put('/api/garden/:userId/pots', async (req, res) => {
     
     try {
         // Upsert each pot
+        console.log(`[Garden] Syncing ${pots.length} pots for user ${userId}...`);
         for (const pot of pots) {
             await db.query(`
                 INSERT INTO user_pots (user_id, pot_id, floor_id, has_plant, plant_type, growth_progress, growth_stage, is_wilted, growing_until, skin_id, has_pot)
@@ -433,10 +434,11 @@ app.put('/api/garden/:userId/pots', async (req, res) => {
         
         // Also sync seeds count
         if (seeds !== undefined) {
+            console.log(`[Garden] Syncing seeds: ${seeds} for user ${userId}`);
             await db.query('UPDATE users SET seeds = ? WHERE id = ?', [seeds, userId]);
         }
         
-        // console.log(`[Garden] Synced ${pots.length} pots for user ${userId}`);
+        console.log(`[Garden] Sync complete for user ${userId}`);
         return sendResponse(res, true, null, 'Đồng bộ vườn thành công');
     } catch (err) {
         console.error('[Garden Sync Error]:', err);
@@ -453,6 +455,21 @@ app.patch('/api/location/:id', async (req, res) => {
         res.json({ message: 'Location updated' });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// Update user stats (coins, level, exp, etc.)
+app.patch('/api/stats/:userId', async (req, res) => {
+    const { userId } = req.params;
+    const { coins, seeds, level, exp } = req.body;
+    try {
+        await db.query(
+            'UPDATE users SET coins = ?, seeds = ?, level = ?, exp = ? WHERE id = ?',
+            [coins, seeds, level, exp, userId]
+        );
+        res.json({ success: true, message: 'Stats updated' });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 
@@ -793,6 +810,18 @@ app.get('/api/tasks', async (req, res) => {
     }
 });
 
+// GET: Random 5 quiz questions for the bundle
+app.get('/api/quiz/questions', async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            'SELECT id, title, description, quiz_options, quiz_answer, quiz_explanation FROM tasks WHERE task_type = "quiz" ORDER BY RAND() LIMIT 5'
+        );
+        return sendResponse(res, true, rows, 'Lấy danh sách câu hỏi thành công');
+    } catch (err) {
+        return sendResponse(res, false, null, err.message, 500);
+    }
+});
+
 // ── Weekly rotation: 5 tasks seeded deterministically by week number ──────────
 app.get('/api/tasks/weekly/:userId', async (req, res) => {
     try {
@@ -803,7 +832,7 @@ app.get('/api/tasks/weekly/:userId', async (req, res) => {
         const weekNum = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
         const seed = userId * 31 + weekNum * 97; // deterministic but varies per user & week
 
-        const [allTasks] = await db.query('SELECT id, title, reward, category, description, icon, task_group, task_type, needs_gps, needs_moderator, quiz_options, quiz_answer FROM tasks');
+        const [allTasks] = await db.query('SELECT id, title, reward, category, description, icon, task_group, task_type, needs_gps, needs_moderator, quiz_options, quiz_answer FROM tasks WHERE task_type != "quiz"');
 
         // Split into groups
         const actionTasks  = allTasks.filter(t => t.task_group === 'action');
@@ -819,7 +848,7 @@ app.get('/api/tasks/weekly/:userId', async (req, res) => {
         const weekly = [
             ...pick(actionTasks, 2, 1),
             ...pick(reportTasks, 1, 2),
-            ...pick(learnTasks, 2, 3),
+            ...learnTasks.filter(t => t.task_type === 'quiz_bundle'), // Always include bundle if available
         ].slice(0, 5);
 
         // Attach submission status for this user
@@ -1187,7 +1216,12 @@ app.get('/api/community/data', async (req, res) => {
     }
 });
 
-// [REDUNDANT ROUTE REMOVED]
+// ── Get Map Data (Users + POIs) ──────────────────────────────────────────
+app.get('/api/map/data', async (req, res) => {
+    try {
+        // 1. Get users with location
+        const [users] = await db.query(`
+            SELECT id, full_name as name, avatar_url as imageUri, level,
             (SELECT COUNT(*) FROM task_submissions WHERE user_id = users.id AND status = 'approved') as tasksCompleted,
             last_lat as lat, last_lng as lng,
             (last_seen > NOW() - INTERVAL 5 MINUTE) as isOnline
