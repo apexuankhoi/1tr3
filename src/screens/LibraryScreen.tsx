@@ -106,12 +106,17 @@ export default function LibraryScreen() {
     const isVideo = item.type === 'video' || (item.video_url && item.video_url.length > 5);
     const ytId = isVideo && item.video_url ? getYoutubeId(item.video_url) : null;
     
-    // Thumbnail logic: YouTube > Image > Fallback
-    const thumbUrl = ytId 
-      ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` 
-      : (item.image_url && item.image_url.trim() !== "") 
-        ? item.image_url 
-        : "https://images.unsplash.com/photo-1592724212522-88806a03c136?w=800";
+    // Thumbnail logic: YouTube > Cloudinary Video > Image > Fallback
+    let thumbUrl = item.image_url;
+    
+    if (ytId) {
+      thumbUrl = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+    } else if (isVideo && item.video_url && item.video_url.includes('cloudinary.com')) {
+      // Smart Cloudinary Thumbnail: Change extension to .jpg and add start offset (so_0)
+      thumbUrl = item.video_url.replace(/\.[^/.]+$/, ".jpg").replace("/upload/", "/upload/so_0/");
+    } else if (!thumbUrl || thumbUrl.trim() === "") {
+      thumbUrl = "https://images.unsplash.com/photo-1592724212522-88806a03c136?w=800";
+    }
 
     return (
       <Animated.View 

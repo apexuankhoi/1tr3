@@ -234,100 +234,85 @@ async function performPreStartChecks() {
     return true;
 }
 
+// Cache variable to store last successful scrape
+let cachedPrices = {
+  coffee: { name: "Cà phê Robusta xô", location: "Đắk Lắk", price: "123.500 đ", trend: "+1.600", trendType: "up" },
+  fertilizers: [
+    { name: "DAP Hàn Quốc", price: "1.095.000 đ/bao", trend: "Ổn định", trendType: "neutral" },
+    { name: "DAP Nga", price: "1.080.000 đ/bao", trend: "Ổn định", trendType: "neutral" },
+    { name: "Urê Cà Mau", price: "560.000 đ/bao", trend: "Ổn định", trendType: "neutral" }
+  ]
+};
+
 async function initDatabase() {
     try {
         await db.query('SELECT 1');
         console.log("1. Kết nối Database: ✅ OK");
         console.log("2. Chế độ vận hành: 🛡️ Read/Write (Quản lý thủ công qua SQL file)");
-    } catch (err) {
-        console.error("1. Kết nối Database: ❌ LỖI -", err.message);
-        throw err;
-    }
-}
-
-async function startServer() {
-    await performPreStartChecks();
-    console.log("\n--- ĐANG KHỞI ĐỘNG SERVER ---");
-    try {
-        await initDatabase();
-        console.log(`   AI Verification: ${genAI ? '✅ Enabled' : '⚠️ Disabled (set GEMINI_API_KEY in .env)'}`);
-
-        // --- Price Scraping API ---
-app.get('/api/prices', async (req, res) => {
-  try {
-    const browserHeaders = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-      'Accept-Language': 'vi-VN,vi;q=0.9,fr-FR;q=0.8,fr;q=0.7,en-US;q=0.6,en;q=0.5',
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache',
-      'Upgrade-Insecure-Requests': '1',
-      'Referer': 'https://giacaphe.com/'
-    };
-    
-    // 1. Scrape Coffee Price
-    const coffeeRes = await axios.get('https://giacaphe.com/gia-ca-phe-dak-lak/', {
-      headers: browserHeaders
-    });
-    const coffeeHtml = coffeeRes.data;
-    
-    // Simple regex to find the price in Dak Lak. Structure is usually "Đắk Lắk</td><td>88.600" or similar
-    const coffeeMatch = coffeeHtml.match(/Đắk Lắk<\/td><td><strong>([\d\.]+)<\/strong>/i) || 
-                       coffeeHtml.match(/Đắk Lắk<\/td><td>([\d\.]+)<\/td>/i);
-    const coffeePrice = coffeeMatch ? coffeeMatch[1] : "88.600";
-
-    // 2. Scrape Fertilizer Prices
-    const fertRes = await axios.get('https://giacaphe.com/gia-phan-bon/', {
-      headers: browserHeaders
-    });
-    const fertHtml = fertRes.data;
-    
-    const fertilizers = [];
-    const fertTypes = [
-      { key: "DAP HÀN QUỐC", label: "DAP Hàn Quốc" },
-      { key: "DAP NGA", label: "DAP Nga" },
-      { key: "KALI BỘT CÀ MAU", label: "Kali bột Cà Mau" },
-      { key: "URE CÀ MAU", label: "Urê Cà Mau" },
-      { key: "URE PHÚ MỸ", label: "Urê Phú Mỹ" }
-    ];
-
-    fertTypes.forEach(type => {
-      // Updated regex to find price inside <p class="pb-cp--price">
-      const regex = new RegExp(`${type.key}<\/td>.*?class="pb-cp--price">([\\d\\.,]+)<\/p>`, 'is');
-      const match = fertHtml.match(regex);
-      if (match) {
-        fertilizers.push({
-          name: type.label,
-          price: match[1] + " đ/bao",
-          trend: "Ổn định",
-          trendType: "neutral"
+        
+        app.get('/api/prices', async (req, res) => {
+            try {
+                const browserHeaders = {
+                    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language': 'vi-VN,vi;q=0.9',
+                    'Referer': 'https://giacaphe.com/'
+                };
+                
+                // 1. Scrape Coffee Price
+                const coffeeRes = await axios.get('https://giacaphe.com/gia-ca-phe-dak-lak/', {
+                    headers: browserHeaders,
+                    timeout: 5000
+                });
+                const coffeeHtml = coffeeRes.data;
+                const coffeeMatch = coffeeHtml.match(/Đắk Lắk<\/td><td><strong>([\d\.]+)<\/strong>/i) || 
+                                   coffeeHtml.match(/Đắk Lắk<\/td><td>([\d\.]+)<\/td>/i);
+                
+                if (coffeeMatch) {
+                    cachedPrices.coffee.price = coffeeMatch[1] + " đ";
+                }
+        
+                // 2. Scrape Fertilizer Prices
+                const fertRes = await axios.get('https://giacaphe.com/gia-phan-bon/', {
+                    headers: browserHeaders,
+                    timeout: 5000
+                });
+                const fertHtml = fertRes.data;
+                
+                const fertilizers = [];
+                const fertTypes = [
+                    { key: "DAP HÀN QUỐC", label: "DAP Hàn Quốc" },
+                    { key: "DAP NGA", label: "DAP Nga" },
+                    { key: "KALI BỘT CÀ MAU", label: "Kali bột Cà Mau" },
+                    { key: "URE CÀ MAU", label: "Urê Cà Mau" },
+                    { key: "URE PHÚ MỸ", label: "Urê Phú Mỹ" }
+                ];
+        
+                fertTypes.forEach(type => {
+                    const regex = new RegExp(`${type.key}<\/td>.*?class="pb-cp--price">([\\d\\.,]+)<\/p>`, 'is');
+                    const match = fertHtml.match(regex);
+                    if (match) {
+                        fertilizers.push({
+                            name: type.label,
+                            price: match[1] + " đ/bao",
+                            trend: "Ổn định",
+                            trendType: "neutral"
+                        });
+                    }
+                });
+        
+                if (fertilizers.length > 0) {
+                    cachedPrices.fertilizers = fertilizers;
+                }
+        
+                res.json(cachedPrices);
+            } catch (error) {
+                console.error("Lỗi cào giá (Sử dụng dữ liệu cache):", error.message);
+                res.json(cachedPrices);
+            }
         });
-      }
-    });
 
-    res.json({
-      coffee: {
-        name: "Cà phê Robusta xô",
-        location: "Đắk Lắk",
-        price: coffeePrice + " đ",
-        trend: "+1.600",
-        trendType: "up"
-      },
-      fertilizers: fertilizers.length > 0 ? fertilizers : [
-        { name: "DAP Hàn Quốc", price: "1.095.000 đ/bao", trend: "Ổn định", trendType: "neutral" }
-      ]
-    });
-  } catch (error) {
-    console.error("Lỗi cào giá:", error.message);
-    // Fallback data if scraping fails
-    res.json({
-      coffee: { name: "Cà phê Robusta xô", location: "Đắk Lắk", price: "88.600 đ", trend: "+1.600", trendType: "up" },
-      fertilizer: { name: "Phân DAP Hàn Quốc", location: "Giá tham khảo", price: "1.095.000 đ/bao", trend: "Ổn định", trendType: "neutral" }
-    });
-  }
-});
-
-app.listen(PORT, () => {
+        app.listen(PORT, () => {
             console.log(`✅ 3. Server đã chạy thành công tại port ${PORT}`);
         });
     } catch (error) {
@@ -1672,6 +1657,19 @@ app.delete('/api/admin/users/:id', async (req, res) => {
 });
 
 
+
+async function startServer() {
+    await performPreStartChecks();
+    console.log("\n--- ĐANG KHỞI ĐỘNG SERVER ---");
+    try {
+        await initDatabase();
+        const genAI = process.env.GEMINI_API_KEY;
+        console.log(`   AI Verification: ${genAI ? '✅ Enabled' : '⚠️ Disabled (set GEMINI_API_KEY in .env)'}`);
+    } catch (error) {
+        console.error("❌ Lỗi trong quá trình khởi động:");
+        console.error(error);
+    }
+}
 
 startServer().catch((err) => {
     console.error('Failed to start server:', err);
