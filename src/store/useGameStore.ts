@@ -302,7 +302,11 @@ const useGameStore = create<GameState>((set, get) => ({
     const itemId = type === 'cafe' ? 1 : 2;
     const invItem = state.inventory.find(i => i.item_id === itemId);
     
-    if (!invItem || invItem.quantity <= 0) {
+    // Check if we have this specific seed in inventory OR if we have generic seeds (only for cafe)
+    const hasInventorySeed = invItem && invItem.quantity > 0;
+    const hasGenericSeed = type === 'cafe' && state.seeds > 0;
+
+    if (!hasInventorySeed && !hasGenericSeed) {
       state.showToast(state.t('garden.toast_no_seeds_shop'), 'error');
       return;
     }
@@ -310,7 +314,7 @@ const useGameStore = create<GameState>((set, get) => ({
     set((state) => ({
       seeds: Math.max(0, state.seeds - 1),
       inventory: state.inventory.map(i => 
-        i.item_id === itemId ? { ...i, quantity: i.quantity - 1 } : i
+        i.item_id === itemId ? { ...i, quantity: Math.max(0, i.quantity - 1) } : i
       ),
       pots: state.pots.map(pot => pot.id === potId ? {
         ...pot,

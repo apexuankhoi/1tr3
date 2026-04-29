@@ -279,12 +279,13 @@ app.get('/api/prices', async (req, res) => {
       { key: "DAP HÀN QUỐC", label: "DAP Hàn Quốc" },
       { key: "DAP NGA", label: "DAP Nga" },
       { key: "KALI BỘT CÀ MAU", label: "Kali bột Cà Mau" },
-      { key: "PHÂN URÊ CÀ MAU", label: "Urê Cà Mau" },
-      { key: "PHÂN URÊ PHÚ MỸ", label: "Urê Phú Mỹ" }
+      { key: "URE CÀ MAU", label: "Urê Cà Mau" },
+      { key: "URE PHÚ MỸ", label: "Urê Phú Mỹ" }
     ];
 
     fertTypes.forEach(type => {
-      const regex = new RegExp(`${type.key}<\/td><td>.*?<\/td><td>([\\d\\.,]+)<\/td>`, 'i');
+      // Updated regex to find price inside <p class="pb-cp--price">
+      const regex = new RegExp(`${type.key}<\/td>.*?class="pb-cp--price">([\\d\\.,]+)<\/p>`, 'is');
       const match = fertHtml.match(regex);
       if (match) {
         fertilizers.push({

@@ -303,6 +303,7 @@ CREATE TABLE IF NOT EXISTS `user_pots` (
   `skin_id` varchar(50) DEFAULT 'default',
   `growing_until` bigint(20) DEFAULT 0,
   `has_pot` tinyint(1) DEFAULT 0,
+  `updated_at` timestamp DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_user_pot` (`user_id`,`pot_id`),
   KEY `user_id` (`user_id`),

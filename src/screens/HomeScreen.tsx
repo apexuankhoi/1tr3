@@ -558,14 +558,18 @@ export default function HomeScreen({ navigation }: any) {
             </View>
             <View style={st.plantPickerList}>
               {(() => {
+                const seeds = useGameStore.getState().seeds;
                 const cafeSeeds = inventory.find(i => i.item_id === 1)?.quantity || 0;
                 const sauriengSeeds = inventory.find(i => i.item_id === 2)?.quantity || 0;
+                
+                // Effective counts for display
+                const displayCafeSeeds = Math.max(cafeSeeds, seeds);
                 
                 return (
                   <>
                     <TouchableOpacity
-                      style={[st.plantOption, cafeSeeds <= 0 && { opacity: 0.5 }]}
-                      disabled={cafeSeeds <= 0}
+                      style={[st.plantOption, displayCafeSeeds <= 0 && { opacity: 0.5 }]}
+                      disabled={displayCafeSeeds <= 0}
                       onPress={() => {
                         if (selectedPotId) plantSeed(selectedPotId, 'cafe');
                         setShowPlantPicker(false);
@@ -574,9 +578,9 @@ export default function HomeScreen({ navigation }: any) {
                       <View style={st.plantOptionIcon}><Text style={{ fontSize: 30 }}>☕</Text></View>
                       <View style={{ flex: 1 }}>
                         <Text style={st.plantOptionName}>{t('garden.seed_cafe')}</Text>
-                        <Text style={{ color: '#64748b', fontSize: 12 }}>{t('common.quantity')}: {cafeSeeds}</Text>
+                        <Text style={{ color: '#64748b', fontSize: 12 }}>{t('common.quantity')}: {displayCafeSeeds}</Text>
                       </View>
-                      {cafeSeeds > 0 && <MaterialCommunityIcons name="chevron-right" size={20} color="#cbd5e1" />}
+                      {displayCafeSeeds > 0 && <MaterialCommunityIcons name="chevron-right" size={20} color="#cbd5e1" />}
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -598,7 +602,7 @@ export default function HomeScreen({ navigation }: any) {
                 );
               })()}
             </View>
-            {inventory.filter(i => i.item_type === 'seed' && i.quantity > 0).length === 0 && (
+            {displayCafeSeeds <= 0 && sauriengSeeds <= 0 && (
               <TouchableOpacity
                 style={[st.shopRedirectBtn, { marginTop: 10 }]}
                 onPress={() => { setShowPlantPicker(false); navigation.navigate("Shop"); }}
