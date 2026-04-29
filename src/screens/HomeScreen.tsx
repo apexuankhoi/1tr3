@@ -234,39 +234,18 @@ export default function HomeScreen({ navigation }: any) {
   const [showSkinPicker, setShowSkinPicker] = useState(false);
   const [showPlantPicker, setShowPlantPicker] = useState(false);
 
-  useEffect(() => {
-    fetchInventory();
-  }, []);
-
-  // Sync Location
+  // Initial Data & Growth Sync
   useEffect(() => {
     if (!userId) return;
     
-    const sync = async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') return;
-        
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        if (loc) {
-          updateLocation(loc.coords.latitude, loc.coords.longitude);
-        }
-      } catch (err) {
-        console.log("[LocationSync] Error:", err.message);
-      }
+    const init = async () => {
+      await fetchUserData(userId);
+      await fetchInventory();
+      await fetchRedemptions();
+      await fetchSubmissions();
     };
-
-    sync();
-    const interval = setInterval(sync, 60000); // Sync every minute
-    return () => clearInterval(interval);
-  }, [userId]);
-
-  useEffect(() => {
-    if (!userId) return;
-    fetchUserData(userId);
-    fetchInventory();
-    fetchRedemptions();
-    fetchSubmissions();
+    
+    init();
 
     // Background Growth Refresh: Every 60 seconds (1 minute = 1% growth)
     const growthInterval = setInterval(() => {

@@ -78,7 +78,7 @@ export default function AdminTasksScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
           <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={st.headerTitle}>{t('admin_dash.menu_tasks')}</Text>
+        <Text style={st.headerTitle}>{t('tabs.tasks')}</Text>
         <TouchableOpacity onPress={() => handleEdit({ title: '', reward: 50, task_type: 'photo', needs_gps: 0, needs_moderator: 1 })} style={st.addBtn}>
           <MaterialCommunityIcons name="plus" size={24} color="#154212" />
         </TouchableOpacity>
@@ -93,7 +93,7 @@ export default function AdminTasksScreen() {
               </View>
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={st.cardTitle}>{task.title}</Text>
-                <Text style={st.cardMeta}>{task.category} • {task.reward} xu</Text>
+                <Text style={st.cardMeta}>{task.category} • {task.reward} {t('common.coin_unit')}</Text>
               </View>
             </View>
             <View style={st.cardActions}>
@@ -144,7 +144,7 @@ export default function AdminTasksScreen() {
                       newOpts[i] = t;
                       setCurrentTask({...currentTask, quiz_options: newOpts});
                     }}
-                    placeholder={`Option ${i + 1}`}
+                    placeholder={t('admin_forms.quiz_option_placeholder', { index: i + 1 })}
                   />
                 ))}
                 <Text style={st.label}>{t('admin_forms.quiz_answer_label')}</Text>

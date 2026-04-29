@@ -83,26 +83,26 @@ export default function AdminUsersScreen() {
         exp: Number(selectedUser.exp),
         is_locked: selectedUser.is_locked ? 1 : 0
       });
-      Alert.alert("Thành công", "Đã cập nhật dữ liệu người dùng");
+      Alert.alert(t('common.success'), t('admin_users.success_update'));
       setEditModalVisible(false);
       fetchUsers();
     } catch (err) {
-      Alert.alert("Lỗi", "Không thể cập nhật người dùng");
+      Alert.alert(t('common.error'), t('admin_dash.update_user_error'));
     }
   };
 
   const handleDeleteInventoryItem = async (inventoryId: number) => {
-    Alert.alert("Xác nhận", "Xóa vật phẩm này khỏi kho đồ người dùng?", [
-      { text: "Hủy", style: "cancel" },
+    Alert.alert(t('common.confirm'), t('admin_users.confirm_delete'), [
+      { text: t('common.cancel'), style: "cancel" },
       { 
-        text: "Xóa", 
+        text: t('common.delete'), 
         style: "destructive", 
         onPress: async () => {
           try {
             await adminService.deleteInventoryItem(inventoryId);
             setUserInventory(prev => prev.filter(i => i.inventory_id !== inventoryId));
           } catch (err) {
-            Alert.alert("Lỗi", "Không thể xóa vật phẩm");
+            Alert.alert(t('common.error'), t('common.error'));
           }
         }
       }
@@ -167,7 +167,7 @@ export default function AdminUsersScreen() {
           <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
             <MaterialCommunityIcons name="chevron-left" size={28} color="#fff" />
           </TouchableOpacity>
-          <Text style={st.headerTitle}>Quản lý người dùng</Text>
+          <Text style={st.headerTitle}>{t('admin_users.title')}</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -175,7 +175,7 @@ export default function AdminUsersScreen() {
           <MaterialCommunityIcons name="magnify" size={20} color="#94a3b8" />
           <TextInput 
             style={st.searchInput}
-            placeholder="Tìm theo tên hoặc SĐT..."
+            placeholder={t('admin_users.search')}
             placeholderTextColor="#94a3b8"
             value={searchQuery}
             onChangeText={setSearchQuery}

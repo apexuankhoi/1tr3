@@ -148,6 +148,9 @@ export const libraryService = {
   getLibrary: async () => {
     return await api.get("library");
   },
+  getPrices: async () => {
+    return await api.get("prices");
+  },
 };
 
 export const adminService = {

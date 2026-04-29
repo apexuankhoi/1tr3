@@ -105,8 +105,9 @@ export default function AdminShopScreen() {
     try {
       await adminService.updateStock(itemId, qty);
       fetchData();
+      Alert.alert(t('common.success'), t('admin_shop.update_stock_success'));
     } catch (err) {
-      Alert.alert("Lỗi", "Không thể cập nhật kho");
+      Alert.alert(t('common.error'), t('admin_shop.update_stock_error'));
     }
   };
 

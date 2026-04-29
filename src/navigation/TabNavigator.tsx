@@ -94,7 +94,7 @@ export default function TabNavigator() {
           } else if (route.name === "Shop" || route.name === "QR" || route.name === "Inventory") {
             iconName = "redeem";
           } else if (route.name === "Library" || route.name === "Reports") {
-            iconName = "menu-book";
+            iconName = "newspaper";
           } else if (route.name === "Ranking") {
             iconName = "leaderboard";
           } else if (route.name === "Profile") {

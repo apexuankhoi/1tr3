@@ -20,6 +20,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { WebView } from "react-native-webview";
 import { useGameStore } from "../store/useGameStore";
 import { useNavigation } from "@react-navigation/native";
+import { Video, ResizeMode } from 'expo-av';
 
 const { width } = Dimensions.get("window");
 
@@ -40,11 +41,25 @@ export default function LibraryScreen() {
   const [selectedArticle, setSelectedArticle] = useState<any | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [prices, setPrices] = useState<any>(null);
+  const [pricesLoading, setPricesLoading] = useState(true);
+  const [isFertExpanded, setIsFertExpanded] = useState(false);
+
+  const fetchPrices = async () => {
+    try {
+      const data: any = await libraryService.getPrices();
+      setPrices(data);
+    } catch (error) {
+      console.error("Lỗi lấy giá:", error);
+    } finally {
+      setPricesLoading(false);
+    }
+  };
+
   const fetchLibrary = async () => {
     setLoading(true);
     try {
       const res: any = await libraryService.getLibrary();
-      // Handle standardized response structure
       const data = res?.data || res;
       setItems(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -58,10 +73,12 @@ export default function LibraryScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     fetchLibrary();
+    fetchPrices();
   };
 
   useEffect(() => {
     fetchLibrary();
+    fetchPrices();
   }, []);
 
   // Dynamic categories
@@ -191,6 +208,93 @@ export default function LibraryScreen() {
           contentContainerStyle={st.listContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* Price Update Widget */}
+          <Animated.View entering={FadeInDown.duration(600)} style={st.priceWidget}>
+            <View style={st.priceHeader}>
+              <MaterialCommunityIcons name="trending-up" size={20} color="#154212" />
+              <Text style={st.priceHeaderText}>Cập nhật giá nông sản</Text>
+              {pricesLoading && <ActivityIndicator size="small" color="#154212" />}
+            </View>
+            
+            <View style={st.priceCard}>
+              {/* Coffee Row */}
+              <View style={st.priceRow}>
+                <View style={st.priceInfo}>
+                  <Text style={st.productName}>{prices?.coffee?.name || "Cà phê Robusta xô"}</Text>
+                  <Text style={st.productSub}>{prices?.coffee?.location || "Đắk Lắk"} - Hôm nay</Text>
+                </View>
+                <View style={st.priceValueContainer}>
+                  <Text style={[st.priceValue, { color: prices?.coffee?.trendType === 'up' ? '#dc2626' : '#154212' }]}>
+                    {prices?.coffee?.price || "88.600 đ"}
+                  </Text>
+                  <View style={[st.trendBadge, { backgroundColor: prices?.coffee?.trendType === 'up' ? '#fee2e2' : '#dcfce7' }]}>
+                    <MaterialCommunityIcons 
+                      name={prices?.coffee?.trendType === 'up' ? "arrow-up" : "arrow-down"} 
+                      size={12} 
+                      color={prices?.coffee?.trendType === 'up' ? '#dc2626' : '#154212'} 
+                    />
+                    <Text style={[st.trendText, { color: prices?.coffee?.trendType === 'up' ? '#dc2626' : '#154212' }]}>
+                      {prices?.coffee?.trend || "..."}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={st.priceDivider} />
+
+              {/* Fertilizer Row */}
+              <View style={st.priceRow}>
+                <View style={st.priceInfo}>
+                  <Text style={st.productName}>{prices?.fertilizers?.[0]?.name || "Phân DAP Hàn Quốc"}</Text>
+                  <Text style={st.productSub}>Giá tham khảo</Text>
+                </View>
+                <View style={st.priceValueContainer}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Text style={[st.priceValue, { color: '#154212' }]}>
+                      {prices?.fertilizers?.[0]?.price || "1.095.000 đ/bao"}
+                    </Text>
+                    <TouchableOpacity 
+                      onPress={() => setIsFertExpanded(!isFertExpanded)}
+                      style={st.expandBtn}
+                    >
+                      <MaterialCommunityIcons 
+                        name={isFertExpanded ? "chevron-up" : "chevron-down"} 
+                        size={24} 
+                        color="#154212" 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  {!isFertExpanded && (
+                    <View style={[st.trendBadge, { backgroundColor: '#f3f4f6' }]}>
+                      <Text style={[st.trendText, { color: '#6b7280' }]}>
+                        {prices?.fertilizers?.[0]?.trend || "Ổn định"}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              {/* Expanded Fertilizer List */}
+              {isFertExpanded && prices?.fertilizers?.slice(1).map((fert: any, idx: number) => (
+                <Animated.View 
+                  entering={FadeInDown.delay(idx * 50)} 
+                  key={idx} 
+                  style={st.expandedRow}
+                >
+                  <View style={st.priceDividerSmall} />
+                  <View style={st.priceRow}>
+                    <View style={st.priceInfo}>
+                      <Text style={st.productNameSmall}>{fert.name}</Text>
+                    </View>
+                    <View style={st.priceValueContainer}>
+                      <Text style={st.priceValueSmall}>{fert.price}</Text>
+                    </View>
+                  </View>
+                </Animated.View>
+              ))}
+            </View>
+          </Animated.View>
+
           {filteredItems.length > 0 ? (
             filteredItems.map((item, index) => renderItem(item, index))
           ) : (
@@ -212,19 +316,30 @@ export default function LibraryScreen() {
             </TouchableOpacity>
             {selectedVideo && (
               <View style={st.videoWrapper}>
-                <WebView
-                  style={{ flex: 1, backgroundColor: '#000' }}
-                  javaScriptEnabled={true}
-                  domStorageEnabled={true}
-                  allowsFullscreenVideo={true}
-                  mediaPlaybackRequiresUserAction={false}
-                  userAgent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-                  source={{ 
-                    uri: getYoutubeId(selectedVideo) 
-                      ? `https://www.youtube.com/embed/${getYoutubeId(selectedVideo)}?autoplay=1&modestbranding=1` 
-                      : (selectedVideo || "about:blank") 
-                  }}
-                />
+                {getYoutubeId(selectedVideo) ? (
+                  <WebView
+                    style={{ flex: 1, backgroundColor: '#000' }}
+                    javaScriptEnabled={true}
+                    domStorageEnabled={true}
+                    allowsFullscreenVideo={true}
+                    mediaPlaybackRequiresUserAction={false}
+                    userAgent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+                    source={{ 
+                      uri: `https://www.youtube.com/embed/${getYoutubeId(selectedVideo)}?autoplay=1&modestbranding=1` 
+                    }}
+                  />
+                ) : (
+                  <Video
+                    source={{ uri: selectedVideo }}
+                    rate={1.0}
+                    volume={1.0}
+                    isMuted={false}
+                    resizeMode={ResizeMode.CONTAIN}
+                    shouldPlay
+                    useNativeControls
+                    style={{ flex: 1 }}
+                  />
+                )}
               </View>
             )}
           </View>
@@ -327,4 +442,23 @@ const st = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 60 },
   loadingText: { marginTop: 12, fontSize: 14, fontFamily: 'Nunito_600SemiBold', color: '#9ca3af' },
   listContent: { paddingHorizontal: 20, paddingTop: 20 },
+  
+  priceWidget: { marginBottom: 24 },
+  priceHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 },
+  priceHeaderText: { fontSize: 18, fontFamily: 'Nunito_800ExtraBold', color: '#1f2937' },
+  priceCard: { backgroundColor: '#f3f4f6', borderRadius: 24, padding: 20 },
+  priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  priceInfo: { flex: 1 },
+  productName: { fontSize: 16, fontFamily: 'Nunito_700Bold', color: '#1f2937' },
+  productSub: { fontSize: 13, fontFamily: 'Nunito_600SemiBold', color: '#6b7280', marginTop: 2 },
+  priceValueContainer: { alignItems: 'flex-end' },
+  priceValue: { fontSize: 18, fontFamily: 'Nunito_800ExtraBold' },
+  trendBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginTop: 4, gap: 2 },
+  trendText: { fontSize: 12, fontFamily: 'Nunito_800ExtraBold' },
+  priceDivider: { height: 1, backgroundColor: '#e5e7eb', marginVertical: 15, borderStyle: 'dashed' },
+  expandBtn: { padding: 4, backgroundColor: '#fff', borderRadius: 12, ...SHADOW },
+  expandedRow: { marginTop: 0 },
+  priceDividerSmall: { height: 1, backgroundColor: '#e5e7eb', marginVertical: 10, opacity: 0.5 },
+  productNameSmall: { fontSize: 14, fontFamily: 'Nunito_600SemiBold', color: '#4b5563' },
+  priceValueSmall: { fontSize: 15, fontFamily: 'Nunito_700Bold', color: '#154212' },
 });

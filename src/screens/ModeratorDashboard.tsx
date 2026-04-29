@@ -71,10 +71,10 @@ export default function ModeratorDashboard() {
   const handleUpdateRedemptionStatus = async (id: number, status: string) => {
     try {
       await adminService.updateRedemptionStatus(id, status);
-      Alert.alert("Thành công", "Đã cập nhật trạng thái đơn hàng");
+      Alert.alert(t('common.success'), t('admin_dash.update_order_success'));
       fetchData();
     } catch (error) {
-      Alert.alert("Lỗi", "Không thể cập nhật trạng thái");
+      Alert.alert(t('common.error'), t('admin_dash.update_order_error'));
     }
   };
 
@@ -129,11 +129,11 @@ export default function ModeratorDashboard() {
         role: selectedUser.role,
         is_locked: selectedUser.is_locked ? 1 : 0
       });
-      Alert.alert("Thành công", "Đã cập nhật thông tin người dùng");
+      Alert.alert(t('common.success'), t('admin_dash.update_user_success'));
       setEditModalVisible(false);
       fetchData();
     } catch (error) {
-      Alert.alert("Lỗi", "Không thể cập nhật người dùng");
+      Alert.alert(t('common.error'), t('admin_dash.update_user_error'));
     }
   };
 
@@ -163,7 +163,7 @@ export default function ModeratorDashboard() {
           <Text style={st.taskTitle}>{sub.title}</Text>
           <View style={st.rewardPill}>
             <MaterialCommunityIcons name="star-four-points" size={14} color="#fbbf24" />
-            <Text style={st.rewardText}>+{sub.reward} xu</Text>
+            <Text style={st.rewardText}>+{sub.reward} {t('common.coin_unit')}</Text>
           </View>
         </View>
 
@@ -183,7 +183,7 @@ export default function ModeratorDashboard() {
             <Text style={st.rejectText}>{t('admin_dash.reject')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => handleApprove(sub.id)} style={st.approveBtn}>
-            {actionLoadingId === sub.id ? <ActivityIndicator size="small" color="#fff" /> : <Text style={st.approveText}>Duyệt +Xu</Text>}
+            {actionLoadingId === sub.id ? <ActivityIndicator size="small" color="#fff" /> : <Text style={st.approveText}>{t('admin_dash.approve_coins_btn')}</Text>}
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -221,10 +221,10 @@ export default function ModeratorDashboard() {
 
   const renderRedemptionItem = (item: any, index: number) => {
     const statusColors: any = {
-      pending: { bg: '#fef3c7', text: '#92400e', label: 'Chờ xử lý' },
-      shipping: { bg: '#dbeafe', text: '#1e40af', label: 'Đang giao' },
-      completed: { bg: '#d1fae5', text: '#065f46', label: 'Hoàn tất' },
-      cancelled: { bg: '#fee2e2', text: '#991b1b', label: 'Đã hủy' },
+      pending: { bg: '#fef3c7', text: '#92400e', label: t('admin_orders.status_pending') },
+      shipping: { bg: '#dbeafe', text: '#1e40af', label: t('admin_orders.status_shipping') },
+      completed: { bg: '#d1fae5', text: '#065f46', label: t('admin_orders.status_completed') },
+      cancelled: { bg: '#fee2e2', text: '#991b1b', label: t('admin_orders.status_cancelled') },
     };
     const s = statusColors[item.status] || statusColors.pending;
 
@@ -234,7 +234,7 @@ export default function ModeratorDashboard() {
           <Image source={{ uri: item.item_image || 'https://via.placeholder.com/50' }} style={st.redemptionImg} />
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={st.redemptionName}>{item.item_name}</Text>
-            <Text style={st.redemptionUser}>Người đổi: {item.user_full_name || item.username}</Text>
+            <Text style={st.redemptionUser}>{t('admin_orders.redeemer', { name: item.user_full_name || item.username })}</Text>
           </View>
           <View style={[st.statusPill, { backgroundColor: s.bg }]}>
             <Text style={[st.statusText, { color: s.text }]}>{s.label}</Text>
@@ -245,15 +245,15 @@ export default function ModeratorDashboard() {
         <View style={st.shippingBox}>
           <View style={st.shippingRow}>
             <MaterialCommunityIcons name="account-outline" size={16} color="#64748b" />
-            <Text style={st.shippingVal}>{item.shipping_name || 'Không có tên'}</Text>
+            <Text style={st.shippingVal}>{item.shipping_name || t('admin_orders.no_name')}</Text>
           </View>
           <View style={st.shippingRow}>
             <MaterialCommunityIcons name="phone-outline" size={16} color="#64748b" />
-            <Text style={st.shippingVal}>{item.shipping_phone || 'Không có SĐT'}</Text>
+            <Text style={st.shippingVal}>{item.shipping_phone || t('admin_orders.no_phone')}</Text>
           </View>
           <View style={st.shippingRow}>
             <MaterialCommunityIcons name="map-marker-outline" size={16} color="#64748b" />
-            <Text style={st.shippingVal}>{item.shipping_address || 'Không có địa chỉ'}</Text>
+            <Text style={st.shippingVal}>{item.shipping_address || t('admin_orders.no_address')}</Text>
           </View>
           {item.notes && (
             <View style={st.shippingRow}>
@@ -269,19 +269,19 @@ export default function ModeratorDashboard() {
             style={[st.statusBtn, item.status === 'shipping' && st.statusBtnActive, { backgroundColor: '#3b82f6' }]}
             onPress={() => handleUpdateRedemptionStatus(item.id, 'shipping')}
           >
-            <Text style={st.statusBtnText}>Giao hàng</Text>
+            <Text style={st.statusBtnText}>{t('admin_orders.ship_btn')}</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[st.statusBtn, item.status === 'completed' && st.statusBtnActive, { backgroundColor: '#10b981' }]}
             onPress={() => handleUpdateRedemptionStatus(item.id, 'completed')}
           >
-            <Text style={st.statusBtnText}>Hoàn tất</Text>
+            <Text style={st.statusBtnText}>{t('admin_orders.complete_btn')}</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[st.statusBtn, item.status === 'cancelled' && st.statusBtnActive, { backgroundColor: '#ef4444' }]}
             onPress={() => handleUpdateRedemptionStatus(item.id, 'cancelled')}
           >
-            <Text style={st.statusBtnText}>Hủy đơn</Text>
+            <Text style={st.statusBtnText}>{t('admin_orders.cancel_btn')}</Text>
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -295,8 +295,8 @@ export default function ModeratorDashboard() {
       {/* Header */}
       <View style={[st.header, { paddingTop: insets.top + 20 }]}>
         <View style={{ flex: 1 }}>
-          <Text style={st.headerTitle}>Hệ thống Admin</Text>
-          <Text style={st.headerSubtitle}>Quản lý dữ liệu tập trung</Text>
+          <Text style={st.headerTitle}>{t('admin_dash.admin_system')}</Text>
+          <Text style={st.headerSubtitle}>{t('admin_dash.data_mgmt')}</Text>
         </View>
         <TouchableOpacity onPress={() => navigation.navigate("QRScanner" as never)} style={st.qrBtn}>
           <MaterialCommunityIcons name="qrcode-scan" size={20} color="#154212" />
@@ -311,21 +311,21 @@ export default function ModeratorDashboard() {
             onPress={() => setActiveTab('submissions')}
           >
             <MaterialCommunityIcons name="clipboard-check" size={18} color={activeTab === 'submissions' ? "#fff" : "#64748b"} />
-            <Text style={[st.tabLabel, activeTab === 'submissions' && st.tabLabelActive]}>Nhiệm vụ</Text>
+            <Text style={[st.tabLabel, activeTab === 'submissions' && st.tabLabelActive]}>{t('tabs.tasks')}</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[st.tab, activeTab === 'users' && st.tabActive]}
             onPress={() => setActiveTab('users')}
           >
             <MaterialCommunityIcons name="account-group" size={18} color={activeTab === 'users' ? "#fff" : "#64748b"} />
-            <Text style={[st.tabLabel, activeTab === 'users' && st.tabLabelActive]}>Người dùng</Text>
+            <Text style={[st.tabLabel, activeTab === 'users' && st.tabLabelActive]}>{t('admin_users.panel_users') || t('admin_users.title')}</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[st.tab, activeTab === 'redemptions' && st.tabActive]}
             onPress={() => setActiveTab('redemptions')}
           >
             <MaterialCommunityIcons name="gift" size={18} color={activeTab === 'redemptions' ? "#fff" : "#64748b"} />
-            <Text style={[st.tabLabel, activeTab === 'redemptions' && st.tabLabelActive]}>Đổi quà</Text>
+            <Text style={[st.tabLabel, activeTab === 'redemptions' && st.tabLabelActive]}>{t('shop.tab_rewards')}</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
@@ -342,7 +342,7 @@ export default function ModeratorDashboard() {
               {submissions.length === 0 ? (
                 <View style={st.emptyState}>
                   <MaterialCommunityIcons name="check-all" size={60} color="#cbd5e1" />
-                  <Text style={st.emptyTitle}>Tất cả đã hoàn thành</Text>
+                  <Text style={st.emptyTitle}>{t('admin_dash.all_done')}</Text>
                 </View>
               ) : (
                 submissions.map((sub, idx) => renderSubmissionItem(sub, idx))
@@ -357,7 +357,7 @@ export default function ModeratorDashboard() {
                   <MaterialCommunityIcons name="magnify" size={20} color="#94a3b8" />
                   <TextInput
                     style={st.searchInput}
-                    placeholder="Tìm tên hoặc SĐT..."
+                    placeholder={t('admin_dash.search_user_placeholder')}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                   />
@@ -380,7 +380,7 @@ export default function ModeratorDashboard() {
               {redemptions.length === 0 ? (
                 <View style={st.emptyState}>
                   <MaterialCommunityIcons name="gift-off-outline" size={60} color="#cbd5e1" />
-                  <Text style={st.emptyTitle}>Chưa có yêu cầu đổi quà</Text>
+                  <Text style={st.emptyTitle}>{t('admin_dash.no_redemptions')}</Text>
                 </View>
               ) : (
                 redemptions.map((item, idx) => renderRedemptionItem(item, idx))
@@ -395,7 +395,7 @@ export default function ModeratorDashboard() {
         <View style={st.modalOverlay}>
           <View style={st.modalContent}>
             <View style={st.modalHeader}>
-              <Text style={st.modalTitle}>Chỉnh sửa người dùng</Text>
+              <Text style={st.modalTitle}>{t('admin_dash.edit_user')}</Text>
               <TouchableOpacity onPress={() => setEditModalVisible(false)}>
                 <MaterialCommunityIcons name="close" size={24} color="#1e293b" />
               </TouchableOpacity>
