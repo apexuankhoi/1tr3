@@ -221,6 +221,7 @@ export default function HomeScreen({ navigation }: any) {
   const showToast = useGameStore(s => s.showToast);
   const hasSeenTutorial = useGameStore(s => s.hasSeenTutorial);
   const setHasSeenTutorial = useGameStore(s => s.setHasSeenTutorial);
+  const updateLocation = useGameStore(s => s.updateLocation);
 
   const [refreshing, setRefreshing] = useState(false);
   const [popup, setPopup] = useState({ visible: false, type: "success" as any, title: "", message: "" });
@@ -233,6 +234,29 @@ export default function HomeScreen({ navigation }: any) {
   useEffect(() => {
     fetchInventory();
   }, []);
+
+  // Sync Location
+  useEffect(() => {
+    if (!userId) return;
+    
+    const sync = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+        
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        if (loc) {
+          updateLocation(loc.coords.latitude, loc.coords.longitude);
+        }
+      } catch (err) {
+        console.log("[LocationSync] Error:", err.message);
+      }
+    };
+
+    sync();
+    const interval = setInterval(sync, 60000); // Sync every minute
+    return () => clearInterval(interval);
+  }, [userId]);
 
   const onRefresh = async () => {
     setRefreshing(true);

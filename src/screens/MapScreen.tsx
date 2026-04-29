@@ -31,7 +31,7 @@ export default function MapScreen() {
 
   const fetchMapData = async () => {
     try {
-      const data = await api.get("/map/data");
+      const data = await api.get("map/data");
       setMapData(data || { users: [], pois: [] });
       if (webViewRef.current && data) {
         const script = `updateMap(${JSON.stringify(data)})`;

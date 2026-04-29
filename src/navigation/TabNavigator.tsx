@@ -35,7 +35,6 @@ export default function TabNavigator() {
       return (
         <>
           <Tab.Screen name="ModDashboard" component={ModeratorDashboard} options={{ tabBarLabel: t('profile.verify') }} />
-          <Tab.Screen name="Map" component={require("../screens/MapScreen").default} options={{ tabBarLabel: t('tabs.map') }} />
           <Tab.Screen name="QR" component={QRScannerScreen} options={{ tabBarLabel: t('tabs.qr') }} />
           <Tab.Screen name="Ranking" component={RankingScreen} options={{ tabBarLabel: t('tabs.ranking') }} />
           <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: t('tabs.profile') }} />

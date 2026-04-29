@@ -240,15 +240,26 @@ export default function ProfileScreen() {
               )}
               
               {userRole === 'admin' && (
-                <TouchableOpacity 
-                  style={st.mgmtCard}
-                  onPress={() => navigation.navigate("AdminDashboard" as any)}
-                >
-                  <LinearGradient colors={['#154212', '#2d5a27']} style={st.mgmtIcon}>
-                    <MaterialCommunityIcons name="shield-crown" size={20} color="#fff" />
-                  </LinearGradient>
-                  <Text style={st.mgmtText}>{t('profile.admin')}</Text>
-                </TouchableOpacity>
+                <>
+                  <TouchableOpacity 
+                    style={st.mgmtCard}
+                    onPress={() => navigation.navigate("AdminDashboard" as any)}
+                  >
+                    <LinearGradient colors={['#154212', '#2d5a27']} style={st.mgmtIcon}>
+                      <MaterialCommunityIcons name="shield-crown" size={20} color="#fff" />
+                    </LinearGradient>
+                    <Text style={st.mgmtText}>{t('profile.admin')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={st.mgmtCard}
+                    onPress={() => navigation.navigate("Map" as any)}
+                  >
+                    <LinearGradient colors={['#7c3aed', '#6d28d9']} style={st.mgmtIcon}>
+                      <MaterialCommunityIcons name="map-marker-radius" size={20} color="#fff" />
+                    </LinearGradient>
+                    <Text style={st.mgmtText}>{t('tabs.map')}</Text>
+                  </TouchableOpacity>
+                </>
               )}
             </View>
           </View>

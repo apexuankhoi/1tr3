@@ -35,6 +35,8 @@ interface GameState {
   coins: number;
   level: number;
   exp: number;
+  userLat: number | null;
+  userLng: number | null;
   userStats: { tasksCompleted: number; redemptions: number };
   submissions: any[];
   inventory: any[];
@@ -194,6 +196,8 @@ const useGameStore = create<GameState>((set, get) => ({
   coins: 100,
   level: 1,
   exp: 0,
+  userLat: null,
+  userLng: null,
   userStats: { tasksCompleted: 0, redemptions: 0 },
   redemptions: [],
   submissions: [],
@@ -457,14 +461,22 @@ const useGameStore = create<GameState>((set, get) => ({
   },
 
   syncStats: async () => {
-    const { userId, coins, seeds, level, exp } = get();
+    const { userId, coins, seeds, level, exp, userLat, userLng } = get();
     if (userId) {
       try {
-        await userService.updateStats(userId, { coins, seeds, level, exp } as any);
+        await userService.updateStats(userId, { 
+          coins, seeds, level, exp,
+          lat: userLat, lng: userLng
+        } as any);
       } catch (error) {
         console.error("syncStats failed:", error);
       }
     }
+  },
+
+  updateLocation: async (lat: number, lng: number) => {
+    set({ userLat: lat, userLng: lng });
+    await get().syncStats();
   },
 
   syncGarden: async () => {
@@ -604,9 +616,13 @@ const useGameStore = create<GameState>((set, get) => ({
       const data: any = await shopService.buyItem(userId, itemId, price, shippingData);
       get().showToast(data.message || get().t('shop.redeem_success'), 'success');
       
-      // Update coins from response if available, else deduct locally
       const newCoins = data.remainingCoins !== undefined ? data.remainingCoins : (get().coins - price);
-      set({ coins: newCoins });
+      let newSeeds = get().seeds;
+      if (data.itemType === 'seed') {
+        newSeeds += 1;
+      }
+      
+      set({ coins: newCoins, seeds: newSeeds });
       
       get().fetchRedemptions();
       get().fetchInventory(); // <--- ADDED

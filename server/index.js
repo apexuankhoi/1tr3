@@ -1,7 +1,7 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const db = require('./config/db');
-require('dotenv').config();
 const readline = require('readline');
 
 const app = express();
@@ -13,6 +13,18 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 app.use('/assets', express.static('../assets'));
+
+const userCache = {};
+async function initUserCache() {
+    try {
+        const [rows] = await db.query('SELECT id, full_name, username FROM users');
+        rows.forEach(r => {
+            userCache[r.id] = r.full_name || r.username;
+        });
+        console.log(`[LogSystem] Đã tải ${rows.length} người dùng vào bộ nhớ.`);
+    } catch (e) {}
+}
+initUserCache();
 
 // Health Check Route
 app.get('/api/health', async (req, res) => {
@@ -33,9 +45,40 @@ app.get('/api/health', async (req, res) => {
     }
 });
 
-// Logging Middleware
+// Logging Middleware (Premium Human-Readable)
 app.use((req, res, next) => {
-    console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
+    const url = req.url;
+    const method = req.method;
+    const time = new Date().toLocaleTimeString();
+    
+    // Tìm userId trong URL hoặc Body
+    let userId = null;
+    const parts = url.split('/');
+    for (let p of parts) { if (!isNaN(p) && p !== '') { userId = p; break; } }
+    if (!userId && req.body && req.body.userId) userId = req.body.userId;
+    
+    const userName = userCache[userId] || (userId ? `User #${userId}` : "Khách");
+
+    // Mapping hành động
+    let action = "Thao tác hệ thống";
+    if (url.includes('/auth/login')) action = "Đăng nhập";
+    else if (url.includes('/auth/register')) action = "Đăng ký tài khoản";
+    else if (url.includes('/tasks/weekly')) action = "Xem nhiệm vụ tuần";
+    else if (url.includes('/tasks/submit')) action = "Nộp minh chứng nhiệm vụ";
+    else if (url.includes('/garden')) action = "Vào thăm vườn cây";
+    else if (url.includes('/inventory')) action = "Mở kho đồ cá nhân";
+    else if (url.includes('/shop/buy')) action = "Mua vật phẩm từ cửa hàng";
+    else if (url.includes('/shop')) action = "Vào cửa hàng đổi quà";
+    else if (url.includes('/stats')) action = "Cập nhật chỉ số (Level/EXP)";
+    else if (url.includes('/user/')) action = "Xem thông tin cá nhân";
+    else if (url.includes('/quiz/questions')) action = "Lấy bộ câu hỏi trắc nghiệm";
+    else if (url.includes('/map/data')) action = "Xem bản đồ cộng đồng";
+    else if (url.includes('/admin/')) action = "Truy cập quyền Quản trị";
+
+    const logColor = method === 'GET' ? '\x1b[36m' : method === 'POST' ? '\x1b[32m' : '\x1b[33m';
+    const resetColor = '\x1b[0m';
+
+    console.log(`[${time}] 👤 ${logColor}${userName}${resetColor} -> ${action} [${method}]`);
     next();
 });
 
@@ -275,6 +318,10 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         if (user.is_locked) return sendResponse(res, false, null, 'Tài khoản đã bị khóa', 403);
+        
+        // Cập nhật cache log
+        userCache[user.id] = user.full_name || user.username;
+        
         user.coins = user.coins ?? 0;
         return sendResponse(res, true, user, 'Đăng nhập thành công');
     } catch (err) {
@@ -309,6 +356,9 @@ app.get('/api/user/:id', async (req, res) => {
         if (rows.length === 0) return res.status(404).json({ message: 'User not found' });
         
         const user = rows[0];
+        
+        // Cập nhật cache log
+        userCache[user.id] = user.full_name || user.username;
         
         // --- Wilt Check Logic ---
         if (user.role === 'farmer') {
@@ -360,14 +410,26 @@ app.patch('/api/user/profile/:id', async (req, res) => {
     }
 });
 
-// Update User Stats (Coins + Seeds + Level + Exp) — using /api/stats/ to avoid Express v5 param conflict
+// Update User Stats (Coins + Seeds + Level + Exp + Location)
 app.patch('/api/stats/:id', async (req, res) => {
-    const { coins, seeds, waterLevel, energyLevel, growthStage, growingUntil, level, exp } = req.body;
-    console.log(`[Sync] Updating stats for user ${req.params.id}: Coins=${coins}, Seeds=${seeds}, Lvl=${level}, Exp=${exp}`);
+    const { coins, seeds, waterLevel, energyLevel, growthStage, growingUntil, level, exp, lat, lng } = req.body;
+    
     try {
         await db.query(
-            'UPDATE users SET coins = ?, seeds = ?, water_level = ?, energy_level = ?, growth_stage = ?, growing_until = ?, level = ?, exp = ? WHERE id = ?',
-            [coins, seeds ?? 2, waterLevel, energyLevel, growthStage, growingUntil || 0, level || 1, exp || 0, req.params.id]
+            `UPDATE users SET 
+                coins = COALESCE(?, coins), 
+                seeds = COALESCE(?, seeds), 
+                water_level = COALESCE(?, water_level), 
+                energy_level = COALESCE(?, energy_level), 
+                growth_stage = COALESCE(?, growth_stage), 
+                growing_until = COALESCE(?, growing_until), 
+                level = COALESCE(?, level), 
+                exp = COALESCE(?, exp),
+                last_lat = COALESCE(?, last_lat),
+                last_lng = COALESCE(?, last_lng),
+                last_seen = NOW()
+            WHERE id = ?`,
+            [coins, seeds, waterLevel, energyLevel, growthStage, growingUntil, level, exp, lat, lng, req.params.id]
         );
         return sendResponse(res, true, null, 'Đồng bộ chỉ số thành công');
     } catch (err) {
@@ -582,8 +644,13 @@ app.post('/api/shop/buy', async (req, res) => {
             await db.query('INSERT IGNORE INTO inventory (user_id, item_id) VALUES (?, ?)', [userId, itemId]);
         }
 
+        const qrCode = (isReal || item.item_type === 'seed') ? null : `RED-${userId}-${itemId}-${Date.now()}`;
         const msg = isReal ? 'Đã gửi yêu cầu đổi quà thành công' : `Bạn đã mua thành công ${item.name}`;
-        return sendResponse(res, true, { remainingCoins: users[0].coins - price }, msg);
+        return sendResponse(res, true, { 
+            remainingCoins: users[0].coins - price,
+            itemType: item.item_type,
+            qrCode: qrCode
+        }, msg);
     } catch (err) {
         return sendResponse(res, false, null, err.message, 500);
     }
@@ -1240,22 +1307,31 @@ app.get('/api/map/data', async (req, res) => {
 
         // Parse GPS from string
         const pois = submissions.map(s => {
-            const parts = s.image_url.split('|GPS:');
-            const gpsData = parts[1].split('|ADDR:');
-            const coords = gpsData[0].split(',');
-            const address = gpsData[1] || 'Vị trí không xác định';
+            try {
+                const parts = s.image_url.split('|GPS:');
+                if (parts.length < 2) return null;
+                
+                const gpsData = parts[1].split('|ADDR:');
+                const coords = gpsData[0].split(',');
+                const address = gpsData[1] || 'Vị trí không xác định';
 
-            return {
-                id: s.id,
-                title: s.title,
-                username: s.username,
-                lat: parseFloat(coords[0]),
-                lng: parseFloat(coords[1]),
-                address: address,
-                imageUrl: parts[0],
-                status: s.status
-            };
-        });
+                if (coords.length < 2) return null;
+
+                return {
+                    id: s.id,
+                    title: s.title,
+                    username: s.username,
+                    lat: parseFloat(coords[0]),
+                    lng: parseFloat(coords[1]),
+                    address: address,
+                    imageUrl: parts[0],
+                    status: s.status
+                };
+            } catch (e) {
+                console.error("[Map] Error parsing POI:", s.id, e.message);
+                return null;
+            }
+        }).filter(p => p !== null);
 
         return sendResponse(res, true, { users, pois }, 'Lấy dữ liệu bản đồ thành công');
     } catch (err) {
@@ -1471,61 +1547,7 @@ app.delete('/api/admin/users/:id', async (req, res) => {
     }
 });
 
-// ── Map Data Endpoint ──────────────────────────────────────────────────────
-app.get('/api/map/data', async (req, res) => {
-    try {
-        // 1. Get all users with coordinates
-        const [users] = await db.query(`
-            SELECT id, username, full_name, role, last_lat as lat, last_lng as lng, 
-                   avatar_url, cover_url, bio, coins,
-                   (CASE WHEN last_seen > DATE_SUB(NOW(), INTERVAL 15 MINUTE) THEN 1 ELSE 0 END) as isOnline
-            FROM users
-            WHERE last_lat IS NOT NULL AND last_lng IS NOT NULL
-        `);
 
-        // 2. Get task submissions (POIs) with GPS data
-        const [submissions] = await db.query(`
-            SELECT ts.id, ts.image_url, ts.status, t.title, u.username
-            FROM task_submissions ts
-            JOIN tasks t ON ts.task_id = t.id
-            JOIN users u ON ts.user_id = u.id
-            WHERE ts.image_url LIKE '%|GPS:%'
-        `);
-
-        const pois = submissions.map(s => {
-            const parts = s.image_url.split('|');
-            const imageUrl = parts[0];
-            let lat = 0, lng = 0, address = '';
-
-            parts.forEach(p => {
-                if (p.startsWith('GPS:')) {
-                    const coords = p.replace('GPS:', '').split(',');
-                    lat = parseFloat(coords[0]);
-                    lng = parseFloat(coords[1]);
-                }
-                if (p.startsWith('ADDR:')) {
-                    address = p.replace('ADDR:', '');
-                }
-            });
-
-            return {
-                id: s.id,
-                title: s.title,
-                imageUrl,
-                lat,
-                lng,
-                address,
-                username: s.username,
-                status: s.status
-            };
-        }).filter(p => p.lat !== 0 && p.lng !== 0);
-
-        return sendResponse(res, true, { users, pois }, 'Lấy dữ liệu bản đồ thành công');
-    } catch (err) {
-        console.error('[Map] Error:', err);
-        return sendResponse(res, false, null, err.message, 500);
-    }
-});
 
 startServer().catch((err) => {
     console.error('Failed to start server:', err);

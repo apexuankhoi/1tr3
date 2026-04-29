@@ -111,6 +111,8 @@ export default function ShopScreen() {
         if (item.is_real) {
           Alert.alert("Thành công", "Yêu cầu đổi quà đã được gửi! Admin sẽ sớm liên hệ bạn.");
           setShippingModalVisible(false);
+        } else if (item.item_type === 'seed') {
+          Alert.alert("Thành công", `Bạn đã mua thành công hạt giống ${item.name}!`);
         } else {
           setCurrentQr(res.qrCode || "");
           setCurrentItemName(item.name);
