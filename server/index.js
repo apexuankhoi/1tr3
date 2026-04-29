@@ -441,9 +441,34 @@ app.patch('/api/stats/:id', async (req, res) => {
 // GET: Load all pots for a user
 app.get('/api/garden/:userId/pots', async (req, res) => {
     try {
+        const userId = req.params.userId;
+        
+        // 1. Calculate and update background growth BEFORE selecting
+        // Growth rate: 10% per 10 mins = 1% per minute = 1/60 % per second
+        // We only update pots that have a plant and are not wilted
+        await db.query(`
+            UPDATE user_pots 
+            SET 
+                growth_progress = LEAST(100, growth_progress + TIMESTAMPDIFF(SECOND, updated_at, NOW()) * (1.0 / 60.0)),
+                updated_at = NOW()
+            WHERE user_id = ? AND has_plant = 1 AND is_wilted = 0 AND growth_progress < 100
+        `, [userId]);
+
+        // 1.5 Auto-advance stages if 100%
+        // Order: Nảy mầm -> Cây non -> Trưởng thành -> Ra hoa -> Kết trái
+        const stages = ["Nảy mầm", "Cây non", "Trưởng thành", "Ra hoa", "Kết trái"];
+        for (let i = 0; i < stages.length - 1; i++) {
+            await db.query(`
+                UPDATE user_pots
+                SET growth_stage = ?, growth_progress = 0, updated_at = NOW()
+                WHERE user_id = ? AND has_plant = 1 AND is_wilted = 0 AND growth_progress >= 100 AND growth_stage = ?
+            `, [stages[i+1], userId, stages[i]]);
+        }
+
+        // 2. Select the updated pots
         const [rows] = await db.query(
             'SELECT pot_id as id, floor_id as floorId, has_plant as hasPlant, plant_type as plantType, growth_progress as growthProgress, growth_stage as growthStage, is_wilted as isWilted, growing_until as growingUntil, skin_id as skinId, has_pot as hasPot FROM user_pots WHERE user_id = ? ORDER BY floor_id, pot_id',
-            [req.params.userId]
+            [userId]
         );
         
         // Map 1/0 to true/false for boolean fields
@@ -454,7 +479,7 @@ app.get('/api/garden/:userId/pots', async (req, res) => {
             hasPot: !!r.hasPot
         }));
         
-        return sendResponse(res, true, formatted, 'Lấy danh sách chậu cây thành công');
+        return res.json(formatted);
     } catch (err) {
         return sendResponse(res, false, null, err.message, 500);
     }
@@ -471,7 +496,6 @@ app.put('/api/garden/:userId/pots', async (req, res) => {
     
     try {
         // Upsert each pot
-        console.log(`[Garden] Syncing ${pots.length} pots for user ${userId}...`);
         for (const pot of pots) {
             await db.query(`
                 INSERT INTO user_pots (user_id, pot_id, floor_id, has_plant, plant_type, growth_progress, growth_stage, is_wilted, growing_until, skin_id, has_pot)
@@ -635,13 +659,20 @@ app.post('/api/shop/buy', async (req, res) => {
             
             await db.query('UPDATE inventory_stock SET quantity = quantity - 1 WHERE item_id = ?', [itemId]);
         } else if (item.item_type === 'seed') {
-            // Seed -> Just increment user's seed count
+            // Seed -> Increment user's generic seed count AND add to inventory with quantity
             await db.query('UPDATE users SET seeds = seeds + 1 WHERE id = ?', [userId]);
-            // (Optional) also add to inventory log
-            await db.query('INSERT IGNORE INTO inventory (user_id, item_id) VALUES (?, ?)', [userId, itemId]);
+            await db.query(`
+                INSERT INTO inventory (user_id, item_id, quantity) 
+                VALUES (?, ?, 1) 
+                ON DUPLICATE KEY UPDATE quantity = quantity + 1
+            `, [userId, itemId]);
         } else {
-            // Pot Skin or other virtual items -> Add to inventory
-            await db.query('INSERT IGNORE INTO inventory (user_id, item_id) VALUES (?, ?)', [userId, itemId]);
+            // Pot Skin or other virtual items -> Add to inventory (default quantity 1)
+            await db.query(`
+                INSERT INTO inventory (user_id, item_id, quantity) 
+                VALUES (?, ?, 1) 
+                ON DUPLICATE KEY UPDATE quantity = quantity + 1
+            `, [userId, itemId]);
         }
 
         const qrCode = (isReal || item.item_type === 'seed') ? null : `RED-${userId}-${itemId}-${Date.now()}`;
@@ -919,7 +950,8 @@ app.get('/api/tasks/weekly/:userId', async (req, res) => {
                 id: 1000,
                 title: 'Hệ thống Trắc nghiệm Dân cư',
                 description: 'Làm 5 câu trắc nghiệm để nhận thưởng',
-                reward: 50,
+                reward: 100,
+                exp_reward: 200,
                 category: 'Học tập',
                 task_group: 'learn',
                 task_type: 'quiz_bundle',
@@ -972,7 +1004,7 @@ app.post('/api/tasks/submit', async (req, res) => {
         
         const task = tasks[0];
         let aiResult = null;
-        let status = task.needs_moderator ? 'pending' : 'approved';
+        let status = (task.needs_moderator && task.task_type !== 'quiz' && task.task_type !== 'quiz_bundle') ? 'pending' : 'approved';
         
         // AI verification for photo/video submissions (not quiz, checkin, etc)
         if (imageUrl && imageUrl !== 'auto' && imageUrl !== 'quiz-correct' && (task.task_type === 'photo' || task.task_type === 'video')) {

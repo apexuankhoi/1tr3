@@ -217,6 +217,9 @@ export default function HomeScreen({ navigation }: any) {
   const redemptions = useGameStore(s => s.redemptions);
   const inventory = useGameStore(s => s.inventory);
   const fetchInventory = useGameStore(s => s.fetchInventory);
+  const fetchUserData = useGameStore(s => s.fetchUserData);
+  const fetchRedemptions = useGameStore(s => s.fetchRedemptions);
+  const fetchSubmissions = useGameStore(s => s.fetchSubmissions);
   const t = useGameStore(s => s.t);
   const showToast = useGameStore(s => s.showToast);
   const hasSeenTutorial = useGameStore(s => s.hasSeenTutorial);
@@ -256,6 +259,23 @@ export default function HomeScreen({ navigation }: any) {
     sync();
     const interval = setInterval(sync, 60000); // Sync every minute
     return () => clearInterval(interval);
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    fetchUserData(userId);
+    fetchInventory();
+    fetchRedemptions();
+    fetchSubmissions();
+
+    // Background Growth Refresh: Every 60 seconds (1 minute = 1% growth)
+    const growthInterval = setInterval(() => {
+      if (userId) {
+        fetchUserData(userId);
+      }
+    }, 60000);
+
+    return () => clearInterval(growthInterval);
   }, [userId]);
 
   const onRefresh = async () => {
@@ -558,27 +578,55 @@ export default function HomeScreen({ navigation }: any) {
               <TouchableOpacity onPress={() => setShowPlantPicker(false)}><MaterialCommunityIcons name="close" size={24} color="#64748b" /></TouchableOpacity>
             </View>
             <View style={st.plantPickerList}>
-              <TouchableOpacity
-                style={st.plantOption}
-                onPress={() => {
-                  if (selectedPotId) plantSeed(selectedPotId, 'cafe');
-                  setShowPlantPicker(false);
-                }}
-              >
-                <View style={st.plantOptionIcon}><Text style={{ fontSize: 30 }}>☕</Text></View>
-                <Text style={st.plantOptionName}>{t('garden.seed_cafe')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={st.plantOption}
-                onPress={() => {
-                  if (selectedPotId) plantSeed(selectedPotId, 'saurieng');
-                  setShowPlantPicker(false);
-                }}
-              >
-                <View style={st.plantOptionIcon}><Text style={{ fontSize: 30 }}>🍈</Text></View>
-                <Text style={st.plantOptionName}>{t('garden.seed_saurieng')}</Text>
-              </TouchableOpacity>
+              {(() => {
+                const cafeSeeds = inventory.find(i => i.item_id === 1)?.quantity || 0;
+                const sauriengSeeds = inventory.find(i => i.item_id === 2)?.quantity || 0;
+                
+                return (
+                  <>
+                    <TouchableOpacity
+                      style={[st.plantOption, cafeSeeds <= 0 && { opacity: 0.5 }]}
+                      disabled={cafeSeeds <= 0}
+                      onPress={() => {
+                        if (selectedPotId) plantSeed(selectedPotId, 'cafe');
+                        setShowPlantPicker(false);
+                      }}
+                    >
+                      <View style={st.plantOptionIcon}><Text style={{ fontSize: 30 }}>☕</Text></View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={st.plantOptionName}>{t('garden.seed_cafe')}</Text>
+                        <Text style={{ color: '#64748b', fontSize: 12 }}>{t('common.quantity')}: {cafeSeeds}</Text>
+                      </View>
+                      {cafeSeeds > 0 && <MaterialCommunityIcons name="chevron-right" size={20} color="#cbd5e1" />}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[st.plantOption, sauriengSeeds <= 0 && { opacity: 0.5 }]}
+                      disabled={sauriengSeeds <= 0}
+                      onPress={() => {
+                        if (selectedPotId) plantSeed(selectedPotId, 'saurieng');
+                        setShowPlantPicker(false);
+                      }}
+                    >
+                      <View style={st.plantOptionIcon}><Text style={{ fontSize: 30 }}>🍈</Text></View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={st.plantOptionName}>{t('garden.seed_saurieng')}</Text>
+                        <Text style={{ color: '#64748b', fontSize: 12 }}>{t('common.quantity')}: {sauriengSeeds}</Text>
+                      </View>
+                      {sauriengSeeds > 0 && <MaterialCommunityIcons name="chevron-right" size={20} color="#cbd5e1" />}
+                    </TouchableOpacity>
+                  </>
+                );
+              })()}
             </View>
+            {inventory.filter(i => i.item_type === 'seed' && i.quantity > 0).length === 0 && (
+              <TouchableOpacity
+                style={[st.shopRedirectBtn, { marginTop: 10 }]}
+                onPress={() => { setShowPlantPicker(false); navigation.navigate("Shop"); }}
+              >
+                <Text style={st.shopRedirectText}>{t('garden.go_to_shop_buy_seeds') || "Mua thêm hạt giống"}</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>
