@@ -899,7 +899,7 @@ app.get('/api/tasks/weekly/:userId', async (req, res) => {
         const weekNum = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
         const seed = userId * 31 + weekNum * 97; // deterministic but varies per user & week
 
-        const [allTasks] = await db.query('SELECT id, title, reward, category, description, icon, task_group, task_type, needs_gps, needs_moderator, quiz_options, quiz_answer FROM tasks WHERE task_type != "quiz"');
+        const [allTasks] = await db.query('SELECT id, title, reward, exp_reward, category, description, icon, task_group, task_type, needs_gps, needs_moderator, quiz_options, quiz_answer, quiz_explanation FROM tasks WHERE task_type != "quiz"');
 
         // Split into groups
         const actionTasks  = allTasks.filter(t => t.task_group === 'action');
@@ -912,10 +912,25 @@ app.get('/api/tasks/weekly/:userId', async (req, res) => {
             return shuffled.slice(0, n);
         };
 
+        let bundle = learnTasks.find(t => t.task_type === 'quiz_bundle');
+        if (!bundle) {
+            // Virtual bundle if not in DB
+            bundle = {
+                id: 1000,
+                title: 'Hệ thống Trắc nghiệm Dân cư',
+                description: 'Làm 5 câu trắc nghiệm để nhận thưởng',
+                reward: 50,
+                category: 'Học tập',
+                task_group: 'learn',
+                task_type: 'quiz_bundle',
+                icon: 'school'
+            };
+        }
+
         const weekly = [
             ...pick(actionTasks, 2, 1),
             ...pick(reportTasks, 1, 2),
-            ...learnTasks.filter(t => t.task_type === 'quiz_bundle'), // Always include bundle if available
+            bundle
         ].slice(0, 5);
 
         // Attach submission status for this user
@@ -996,7 +1011,7 @@ app.post('/api/tasks/submit', async (req, res) => {
             });
         } else if (!task.needs_moderator) {
             await db.query('UPDATE users SET coins = coins + ? WHERE id = ?', [task.reward, userId]);
-            const { level, leveledUp } = await awardExp(userId, task.exp_reward || 20);
+            const { level, exp, leveledUp } = await awardExp(userId, task.exp_reward || 20);
             
             // Advance growth by 20%
             await advanceUserPlants(userId, 20);
@@ -1006,6 +1021,7 @@ app.post('/api/tasks/submit', async (req, res) => {
                 autoApproved: true, 
                 reward: task.reward,
                 level,
+                exp,
                 leveledUp,
                 aiVerified: aiResult ? aiResult.verified : null,
                 aiConfidence: aiResult ? aiResult.confidence : null
@@ -1186,7 +1202,7 @@ app.post('/api/admin/approve', async (req, res) => {
         // 3. Add coins and exp
         await db.query('UPDATE users SET coins = coins + ? WHERE id = ?', [sub.reward, sub.user_id]);
         
-        const { level, leveledUp } = await awardExp(sub.user_id, sub.exp_reward || 20);
+        const { level, exp, leveledUp } = await awardExp(sub.user_id, sub.exp_reward || 20);
         
         // Advance growth by 20%
         await advanceUserPlants(sub.user_id, 20);
@@ -1194,7 +1210,7 @@ app.post('/api/admin/approve', async (req, res) => {
         // Send Push Notification
         sendPush(sub.user_id, "Nhiệm vụ đã được duyệt! 🎉", `Bạn vừa nhận được ${sub.reward} xu thưởng.`, { type: 'TASK_APPROVED' });
 
-        return sendResponse(res, true, { level, leveledUp }, 'Đã duyệt nhiệm vụ và cộng thưởng');
+        return sendResponse(res, true, { level, exp, leveledUp }, 'Đã duyệt nhiệm vụ và cộng thưởng');
     } catch (err) {
         return sendResponse(res, false, null, err.message, 500);
     }

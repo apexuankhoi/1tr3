@@ -524,17 +524,18 @@ const useGameStore = create<GameState>((set, get) => ({
           get().syncGarden();
         } else {
           const mergedPots = defaultPots.map(dp => {
-            const sp = potsFromDb.find((up: any) => up.id === dp.id);
+            const sp = potsFromDb.find((up: any) => up.pot_id === dp.id);
             if (sp) {
               return {
                 ...dp,
                 ...sp,
-                hasPlant: Boolean(sp.hasPlant),
-                isWilted: Boolean(sp.isWilted),
-                hasPot: Boolean(sp.hasPot),
-                growthProgress: Number(sp.growthProgress) || 0,
-                growingUntil: Number(sp.growingUntil) || 0,
-                floorId: Number(sp.floorId) || dp.floorId
+                id: dp.id, // Ensure we keep the string ID
+                hasPlant: Boolean(sp.has_plant),
+                isWilted: Boolean(sp.is_wilted),
+                hasPot: Boolean(sp.has_pot),
+                growthProgress: Number(sp.growth_progress) || 0,
+                growingUntil: Number(sp.growing_until) || 0,
+                floorId: Number(sp.floor_id) || dp.floorId
               };
             }
             return dp;
