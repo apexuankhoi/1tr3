@@ -35,7 +35,7 @@ export default function QRScannerScreen() {
 
     const { userId } = useGameStore.getState();
     try {
-      const res = await api.post("/moderator/collect", { qrCode: data, moderatorId: userId });
+      const res = await api.post("moderator/collect", { qrCode: data, moderatorId: userId });
       haptics.notificationAsync(haptics.NotificationFeedbackType.Success);
       Alert.alert(t('common.success'), res.data.message || t('shop.buy_success'), [
         { text: t('common.close'), onPress: () => setScanned(false) }

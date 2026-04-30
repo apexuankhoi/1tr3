@@ -109,14 +109,14 @@ export default function ShopScreen() {
       if (res) {
         haptics.notificationAsync(haptics.NotificationFeedbackType.Success);
         if (item.is_real) {
-          Alert.alert("Thành công", "Yêu cầu đổi quà đã được gửi! Admin sẽ sớm liên hệ bạn.");
-          setShippingModalVisible(false);
-        } else if (item.item_type === 'seed') {
-          Alert.alert("Thành công", `Bạn đã mua thành công hạt giống ${item.name}!`);
-        } else {
+          // Physical gift -> Show QR for admin to scan
           setCurrentQr(res.qrCode || "");
           setCurrentItemName(item.name);
           setQrModalVisible(true);
+          setShippingModalVisible(false);
+        } else {
+          // Virtual item (seed, skin) -> Just show success alert
+          Alert.alert("Thành công", `Bạn đã sở hữu thành công ${item.name}!`);
         }
         fetchItems(); // Refresh stock
         fetchInventory(); // Refresh owned items

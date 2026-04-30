@@ -707,12 +707,14 @@ app.post('/api/shop/buy', async (req, res) => {
         await db.query('UPDATE users SET coins = coins - ? WHERE id = ?', [price, userId]);
 
         // 6. Distribution logic
+        const qrCode = isReal ? `RED-${userId}-${itemId}-${Date.now()}` : null;
+        
         if (isReal) {
             // Real Gift -> Create Redemption and Deduct Stock
             await db.query(`
-                INSERT INTO redemptions (user_id, item_id, status, shipping_name, shipping_phone, shipping_address, notes)
-                VALUES (?, ?, 'pending', ?, ?, ?, ?)
-            `, [userId, itemId, shippingName || null, shippingPhone || null, shippingAddress || null, notes || null]);
+                INSERT INTO redemptions (user_id, item_id, qr_code, status, shipping_name, shipping_phone, shipping_address, notes)
+                VALUES (?, ?, ?, 'pending', ?, ?, ?, ?)
+            `, [userId, itemId, qrCode, shippingName || null, shippingPhone || null, shippingAddress || null, notes || null]);
             
             await db.query('UPDATE inventory_stock SET quantity = quantity - 1 WHERE item_id = ?', [itemId]);
         } else if (item.item_type === 'seed') {
@@ -732,7 +734,6 @@ app.post('/api/shop/buy', async (req, res) => {
             `, [userId, itemId]);
         }
 
-        const qrCode = (isReal || item.item_type === 'seed') ? null : `RED-${userId}-${itemId}-${Date.now()}`;
         const msg = isReal ? 'Đã gửi yêu cầu đổi quà thành công' : `Bạn đã mua thành công ${item.name}`;
         return sendResponse(res, true, { 
             remainingCoins: users[0].coins - price,
@@ -755,6 +756,22 @@ app.get('/api/admin/redemptions', async (req, res) => {
             ORDER BY r.redeemed_at DESC
         `);
         return sendResponse(res, true, rows, 'Lấy danh sách đổi quà thành công');
+    } catch (err) {
+        return sendResponse(res, false, null, err.message, 500);
+    }
+});
+
+// User: Get their redemptions
+app.get('/api/redemptions/:userId', async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT r.*, s.name, s.image_url, s.price, s.description
+            FROM redemptions r
+            JOIN shop_items s ON r.item_id = s.id
+            WHERE r.user_id = ?
+            ORDER BY r.redeemed_at DESC
+        `, [req.params.userId]);
+        return sendResponse(res, true, rows, 'Lấy lịch sử đổi quà thành công');
     } catch (err) {
         return sendResponse(res, false, null, err.message, 500);
     }

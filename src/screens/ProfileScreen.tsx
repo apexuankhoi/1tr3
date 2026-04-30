@@ -40,8 +40,6 @@ export default function ProfileScreen() {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
-  const [showLanguageModal, setShowLanguageModal] = useState(false);
-  const currentLanguage = language;
 
   // Edit states
   const [editData, setEditData] = useState({
@@ -390,11 +388,6 @@ export default function ProfileScreen() {
                 }
               },
               { 
-                title: t('profile.language'), 
-                icon: "translate", 
-                action: () => setShowLanguageModal(true)
-              },
-              { 
                 title: t('profile.privacy_policy'), 
                 icon: "shield-lock-outline",
                 action: () => setShowPrivacy(true)
@@ -464,37 +457,6 @@ export default function ProfileScreen() {
           </View>
         </Modal>
 
-        {/* Language Modal */}
-        <Modal visible={showLanguageModal} transparent animationType="fade">
-          <View style={st.modalOverlay}>
-            <View style={st.modalContent}>
-              <Text style={st.modalTitle}>{t('profile.language')}</Text>
-              <View style={{ gap: 10, marginTop: 20 }}>
-                {[
-                  { id: 'vi', name: t('profile.language_vi'), flag: '🇻🇳' },
-                  { id: 'en', name: t('profile.language_en'), flag: '🇺🇸' },
-                  { id: 'ede', name: t('profile.language_ede'), flag: '🏹' },
-                ].map(lang => (
-                  <TouchableOpacity 
-                    key={lang.id} 
-                    style={[st.langItem, currentLanguage === lang.id && st.langItemActive]}
-                    onPress={() => {
-                      setLanguage(lang.id as any);
-                      setShowLanguageModal(false);
-                    }}
-                  >
-                    <Text style={st.langFlag}>{lang.flag}</Text>
-                    <Text style={[st.langName, currentLanguage === lang.id && st.langNameActive]}>{lang.name}</Text>
-                    {currentLanguage === lang.id && <MaterialCommunityIcons name="check" size={20} color="#154212" />}
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <TouchableOpacity style={st.modalClose} onPress={() => setShowLanguageModal(false)}>
-                <Text style={st.closeTxt}>{t('common.close')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
 
         {/* Privacy Modal */}
         <Modal visible={showPrivacy} transparent animationType="slide">
