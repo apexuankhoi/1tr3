@@ -21,7 +21,7 @@ type QuizState = "idle" | "correct" | "wrong" | "submitting" | "finished";
 
 export default function QuizScreen({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
-  const { userId, addCoins, t } = useGameStore();
+  const { userId, addCoins, addGrowth, t } = useGameStore();
 
   // Task Info
   const taskId: number = route?.params?.taskId ?? 1;
@@ -146,6 +146,7 @@ export default function QuizScreen({ navigation, route }: any) {
       try {
         const res: any = await taskService.submitTask(userId || 1, taskId, "quiz-bundle-complete");
         await addCoins(taskReward, isBundle ? 100 : 20, res.level, res.exp);
+        addGrowth(isBundle ? 40 : 20); // Extra growth boost for bundle
         setQuizState("finished");
       } catch (err) {
         console.error("Submit quiz error:", err);
@@ -163,7 +164,7 @@ export default function QuizScreen({ navigation, route }: any) {
     return (
       <View style={[st.root, { justifyContent: "center", alignItems: "center" }]}>
         <ActivityIndicator size="large" color="#7c3aed" />
-        <Text style={{ marginTop: 12, color: "#6b7280", fontFamily: "Nunito_600SemiBold" }}>Đang nạp bộ câu hỏi...</Text>
+        <Text style={{ marginTop: 12, color: "#6b7280", fontFamily: "Nunito_600SemiBold" }}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -173,16 +174,16 @@ export default function QuizScreen({ navigation, route }: any) {
       <View style={st.root}>
         <LinearGradient colors={["#7c3aed", "#9d5cef"]} style={[st.finishedHero, { paddingTop: insets.top + 60 }]}>
           <MaterialCommunityIcons name="trophy-outline" size={80} color="#fff" />
-          <Text style={st.finishedTitle}>Hoàn thành thử thách!</Text>
-          <Text style={st.finishedSub}>Bạn đã trả lời đúng {correctCount}/{questions.length} câu hỏi.</Text>
+          <Text style={st.finishedTitle}>{t('quiz.finished_title')}</Text>
+          <Text style={st.finishedSub}>{t('quiz.finished_sub', { correct: correctCount, total: questions.length })}</Text>
           <View style={st.rewardFinal}>
-            <Text style={st.rewardFinalText}>+{taskReward} xu thưởng</Text>
+            <Text style={st.rewardFinalText}>+{taskReward} {t('common.coin_unit')}</Text>
           </View>
         </LinearGradient>
         <View style={st.finishedBody}>
           <TouchableOpacity style={st.finishedBtn} onPress={() => navigation.goBack()}>
             <LinearGradient colors={["#0f9b58", "#1dba6e"]} style={st.confirmGrad}>
-              <Text style={st.confirmText}>Quay lại khu vườn</Text>
+              <Text style={st.confirmText}>{t('quiz.back_to_garden')}</Text>
               <MaterialCommunityIcons name="check-circle" size={20} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>

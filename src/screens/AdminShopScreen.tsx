@@ -192,7 +192,7 @@ export default function AdminShopScreen() {
               onChangeText={t => setCurrentItem({ ...currentItem, description: t })}
             />
 
-            <Text style={st.label}>Loại vật phẩm (Item Type)</Text>
+            <Text style={st.label}>{t('admin_dash.item_type')}</Text>
             <View style={st.typeOptions}>
               {['seed', 'pot_skin', 'fertilizer', 'tool'].map(type => (
                 <TouchableOpacity 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { 
+import {
   View, Text, ScrollView, TouchableOpacity, Image, Alert,
   StyleSheet, Platform, ActivityIndicator, StatusBar, TextInput, Modal,
   Dimensions, FlatList, Linking
@@ -25,14 +25,14 @@ export default function ModeratorDashboard() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { t, language } = useGameStore();
-  
+
   const [activeTab, setActiveTab] = useState<TabType>('submissions');
   const [loading, setLoading] = useState(true);
-  
+
   // Submissions State
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
-  
+
   // Users State
   const [users, setUsers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -265,19 +265,19 @@ export default function ModeratorDashboard() {
 
         {/* Actions */}
         <View style={st.redemptionActions}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[st.statusBtn, item.status === 'shipping' && st.statusBtnActive, { backgroundColor: '#3b82f6' }]}
             onPress={() => handleUpdateRedemptionStatus(item.id, 'shipping')}
           >
             <Text style={st.statusBtnText}>{t('admin_orders.ship_btn')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[st.statusBtn, item.status === 'completed' && st.statusBtnActive, { backgroundColor: '#10b981' }]}
             onPress={() => handleUpdateRedemptionStatus(item.id, 'completed')}
           >
             <Text style={st.statusBtnText}>{t('admin_orders.complete_btn')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[st.statusBtn, item.status === 'cancelled' && st.statusBtnActive, { backgroundColor: '#ef4444' }]}
             onPress={() => handleUpdateRedemptionStatus(item.id, 'cancelled')}
           >
@@ -291,7 +291,7 @@ export default function ModeratorDashboard() {
   return (
     <View style={st.root}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-      
+
       {/* Header */}
       <View style={[st.header, { paddingTop: insets.top + 20 }]}>
         <View style={{ flex: 1 }}>
@@ -306,21 +306,21 @@ export default function ModeratorDashboard() {
       {/* Tabs */}
       <View style={st.tabContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[st.tab, activeTab === 'submissions' && st.tabActive]}
             onPress={() => setActiveTab('submissions')}
           >
             <MaterialCommunityIcons name="clipboard-check" size={18} color={activeTab === 'submissions' ? "#fff" : "#64748b"} />
             <Text style={[st.tabLabel, activeTab === 'submissions' && st.tabLabelActive]}>{t('tabs.tasks')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[st.tab, activeTab === 'users' && st.tabActive]}
             onPress={() => setActiveTab('users')}
           >
             <MaterialCommunityIcons name="account-group" size={18} color={activeTab === 'users' ? "#fff" : "#64748b"} />
             <Text style={[st.tabLabel, activeTab === 'users' && st.tabLabelActive]}>{t('admin_users.panel_users') || t('admin_users.title')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[st.tab, activeTab === 'redemptions' && st.tabActive]}
             onPress={() => setActiveTab('redemptions')}
           >
@@ -333,7 +333,7 @@ export default function ModeratorDashboard() {
       {loading ? (
         <View style={st.loader}>
           <ActivityIndicator size="large" color="#154212" />
-          <Text style={st.loaderText}>Đang tải dữ liệu...</Text>
+          <Text style={st.loaderText}>{t('common.loading')}</Text>
         </View>
       ) : (
         <View style={{ flex: 1 }}>
@@ -364,7 +364,7 @@ export default function ModeratorDashboard() {
                 </View>
               </View>
               <FlatList
-                data={users.filter(u => 
+                data={users.filter(u =>
                   (u.full_name || u.username).toLowerCase().includes(searchQuery.toLowerCase()) ||
                   u.username.includes(searchQuery)
                 )}
@@ -404,11 +404,11 @@ export default function ModeratorDashboard() {
             {selectedUser && (
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={st.editorSection}>
-                  <Text style={st.sectionLabel}>Thông số cơ bản</Text>
+                  <Text style={st.sectionLabel}>{t('admin_dash.basic_stats')}</Text>
                   <View style={st.inputRow}>
                     <View style={st.inputHalf}>
-                      <Text style={st.inputLabel}>Xu (Coins)</Text>
-                      <TextInput 
+                      <Text style={st.inputLabel}>{t('admin_dash.coins_label')}</Text>
+                      <TextInput
                         style={st.editorInput}
                         keyboardType="numeric"
                         value={selectedUser.coins.toString()}
@@ -416,8 +416,8 @@ export default function ModeratorDashboard() {
                       />
                     </View>
                     <View style={st.inputHalf}>
-                      <Text style={st.inputLabel}>Hạt giống</Text>
-                      <TextInput 
+                      <Text style={st.inputLabel}>{t('admin_dash.seeds_label')}</Text>
+                      <TextInput
                         style={st.editorInput}
                         keyboardType="numeric"
                         value={selectedUser.seeds.toString()}
@@ -429,7 +429,7 @@ export default function ModeratorDashboard() {
                   <View style={st.inputRow}>
                     <View style={st.inputHalf}>
                       <Text style={st.inputLabel}>Level</Text>
-                      <TextInput 
+                      <TextInput
                         style={st.editorInput}
                         keyboardType="numeric"
                         value={selectedUser.level.toString()}
@@ -438,7 +438,7 @@ export default function ModeratorDashboard() {
                     </View>
                     <View style={st.inputHalf}>
                       <Text style={st.inputLabel}>EXP</Text>
-                      <TextInput 
+                      <TextInput
                         style={st.editorInput}
                         keyboardType="numeric"
                         value={selectedUser.exp.toString()}
@@ -447,10 +447,10 @@ export default function ModeratorDashboard() {
                     </View>
                   </View>
 
-                  <Text style={st.inputLabel}>Vai trò (Role)</Text>
+                  <Text style={st.inputLabel}>{t('admin_dash.role_label')}</Text>
                   <View style={st.roleOptions}>
                     {['farmer', 'moderator', 'admin'].map(r => (
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         key={r}
                         style={[st.roleBtn, selectedUser.role === r && st.roleBtnActive]}
                         onPress={() => setSelectedUser({ ...selectedUser, role: r })}
@@ -460,27 +460,27 @@ export default function ModeratorDashboard() {
                     ))}
                   </View>
 
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[st.lockBtn, selectedUser.is_locked && st.lockBtnActive]}
                     onPress={() => setSelectedUser({ ...selectedUser, is_locked: !selectedUser.is_locked })}
                   >
-                    <MaterialCommunityIcons 
-                      name={selectedUser.is_locked ? "lock-open-outline" : "lock-outline"} 
-                      size={20} 
-                      color={selectedUser.is_locked ? "#16a34a" : "#ef4444"} 
+                    <MaterialCommunityIcons
+                      name={selectedUser.is_locked ? "lock-open-outline" : "lock-outline"}
+                      size={20}
+                      color={selectedUser.is_locked ? "#16a34a" : "#ef4444"}
                     />
                     <Text style={[st.lockBtnText, { color: selectedUser.is_locked ? "#16a34a" : "#ef4444" }]}>
-                      {selectedUser.is_locked ? "Mở khóa tài khoản" : "Khóa tài khoản"}
+                      {selectedUser.is_locked ? t('admin_dash.unlock_user') : t('admin_dash.lock_user')}
                     </Text>
                   </TouchableOpacity>
                 </View>
 
                 <View style={st.editorSection}>
-                  <Text style={st.sectionLabel}>Quản lý kho đồ</Text>
+                  <Text style={st.sectionLabel}>{t('admin_dash.inventory_mgmt')}</Text>
                   {inventoryLoading ? (
                     <ActivityIndicator size="small" color="#154212" />
                   ) : userInventory.length === 0 ? (
-                    <Text style={st.emptyInventory}>Kho đồ trống</Text>
+                    <Text style={st.emptyInventory}>{t('admin_dash.empty_inventory')}</Text>
                   ) : (
                     userInventory.map((item) => (
                       <View key={item.inventory_id} style={st.inventoryItem}>
@@ -497,12 +497,12 @@ export default function ModeratorDashboard() {
             )}
 
             <TouchableOpacity style={st.saveBtn} onPress={handleUpdateUser}>
-              <Text style={st.saveBtnText}>Lưu thay đổi</Text>
+              <Text style={st.saveBtnText}>{t('admin_dash.save_changes')}</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-      
+
       <View style={{ height: 60 }} />
     </View>
   );
@@ -510,14 +510,14 @@ export default function ModeratorDashboard() {
 
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#f8fafc" },
-  header: { 
-    flexDirection: "row", alignItems: "center", paddingHorizontal: 24, paddingBottom: 20, 
-    backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#e2e8f0", ...SHADOW 
+  header: {
+    flexDirection: "row", alignItems: "center", paddingHorizontal: 24, paddingBottom: 20,
+    backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#e2e8f0", ...SHADOW
   },
   headerTitle: { fontSize: 24, fontFamily: "Nunito_800ExtraBold", color: "#1e293b" },
   headerSubtitle: { fontSize: 13, fontFamily: "Nunito_600SemiBold", color: "#64748b", marginTop: 4 },
   qrBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#f0fdf4", alignItems: "center", justifyContent: "center" },
-  
+
   tabContainer: { backgroundColor: "#fff", padding: 12, borderBottomWidth: 1, borderBottomColor: "#e2e8f0" },
   tab: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: "#f1f5f9", marginRight: 8 },
   tabActive: { backgroundColor: "#154212" },

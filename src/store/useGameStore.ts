@@ -86,7 +86,6 @@ interface GameState {
   updateProfile: (data: { fullName?: string; dob?: string; email?: string; avatarUrl?: string; coverUrl?: string; bio?: string; location?: string }) => Promise<any>;
   addExp: (amount: number) => Promise<void>;
   logout: () => void;
-  changePotSkin: (potId: string, skinId: string) => void;
   hasSeenTutorial: boolean;
   setHasSeenTutorial: (val: boolean) => void;
 }
@@ -363,6 +362,35 @@ const useGameStore = create<GameState>((set, get) => ({
     get().syncGarden();
   },
 
+  addGrowth: (amount: number) => {
+    set((state) => ({
+      pots: state.pots.map(pot => {
+        if (!pot.hasPlant) return pot;
+        
+        let newProgress = pot.growthProgress + amount;
+        let newStage = pot.growthStage;
+        
+        if (newProgress >= 100) {
+          const idx = GROWTH_STAGE_ORDER.indexOf(pot.growthStage as any);
+          if (idx >= 0 && idx < GROWTH_STAGE_ORDER.length - 1) {
+            newStage = GROWTH_STAGE_ORDER[idx + 1];
+            newProgress = 0;
+            const tt = get().t;
+            get().showToast(
+              tt('garden.toast_stage_developed', { stage: translatePotStage(newStage, tt as any) }),
+              'success'
+            );
+          } else {
+            newProgress = 100;
+          }
+        }
+        
+        return { ...pot, growthProgress: newProgress, growthStage: newStage, isWilted: false };
+      })
+    }));
+    get().syncGarden();
+  },
+
   checkDailyStatus: async () => {
     // This would ideally check with the backend for last activity
     // For now, it's a placeholder for the wilting logic
@@ -433,28 +461,6 @@ const useGameStore = create<GameState>((set, get) => ({
     get().syncGarden();
   },
 
-  advancePotStage: (potId) => {
-    const stages = ["Nảy mầm", "Cây non", "Cây trưởng thành", "Ra hoa", "Kết trái"];
-    set((state) => ({
-      pots: state.pots.map(p => {
-        if (p.id !== potId || !p.hasPlant) return p;
-        const currentIdx = stages.indexOf(p.growthStage);
-        if (currentIdx >= 0 && currentIdx < stages.length - 1) {
-          return { ...p, growthStage: stages[currentIdx + 1], growthProgress: 0 };
-        }
-        return p;
-      })
-    }));
-    get().syncGarden();
-  },
-
-  changePotSkin: (potId, skinId) => {
-    set((state) => ({
-      pots: state.pots.map(p => p.id === potId ? { ...p, skinId } : p)
-    }));
-    get().syncGarden();
-  },
-
   placePot: (potId, skinId) => {
     set((state) => ({
       pots: state.pots.map((p) =>
@@ -469,6 +475,15 @@ const useGameStore = create<GameState>((set, get) => ({
           isWilted: false,
           growingUntil: 0
         } : p
+      ),
+    }));
+    get().syncGarden();
+  },
+
+  changePotSkin: (potId, skinId) => {
+    set((state) => ({
+      pots: state.pots.map((p) =>
+        p.id === potId ? { ...p, skinId: skinId } : p
       ),
     }));
     get().syncGarden();
@@ -563,6 +578,17 @@ const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
+  fetchInventory: async () => {
+    const { userId } = get();
+    if (!userId) return;
+    try {
+      const data: any = await shopService.getInventory(userId);
+      set({ inventory: data || [] });
+    } catch (error) {
+      console.error("Fetch inventory error:", error);
+    }
+  },
+
   fetchRedemptions: async () => {
     const { userId } = get();
     if (!userId) return;
@@ -613,6 +639,7 @@ const useGameStore = create<GameState>((set, get) => ({
 
       get().fetchRedemptions();
       get().fetchSubmissions();
+      get().fetchInventory();
       get().registerPushToken();
       return data;
     } catch (error: any) {
@@ -756,13 +783,6 @@ const useGameStore = create<GameState>((set, get) => ({
       redemptions: [],
     });
   },
-
-  changePotSkin: (potId, skinId) => {
-    set((state) => ({
-      pots: state.pots.map(p => p.id === potId ? { ...p, skinId } : p)
-    }));
-    get().syncGarden();
-  },
-}));
+}) as any);
 
 export { useGameStore };

@@ -224,7 +224,7 @@ export default function LibraryScreen() {
           <Animated.View entering={FadeInDown.duration(600)} style={st.priceWidget}>
             <View style={st.priceHeader}>
               <MaterialCommunityIcons name="trending-up" size={20} color="#154212" />
-              <Text style={st.priceHeaderText}>Cập nhật giá nông sản</Text>
+              <Text style={st.priceHeaderText}>{t('library.prices_title')}</Text>
               {pricesLoading && <ActivityIndicator size="small" color="#154212" />}
             </View>
             
@@ -233,7 +233,7 @@ export default function LibraryScreen() {
               <View style={st.priceRow}>
                 <View style={st.priceInfo}>
                   <Text style={st.productName}>{prices?.coffee?.name || "Cà phê Robusta xô"}</Text>
-                  <Text style={st.productSub}>{prices?.coffee?.location || "Đắk Lắk"} - Hôm nay</Text>
+                  <Text style={st.productSub}>{prices?.coffee?.location || "Đắk Lắk"} - {t('library.today')}</Text>
                 </View>
                 <View style={st.priceValueContainer}>
                   <Text style={[st.priceValue, { color: prices?.coffee?.trendType === 'up' ? '#dc2626' : '#154212' }]}>
@@ -258,7 +258,7 @@ export default function LibraryScreen() {
               <View style={st.priceRow}>
                 <View style={st.priceInfo}>
                   <Text style={st.productName}>{prices?.fertilizers?.[0]?.name || "Phân DAP Hàn Quốc"}</Text>
-                  <Text style={st.productSub}>Giá tham khảo</Text>
+                  <Text style={st.productSub}>{t('library.ref_price')}</Text>
                 </View>
                 <View style={st.priceValueContainer}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -279,7 +279,7 @@ export default function LibraryScreen() {
                   {!isFertExpanded && (
                     <View style={[st.trendBadge, { backgroundColor: '#f3f4f6' }]}>
                       <Text style={[st.trendText, { color: '#6b7280' }]}>
-                        {prices?.fertilizers?.[0]?.trend || "Ổn định"}
+                        {prices?.fertilizers?.[0]?.trend || t('library.stable')}
                       </Text>
                     </View>
                   )}

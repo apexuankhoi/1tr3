@@ -237,14 +237,14 @@ export default function HomeScreen({ navigation }: any) {
   // Initial Data & Growth Sync
   useEffect(() => {
     if (!userId) return;
-    
+
     const init = async () => {
       await fetchUserData(userId);
       await fetchInventory();
       await fetchRedemptions();
       await fetchSubmissions();
     };
-    
+
     init();
 
     // Background Growth Refresh: Every 60 seconds (1 minute = 1% growth)
@@ -295,14 +295,27 @@ export default function HomeScreen({ navigation }: any) {
 
   const getPlantSize = (pot: PotData): number => {
     switch (pot.growthStage) {
-      case "Hạt cà phê": return 100;
-      case "Nảy mầm": return 110;
-      case "Cây non": return 120;
+      case "Hạt cà phê": return 60;
+      case "Nảy mầm": return 70;
+      case "Cây non": return 100;
       case "Cây trưởng thành":
-      case "Trưởng thành": return 130;
-      case "Ra hoa": return 135;
-      case "Kết trái": return 140;
-      default: return 110;
+      case "Trưởng thành": return 140;
+      case "Ra hoa": return 150;
+      case "Kết trái": return 160;
+      default: return 80;
+    }
+  };
+
+  const getPlantTop = (pot: PotData): number => {
+    switch (pot.growthStage) {
+      case "Hạt cà phê": return 78;
+      case "Nảy mầm": return 80;
+      case "Cây non": return 40;
+      case "Cây trưởng thành":
+      case "Trưởng thành": return -10;
+      case "Ra hoa": return -25;
+      case "Kết trái": return -35;
+      default: return 40;
     }
   };
 
@@ -355,7 +368,7 @@ export default function HomeScreen({ navigation }: any) {
       </View>
 
       <View style={st.levelContainer}>
-        <View style={st.levelBadge}><Text style={st.levelText}>{t('home.level')}.{level}</Text></View>
+        <View style={st.levelBadge}><Text style={st.levelText}>{t('home.level')} {level}</Text></View>
         <View style={st.expTrack}>
           <LinearGradient colors={['#FCD34D', '#F59E0B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[st.expFill, { width: `${Math.min(100, (exp / (level * 100)) * 100)}%` }]} />
           <Text style={st.expText}>{exp} / {level * 100} {t('home.exp')}</Text>
@@ -412,9 +425,9 @@ export default function HomeScreen({ navigation }: any) {
                           </View>
                         ) : (
                           <Image
-                            source={POT_SKINS[pot.skinId]?.image || require('../../assets/chau/11.png')} 
-                            style={st.potSkinImg} 
-                            resizeMode="contain" 
+                            source={POT_SKINS[pot.skinId]?.image || require('../../assets/chau/11.png')}
+                            style={st.potSkinImg}
+                            resizeMode="contain"
                           />
                         )}
 
@@ -424,7 +437,11 @@ export default function HomeScreen({ navigation }: any) {
                             source={treeImg}
                             style={[
                               st.plantImg,
-                              { width: getPlantSize(pot), height: getPlantSize(pot) },
+                              {
+                                width: getPlantSize(pot),
+                                height: getPlantSize(pot),
+                                top: getPlantTop(pot)
+                              },
                               pot.isWilted && { tintColor: '#666', opacity: 0.8 }
                             ]}
                             resizeMode="contain"
@@ -548,80 +565,83 @@ export default function HomeScreen({ navigation }: any) {
         </View>
       </Modal>
 
-      {/* Plant Picker Modal */}
-      <Modal visible={showPlantPicker} transparent animationType="slide">
+      {/* Plant Picker Modal (Seed Picker) */}
+      <Modal visible={showPlantPicker} transparent animationType="fade">
         <View style={st.modalOverlay}>
-          <View style={st.skinPickerCard}>
+          <RNAnimated.View style={st.seedPickerCard}>
             <View style={st.modalHeader}>
-              <Text style={st.modalTitle}>{t('garden.choose_seed')}</Text>
-              <TouchableOpacity onPress={() => setShowPlantPicker(false)}><MaterialCommunityIcons name="close" size={24} color="#64748b" /></TouchableOpacity>
+              <View>
+                <Text style={st.modalTitle}>{t('garden.choose_seed')}</Text>
+                <Text style={st.modalSubtitle}>Chọn loại cây bạn muốn trồng hôm nay</Text>
+              </View>
+              <TouchableOpacity
+                style={st.closeBtn}
+                onPress={() => setShowPlantPicker(false)}
+              >
+                <MaterialCommunityIcons name="close" size={20} color="#64748b" />
+              </TouchableOpacity>
             </View>
-            <View style={st.plantPickerList}>
+
+            <View style={st.seedGrid}>
               {(() => {
-                const currentSeeds = seeds; // Use the value from state
                 const cafeSeeds = inventory.find(i => i.item_id === 1)?.quantity || 0;
                 const sauriengSeedsCount = inventory.find(i => i.item_id === 2)?.quantity || 0;
-                const displayCafeSeedsCount = Math.max(cafeSeeds, currentSeeds);
-                
-                // Store in component scope by defining them before or passing them
-                // But simpler: just move the logic up before the return
-                return null;
-              })() || null}
-              
-              {/* Calculating values in component scope for accessibility */}
-              {(() => {
-                const currentSeeds = seeds;
-                const cafeSeeds = inventory.find(i => i.item_id === 1)?.quantity || 0;
-                const sauriengSeedsCount = inventory.find(i => i.item_id === 2)?.quantity || 0;
-                const displayCafeSeedsCount = Math.max(cafeSeeds, currentSeeds);
+                const displayCafeSeedsCount = Math.max(cafeSeeds, seeds);
+
+                const seedTypes = [
+                  { id: 'cafe', name: t('garden.seed_cafe'), count: displayCafeSeedsCount, icon: '☕', color: ['#8B4513', '#A0522D'] },
+                  { id: 'saurieng', name: t('garden.seed_saurieng'), count: sauriengSeedsCount, icon: '🍈', color: ['#15803D', '#166534'] },
+                ];
 
                 return (
                   <>
-                    <TouchableOpacity
-                      style={[st.plantOption, displayCafeSeedsCount <= 0 && { opacity: 0.5 }]}
-                      disabled={displayCafeSeedsCount <= 0}
-                      onPress={() => {
-                        if (selectedPotId) plantSeed(selectedPotId, 'cafe');
-                        setShowPlantPicker(false);
-                      }}
-                    >
-                      <View style={st.plantOptionIcon}><Text style={{ fontSize: 30 }}>☕</Text></View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={st.plantOptionName}>{t('garden.seed_cafe')}</Text>
-                        <Text style={{ color: '#64748b', fontSize: 12 }}>{t('common.quantity')}: {displayCafeSeedsCount}</Text>
-                      </View>
-                      {displayCafeSeedsCount > 0 && <MaterialCommunityIcons name="chevron-right" size={20} color="#cbd5e1" />}
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[st.plantOption, sauriengSeedsCount <= 0 && { opacity: 0.5 }]}
-                      disabled={sauriengSeedsCount <= 0}
-                      onPress={() => {
-                        if (selectedPotId) plantSeed(selectedPotId, 'saurieng');
-                        setShowPlantPicker(false);
-                      }}
-                    >
-                      <View style={st.plantOptionIcon}><Text style={{ fontSize: 30 }}>🍈</Text></View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={st.plantOptionName}>{t('garden.seed_saurieng')}</Text>
-                        <Text style={{ color: '#64748b', fontSize: 12 }}>{t('common.quantity')}: {sauriengSeedsCount}</Text>
-                      </View>
-                      {sauriengSeedsCount > 0 && <MaterialCommunityIcons name="chevron-right" size={20} color="#cbd5e1" />}
-                    </TouchableOpacity>
+                    {seedTypes.map((type) => (
+                      <TouchableOpacity
+                        key={type.id}
+                        activeOpacity={0.8}
+                        style={[st.seedCard, type.count <= 0 && st.seedCardDisabled]}
+                        disabled={type.count <= 0}
+                        onPress={() => {
+                          if (selectedPotId) plantSeed(selectedPotId, type.id as any);
+                          setShowPlantPicker(false);
+                        }}
+                      >
+                        <LinearGradient
+                          colors={type.count > 0 ? type.color : ['#f1f5f9', '#e2e8f0']}
+                          style={st.seedCardGradient}
+                        >
+                          <Text style={{ fontSize: 32 }}>{type.icon}</Text>
+                        </LinearGradient>
+                        <View style={st.seedInfo}>
+                          <Text style={st.seedName}>{type.name}</Text>
+                          <View style={st.seedBadge}>
+                            <Text style={st.seedBadgeText}>x{type.count}</Text>
+                          </View>
+                        </View>
+                        {type.count > 0 && (
+                          <View style={st.plantActionBadge}>
+                            <MaterialCommunityIcons name="plus" size={16} color="#fff" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    ))}
 
                     {displayCafeSeedsCount <= 0 && sauriengSeedsCount <= 0 && (
                       <TouchableOpacity
-                        style={[st.shopRedirectBtn, { marginTop: 10 }]}
+                        style={st.emptySeedsBtn}
                         onPress={() => { setShowPlantPicker(false); navigation.navigate("Shop"); }}
                       >
-                        <Text style={st.shopRedirectText}>{t('garden.go_to_shop_buy_seeds') || "Mua thêm hạt giống"}</Text>
+                        <LinearGradient colors={['#6366f1', '#4f46e5']} style={st.emptySeedsGradient}>
+                          <MaterialCommunityIcons name="store" size={20} color="#fff" />
+                          <Text style={st.emptySeedsText}>{t('garden.go_to_shop_buy_seeds') || "Mua thêm hạt giống"}</Text>
+                        </LinearGradient>
                       </TouchableOpacity>
                     )}
                   </>
                 );
               })()}
             </View>
-          </View>
+          </RNAnimated.View>
         </View>
       </Modal>
     </ImageBackground>
@@ -650,7 +670,7 @@ const st = StyleSheet.create({
   gardenGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, backgroundColor: 'transparent' },
   gridItem: { width: '33.33%', marginBottom: 50, alignItems: 'center', backgroundColor: 'transparent' },
   cloudSlot: { width: 140, height: 240, justifyContent: 'center', alignItems: 'center', position: 'relative', backgroundColor: 'transparent' },
-  plantImg: { width: 60, height: 60, position: 'absolute', top: 40, zIndex: 10 },
+  plantImg: { width: 60, height: 60, position: 'absolute', top: 20, zIndex: 10 },
   addBtnWrap: { position: 'absolute', top: 110, zIndex: 10, borderRadius: 18 },
   addBtnGradient: { width: 32, height: 32, borderRadius: 16, borderWidth: 2, borderColor: '#fff', justifyContent: 'center', alignItems: 'center' },
   addBtnText: { color: '#fff', fontSize: 20, fontFamily: 'Nunito_600SemiBold' },
@@ -700,10 +720,26 @@ const st = StyleSheet.create({
   tutorialBtn: { backgroundColor: '#154212', paddingVertical: 16, paddingHorizontal: 40, borderRadius: 20 },
   tutorialBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Nunito_800ExtraBold' },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.7)', justifyContent: 'flex-end' },
   skinPickerCard: { backgroundColor: '#fff', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 40 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontFamily: 'Nunito_800ExtraBold', color: '#1e293b' },
+  seedPickerCard: { backgroundColor: '#fff', borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 24, paddingBottom: 50, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 20, elevation: 10 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
+  modalTitle: { fontSize: 22, fontFamily: 'Nunito_800ExtraBold', color: '#1e293b', marginBottom: 4 },
+  modalSubtitle: { fontSize: 14, fontFamily: 'Nunito_600SemiBold', color: '#64748b' },
+  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f1f5f9', justifyContent: 'center', alignItems: 'center' },
+  seedGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between' },
+  seedCard: { width: '47%', backgroundColor: '#f8fafc', borderRadius: 24, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: '#f1f5f9', position: 'relative' },
+  seedCardDisabled: { opacity: 0.6 },
+  seedCardGradient: { width: '100%', aspectRatio: 1, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
+  seedInfo: { alignItems: 'center', gap: 4 },
+  seedName: { fontSize: 15, fontFamily: 'Nunito_800ExtraBold', color: '#334155', textAlign: 'center' },
+  seedBadge: { backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  seedBadgeText: { fontSize: 12, fontFamily: 'Nunito_800ExtraBold', color: '#64748b' },
+  plantActionBadge: { position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.9)', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4 },
+  emptySeedsBtn: { width: '100%', marginTop: 10, borderRadius: 20, overflow: 'hidden' },
+  emptySeedsGradient: { paddingVertical: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  emptySeedsText: { color: '#fff', fontSize: 16, fontFamily: 'Nunito_800ExtraBold' },
+
   skinList: { paddingVertical: 10, gap: 16 },
   skinItem: { width: 100, alignItems: 'center', gap: 8 },
   skinItemActive: { opacity: 1 },

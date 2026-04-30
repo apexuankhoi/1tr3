@@ -27,7 +27,7 @@ export default function AdminTasksScreen() {
       const data: any = await taskService.getTasks();
       setTasks(data || []);
     } catch (err) {
-      console.error("Lỗi tải tasks:", err);
+      console.error(t('common.error'), err);
     } finally {
       setLoading(false);
     }

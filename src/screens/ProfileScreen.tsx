@@ -105,7 +105,7 @@ export default function ProfileScreen() {
         const uploadedUrl = await uploadImage(result.assets[0].uri);
         await updateProfile({ [type === 'avatar' ? 'avatarUrl' : 'coverUrl']: uploadedUrl });
       } catch (error) {
-        console.error(`Lỗi upload ${type}:`, error);
+        // Log removed
       } finally {
         if (type === 'avatar') setLoading(false);
         else setUploadingCover(false);

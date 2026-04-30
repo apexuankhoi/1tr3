@@ -288,9 +288,9 @@ export default function TasksScreen({ navigation }: any) {
                         <View style={[st.quizWrap, { backgroundColor: "#faf5ff", padding: 12, borderRadius: 12, borderStyle: 'dashed', borderWidth: 1, borderColor: '#7c3aed44' }]}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                             <MaterialCommunityIcons name="brain" size={18} color="#7c3aed" />
-                            <Text style={{ fontSize: 13, fontFamily: 'Nunito_700Bold', color: '#7c3aed' }}>Hệ thống trắc nghiệm đã sẵn sàng</Text>
+                            <Text style={{ fontSize: 13, fontFamily: 'Nunito_700Bold', color: '#7c3aed' }}>{t('tasks.quiz_ready_title')}</Text>
                           </View>
-                          <Text style={{ fontSize: 11, fontFamily: 'Nunito_600SemiBold', color: '#6b7280', marginTop: 4 }}>Nhấn vào nút "Bắt đầu" bên dưới để trả lời câu hỏi và nhận thưởng.</Text>
+                          <Text style={{ fontSize: 11, fontFamily: 'Nunito_600SemiBold', color: '#6b7280', marginTop: 4 }}>{t('tasks.quiz_ready_body')}</Text>
                         </View>
                       )}
 
@@ -299,9 +299,9 @@ export default function TasksScreen({ navigation }: any) {
                         <View style={[st.quizWrap, { backgroundColor: "#d1fae5", padding: 12, borderRadius: 12, borderStyle: 'solid', borderWidth: 1, borderColor: '#10b98144' }]}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                             <MaterialCommunityIcons name="check-circle" size={18} color="#10b981" />
-                            <Text style={{ fontSize: 13, fontFamily: 'Nunito_700Bold', color: '#065f46' }}>Bạn đã làm đúng rồi!</Text>
+                            <Text style={{ fontSize: 13, fontFamily: 'Nunito_700Bold', color: '#065f46' }}>{t('tasks.quiz_correct_title')}</Text>
                           </View>
-                          <Text style={{ fontSize: 11, fontFamily: 'Nunito_600SemiBold', color: '#065f46', marginTop: 4 }}>Nhiệm vụ này đã hoàn thành. Hãy tiếp tục với các thử thách khác nhé.</Text>
+                          <Text style={{ fontSize: 11, fontFamily: 'Nunito_600SemiBold', color: '#065f46', marginTop: 4 }}>{t('tasks.quiz_correct_body')}</Text>
                         </View>
                       )}
 
@@ -316,7 +316,7 @@ export default function TasksScreen({ navigation }: any) {
                           <LinearGradient colors={cfg.gradient} style={st.actionGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                             <MaterialCommunityIcons name={statusCfg.icon as any} size={16} color="#fff" />
                             <Text style={[st.actionText, { color: "#fff" }]}>
-                              {status === 'rejected' ? t('common.edit') : isQuiz ? "Bắt đầu" : t('tasks.submit')}
+                              {status === 'rejected' ? t('common.edit') : isQuiz ? t('common.start') : t('tasks.submit')}
                             </Text>
                           </LinearGradient>
                         ) : (

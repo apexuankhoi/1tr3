@@ -100,7 +100,7 @@ export default function AdminLibraryScreen() {
   };
 
   const handleDelete = (id: number) => {
-    Alert.alert(t('common.confirm'), "Bạn có chắc chắn muốn xóa bài viết này?", [
+    Alert.alert(t('common.confirm'), t('admin_dash.confirm_delete_article'), [
       { text: t('common.cancel') },
       { text: t('common.delete'), style: "destructive", onPress: async () => {
           try {
@@ -163,41 +163,41 @@ export default function AdminLibraryScreen() {
       <Modal visible={editModalVisible} animationType="slide">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={[st.modalContent, { paddingTop: insets.top + 20 }]}>
-            <Text style={st.modalTitle}>{currentItem?.id ? "Sửa Bài Viết" : "Thêm Bài Viết"}</Text>
+            <Text style={st.modalTitle}>{currentItem?.id ? t('admin_shop.edit_item') : t('admin_shop.add_item')}</Text>
             
-            <Text style={st.label}>Loại nội dung</Text>
+            <Text style={st.label}>{t('admin_dash.content_type')}</Text>
             <View style={st.typeSelector}>
               <TouchableOpacity 
                 onPress={() => setCurrentItem({...currentItem, type: 'image'})}
                 style={[st.typeBtn, currentItem?.type === 'image' && st.typeBtnActive]}
               >
                 <MaterialCommunityIcons name="image" size={20} color={currentItem?.type === 'image' ? '#fff' : '#475569'} />
-                <Text style={[st.typeBtnText, currentItem?.type === 'image' && st.typeBtnTextActive]}>Ảnh/Bài viết</Text>
+                <Text style={[st.typeBtnText, currentItem?.type === 'image' && st.typeBtnTextActive]}>{t('admin_dash.type_article')}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 onPress={() => setCurrentItem({...currentItem, type: 'video'})}
                 style={[st.typeBtn, currentItem?.type === 'video' && st.typeBtnActive]}
               >
                 <MaterialCommunityIcons name="video" size={20} color={currentItem?.type === 'video' ? '#fff' : '#475569'} />
-                <Text style={[st.typeBtnText, currentItem?.type === 'video' && st.typeBtnTextActive]}>Video</Text>
+                <Text style={[st.typeBtnText, currentItem?.type === 'video' && st.typeBtnTextActive]}>{t('admin_dash.type_video')}</Text>
               </TouchableOpacity>
             </View>
 
             {currentItem?.type === 'video' ? (
               <View style={st.videoSection}>
-                <Text style={st.label}>Nguồn Video</Text>
+                <Text style={st.label}>{t('admin_dash.video_source')}</Text>
                 <View style={st.row}>
                   <TouchableOpacity 
                     onPress={() => setCurrentItem({...currentItem, video_source: 'youtube'})}
                     style={[st.sourceBtn, (currentItem?.video_source === 'youtube' || !currentItem?.video_source) && st.sourceBtnActive]}
                   >
-                    <Text style={[st.sourceBtnText, (currentItem?.video_source === 'youtube' || !currentItem?.video_source) && st.sourceBtnTextActive]}>YouTube Link</Text>
+                    <Text style={[st.sourceBtnText, (currentItem?.video_source === 'youtube' || !currentItem?.video_source) && st.sourceBtnTextActive]}>{t('admin_dash.source_yt')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
                     onPress={() => setCurrentItem({...currentItem, video_source: 'upload'})}
                     style={[st.sourceBtn, currentItem?.video_source === 'upload' && st.sourceBtnActive]}
                   >
-                    <Text style={[st.sourceBtnText, currentItem?.video_source === 'upload' && st.sourceBtnTextActive]}>Tải tệp lên</Text>
+                    <Text style={[st.sourceBtnText, currentItem?.video_source === 'upload' && st.sourceBtnTextActive]}>{t('admin_dash.source_upload')}</Text>
                   </TouchableOpacity>
                 </View>
 

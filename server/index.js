@@ -473,24 +473,20 @@ app.patch('/api/user/profile/:id', async (req, res) => {
 
 // Update User Stats (Coins + Seeds + Level + Exp + Location)
 app.patch('/api/stats/:id', async (req, res) => {
-    const { coins, seeds, waterLevel, energyLevel, growthStage, growingUntil, level, exp, lat, lng } = req.body;
+    const { coins, seeds, level, exp, lat, lng } = req.body;
     
     try {
         await db.query(
             `UPDATE users SET 
                 coins = COALESCE(?, coins), 
                 seeds = COALESCE(?, seeds), 
-                water_level = COALESCE(?, water_level), 
-                energy_level = COALESCE(?, energy_level), 
-                growth_stage = COALESCE(?, growth_stage), 
-                growing_until = COALESCE(?, growing_until), 
                 level = COALESCE(?, level), 
                 exp = COALESCE(?, exp),
                 last_lat = COALESCE(?, last_lat),
                 last_lng = COALESCE(?, last_lng),
                 last_seen = NOW()
             WHERE id = ?`,
-            [coins, seeds, waterLevel, energyLevel, growthStage, growingUntil, level, exp, lat, lng, req.params.id]
+            [coins, seeds, level, exp, lat, lng, req.params.id]
         );
         return sendResponse(res, true, null, 'Đồng bộ chỉ số thành công');
     } catch (err) {

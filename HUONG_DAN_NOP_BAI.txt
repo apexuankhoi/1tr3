@@ -1,0 +1,36 @@
+============================================================
+THÔNG TIN DỰ ÁN: NÔNG NGHIỆP XANH (1TR3)
+============================================================
+
+1. NỀN TẢNG CÔNG NGHỆ:
+------------------------------------------------------------
+- Loại hình: Mobile Cross-Platform Application (React Native & Expo).
+- Server API: http://180.93.36.93:3000/api/ (Cloud Server 24/7).
+
+2. TÍNH NĂNG ĐỘT PHÁ (ĐIỂM CỘNG VỚI BGK):
+------------------------------------------------------------
+- 🤖 TỰ ĐỘNG DUYỆT ẢNH BẰNG AI: Tích hợp Gemini AI để tự động phân tích và phê duyệt ảnh chụp nhiệm vụ bảo vệ môi trường của người dùng.
+- 📈 GIÁ NÔNG SẢN THỜI GIAN THỰC: Hệ thống tự động cào dữ liệu (Scraping) giá Cà phê, Phân bón mới nhất để hỗ trợ nhà nông.
+- 🪴 GIẢ LẬP SINH TRƯỞNG CHUẨN XÁC: Logic tăng trưởng cây trồng dựa trên thời gian thực, yêu cầu chăm sóc (nước/phân bón) như thực tế.
+- 🌎 ĐA NGÔN NGỮ ĐẶC SẮC: Hỗ trợ tiếng Việt, tiếng Anh và đặc biệt là tiếng E-đê (phù hợp với định hướng phát triển vùng cao).
+
+3. TÀI KHOẢN TRẢI NGHIỆM:
+------------------------------------------------------------
+- Tên đăng nhập: ....................
+- Mật khẩu: ....................
+(Đã nạp sẵn Xu và Kinh nghiệm để BGK không cần cày cuốc).
+
+4. HƯỚNG DẪN 3 BƯỚC TRẢI NGHIỆM NHANH:
+------------------------------------------------------------
+- BƯỚC 1: QUẢN LÝ VƯỜN NHÀ
+  Vào "Vườn nhà" -> Chọn đất trống -> Trồng cây -> Tưới nước/Bón phân để thấy cây lớn lên theo thời gian thực.
+  
+- BƯỚC 2: THỰC HIỆN NHIỆM VỤ AI
+  Vào "Nhiệm vụ" -> Chọn thử thách (Trắc nghiệm hoặc Chụp ảnh) -> Thực hiện hành động để nhận thưởng Xu và Exp.
+  
+- BƯỚC 3: CẬP NHẬT TIN TỨC & MUA SẮM
+  Vào "Bảng tin nhà nông" để xem biến động giá thị trường -> Vào "Cửa hàng" để dùng Xu mua hạt giống/vật phẩm nâng cấp.
+
+============================================================
+Chúc đại ca tự tin nộp bài và giành giải Nhất!
+============================================================

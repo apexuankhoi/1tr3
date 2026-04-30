@@ -190,7 +190,7 @@ export default function AdminUsersScreen() {
               style={[st.filterPill, filterRole === role && st.filterPillActive]}
             >
               <Text style={[st.filterText, filterRole === role && st.filterTextActive]}>
-                {role === 'all' ? "Tất cả" : role.charAt(0).toUpperCase() + role.slice(1)}
+                {role === 'all' ? t('tasks.filter_all') : role.charAt(0).toUpperCase() + role.slice(1)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -306,18 +306,18 @@ export default function AdminUsersScreen() {
                         color={selectedUser.is_locked ? "#16a34a" : "#ef4444"} 
                       />
                       <Text style={[st.banBtnText, { color: selectedUser.is_locked ? "#16a34a" : "#ef4444" }]}>
-                        {selectedUser.is_locked ? "MỞ KHÓA TÀI KHOẢN" : "KHÓA TÀI KHOẢN NÀY"}
+                        {selectedUser.is_locked ? t('admin_users.unlock').toUpperCase() : t('admin_users.lock').toUpperCase()}
                       </Text>
                     </TouchableOpacity>
                   </View>
 
                   <View style={st.section}>
-                    <Text style={st.sectionTitle}>Quản lý kho đồ (Inventory)</Text>
+                    <Text style={st.sectionTitle}>{t('admin_users.inventory_mgmt_user')}</Text>
                     {invLoading ? (
                       <ActivityIndicator size="small" color="#154212" />
                     ) : userInventory.length === 0 ? (
                       <View style={st.emptyInv}>
-                        <Text style={st.emptyInvText}>Người dùng này chưa có vật phẩm nào</Text>
+                        <Text style={st.emptyInvText}>{t('admin_users.empty_inv_user')}</Text>
                       </View>
                     ) : (
                       userInventory.map((item) => (
@@ -341,7 +341,7 @@ export default function AdminUsersScreen() {
               )}
 
               <TouchableOpacity style={st.masterSaveBtn} onPress={handleUpdateUser}>
-                <Text style={st.masterSaveBtnText}>CẬP NHẬT TẤT CẢ THAY ĐỔI</Text>
+                <Text style={st.masterSaveBtnText}>{t('admin_users.update_all')}</Text>
               </TouchableOpacity>
             </View>
           </View>
