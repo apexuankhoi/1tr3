@@ -252,6 +252,7 @@ export default function QuizScreen({ navigation, route }: any) {
         style={{ flex: 1 }} 
         contentContainerStyle={{ flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
+        alwaysBounceVertical={true}
       >
         <Animated.View style={[st.body, { opacity: fadeAnim }]}>
           {/* Progress Bar */}
@@ -308,7 +309,7 @@ export default function QuizScreen({ navigation, route }: any) {
 
           {/* Explanation Section */}
           {quizState !== "idle" && (
-            <Animated.View entering={FadeInDown} style={[st.explanationCard, isWrong && { borderLeftColor: "#ef4444", backgroundColor: "#fef2f2" }]}>
+            <FadeInDown style={[st.explanationCard, isWrong && { borderLeftColor: "#ef4444", backgroundColor: "#fef2f2" }]}>
               <View style={st.explanationHeader}>
                 <MaterialCommunityIcons name="lightbulb-on" size={20} color={isCorrect ? "#7c3aed" : "#ef4444"} />
                 <Text style={[st.explanationTitle, isWrong && { color: "#ef4444" }]}>{isCorrect ? "Giải thích" : "Đáp án đúng là " + correctAnswer}</Text>
@@ -316,11 +317,11 @@ export default function QuizScreen({ navigation, route }: any) {
               <Text style={[st.explanationText, isWrong && { color: "#7f1d1d" }]}>
                 {explanation || "Câu trả lời đúng là " + correctAnswer}
               </Text>
-            </Animated.View>
+            </FadeInDown>
           )}
 
           {/* Action Button */}
-          <View style={st.footer}>
+          <View style={[st.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
             {quizState === "idle" ? (
               <TouchableOpacity
                 onPress={handleConfirm}
@@ -376,7 +377,7 @@ const st = StyleSheet.create({
   progressBadge: { backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   progressText: { fontSize: 14, fontFamily: "Nunito_800ExtraBold", color: "#fff" },
 
-  body: { flex: 1, padding: 20 },
+  body: { flexGrow: 1, padding: 20 },
   miniProgress: { height: 4, backgroundColor: "#e5e7eb", borderRadius: 2, marginBottom: 20, overflow: "hidden" },
   miniProgressFill: { height: "100%", backgroundColor: "#7c3aed" },
 
@@ -407,7 +408,7 @@ const st = StyleSheet.create({
   explanationTitle: { fontSize: 14, fontFamily: "Nunito_800ExtraBold", color: "#7c3aed", textTransform: "uppercase" },
   explanationText: { fontSize: 14, fontFamily: "Nunito_600SemiBold", color: "#4b5563", lineHeight: 22 },
 
-  footer: { marginTop: "auto", paddingBottom: 10 },
+  footer: { marginTop: "auto", paddingTop: 10 },
   confirmBtn: { borderRadius: 18, overflow: "hidden" },
   confirmDisabled: { opacity: 0.4 },
   confirmGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 16, gap: 10 },

@@ -20,6 +20,7 @@ import { useGameStore } from "../store/useGameStore";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withSpring, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Constants from "expo-constants";
 
 const { width, height } = Dimensions.get("window");
 
@@ -151,6 +152,10 @@ export default function LoginScreen() {
               </Animated.View>
 
             </View>
+
+            <Animated.View entering={FadeInUp.delay(800)} style={st.versionBox}>
+              <Text style={st.versionText}>Phiên bản {Constants.expoConfig?.version || "1.0.0"}</Text>
+            </Animated.View>
           </LinearGradient>
         </TouchableWithoutFeedback>
       </ImageBackground>
@@ -187,5 +192,8 @@ const st = StyleSheet.create({
 
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 25 },
   footerText: { color: "#64748b", fontFamily: "Nunito_600SemiBold" },
-  registerLink: { color: "#154212", fontFamily: "Nunito_800ExtraBold" }
+  registerLink: { color: "#154212", fontFamily: "Nunito_800ExtraBold" },
+
+  versionBox: { position: "absolute", bottom: 30, left: 0, right: 0, alignItems: "center" },
+  versionText: { color: "rgba(255,255,255,0.4)", fontSize: 12, fontFamily: "Nunito_600SemiBold" }
 });
