@@ -57,33 +57,33 @@ export default function TabNavigator() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarShowLabel: true,
+        tabBarHideOnKeyboard: true,
         tabBarStyle: {
           backgroundColor: "white",
-          borderTopWidth: 2,
-          borderTopColor: "#f5f5f4",
-          height: Platform.OS === "ios" ? 90 : 70,
-          paddingBottom: Platform.OS === "ios" ? 30 : 12,
-          paddingTop: 12,
-          borderTopLeftRadius: 40,
-          borderTopRightRadius: 40,
+          borderTopWidth: 1,
+          borderTopColor: "#f3f4f6",
+          height: Platform.OS === "ios" ? 88 : 75,
+          paddingBottom: Platform.OS === "ios" ? 30 : 15,
+          paddingTop: 10,
+          borderTopLeftRadius: 32,
+          borderTopRightRadius: 32,
           position: "absolute",
           bottom: 0,
           left: 0,
           right: 0,
-          shadowColor: "#2d5a27",
+          shadowColor: "#154212",
           shadowOffset: { width: 0, height: -10 },
-          shadowOpacity: 0.12,
-          shadowRadius: 40,
-          elevation: 20,
+          shadowOpacity: 0.1,
+          shadowRadius: 20,
+          elevation: 25,
         },
         tabBarActiveTintColor: "#154212",
-        tabBarInactiveTintColor: "#a8a29e",
+        tabBarInactiveTintColor: "#94a3b8",
         tabBarLabelStyle: {
           fontFamily: "Nunito_700Bold",
-          fontSize: 10,
-          textTransform: "uppercase",
-          letterSpacing: 1,
+          fontSize: 9.5,
+          marginTop: -4,
+          paddingBottom: 4,
         },
         tabBarIcon: ({ color }) => {
           let iconName: any;
@@ -102,7 +102,7 @@ export default function TabNavigator() {
           } else {
             iconName = "circle";
           }
-          return <MaterialIcons name={iconName} size={28} color={color} />;
+          return <MaterialIcons name={iconName} size={24} color={color} />;
         },
       })}
     >
