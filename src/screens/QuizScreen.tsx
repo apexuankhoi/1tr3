@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  View, Text, TouchableOpacity, StyleSheet,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView,
   Platform, Animated, Dimensions, ActivityIndicator
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -48,22 +48,57 @@ export default function QuizScreen({ navigation, route }: any) {
       loadBundle();
     } else {
       // Single question from params
+      const rawOpts = route?.params?.quiz_options;
+      const opts = rawOpts ? (typeof rawOpts === "string" ? JSON.parse(rawOpts) : rawOpts) : [];
+      const shuffled = shuffleOptions(opts, route?.params?.quiz_answer || "A");
+      
       setQuestions([{
         id: taskId,
         title: taskTitle,
         description: route?.params?.taskDesc,
-        quiz_options: route?.params?.quiz_options,
-        quiz_answer: route?.params?.quiz_answer,
+        quiz_options: shuffled.options,
+        quiz_answer: shuffled.answer,
         quiz_explanation: route?.params?.quiz_explanation,
       }]);
     }
   }, []);
 
+  const shuffleOptions = (opts: string[], correctKey: string) => {
+    if (!opts || opts.length === 0) return { options: [], answer: "A" };
+    
+    // 1. Identify correct text before stripping
+    const keyMap: any = { A: 0, B: 1, C: 2, D: 3 };
+    const correctIdx = keyMap[correctKey] ?? 0;
+    const correctText = opts[correctIdx];
+
+    // 2. Strip prefixes (A. B. C. D. ) if they exist
+    const cleanOpts = opts.map(o => o.replace(/^[A-D]\.\s*/, "").trim());
+    const cleanCorrectText = correctText.replace(/^[A-D]\.\s*/, "").trim();
+
+    // 3. Shuffle
+    const shuffled = [...cleanOpts].sort(() => Math.random() - 0.5);
+
+    // 4. Find new index of correct text
+    const newIdx = shuffled.indexOf(cleanCorrectText);
+    const reverseMap = ["A", "B", "C", "D"];
+    const newKey = reverseMap[newIdx === -1 ? 0 : newIdx];
+
+    // 5. Re-add prefixes for display consistency
+    const finalOpts = shuffled.map((o, i) => `${reverseMap[i]}. ${o}`);
+
+    return { options: finalOpts, answer: newKey };
+  };
+
   const loadBundle = async () => {
     try {
       const res: any = await taskService.getQuizQuestions();
       if (res && Array.isArray(res)) {
-        setQuestions(res);
+        const processed = res.map(q => {
+          const rawOpts = q.quiz_options ? (typeof q.quiz_options === "string" ? JSON.parse(q.quiz_options) : q.quiz_options) : [];
+          const shuffled = shuffleOptions(rawOpts, q.quiz_answer || "A");
+          return { ...q, quiz_options: shuffled.options, quiz_answer: shuffled.answer };
+        });
+        setQuestions(processed);
       }
     } catch (error) {
       console.error("Load bundle error:", error);
@@ -213,103 +248,109 @@ export default function QuizScreen({ navigation, route }: any) {
         )}
       </LinearGradient>
 
-      <Animated.View style={[st.body, { opacity: fadeAnim }]}>
-        {/* Progress Bar */}
-        {isBundle && (
-          <View style={st.miniProgress}>
-            <View style={[st.miniProgressFill, { width: `${((currentIndex + 1) / questions.length) * 100}%` }]} />
-          </View>
-        )}
-
-        {/* Question Card */}
-        <Animated.View style={[st.questionCard, { transform: [{ translateX: shakeAnim }, { scale: scaleAnim }] }]}>
-          <View style={st.quizIconRow}>
-            <View style={st.quizIcon}>
-              <MaterialCommunityIcons name="brain" size={28} color="#7c3aed" />
+      <ScrollView 
+        style={{ flex: 1 }} 
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View style={[st.body, { opacity: fadeAnim }]}>
+          {/* Progress Bar */}
+          {isBundle && (
+            <View style={st.miniProgress}>
+              <View style={[st.miniProgressFill, { width: `${((currentIndex + 1) / questions.length) * 100}%` }]} />
             </View>
-            <View style={st.quizBadge}>
-              <Text style={st.quizBadgeText}>Câu hỏi {currentIndex + 1}</Text>
-            </View>
-          </View>
-          <Text style={st.questionText}>{currentQuestion?.description}</Text>
-        </Animated.View>
-
-        {/* Options */}
-        <View style={st.optionsWrap}>
-          {options.map((opt, i) => (
-            <TouchableOpacity
-              key={i}
-              onPress={() => handleSelect(opt)}
-              activeOpacity={0.82}
-              disabled={quizState !== "idle"}
-              style={[getOptionStyle(opt), { opacity: quizState !== "idle" && selected !== getOptionKey(opt) && getOptionKey(opt) !== correctAnswer ? 0.6 : 1 }]}
-            >
-              <View style={[st.optionKey, {
-                backgroundColor: quizState !== "idle" && getOptionKey(opt) === correctAnswer ? "#10b981" :
-                  quizState !== "idle" && selected === getOptionKey(opt) && getOptionKey(opt) !== correctAnswer ? "#ef4444" :
-                  selected === getOptionKey(opt) ? "#7c3aed" : "#f3f4f6"
-              }]}>
-                <Text style={[st.optionKeyText, {
-                  color: selected === getOptionKey(opt) || (quizState !== "idle" && getOptionKey(opt) === correctAnswer) ? "#fff" : "#6b7280"
-                }]}>
-                  {getOptionKey(opt)}
-                </Text>
-              </View>
-              <Text style={getTextStyle(opt)} numberOfLines={2}>{opt}</Text>
-              {quizState !== "idle" && getOptionKey(opt) === correctAnswer && (
-                <MaterialCommunityIcons name="check-circle" size={20} color="#10b981" />
-              )}
-              {quizState !== "idle" && selected === getOptionKey(opt) && getOptionKey(opt) !== correctAnswer && (
-                <MaterialCommunityIcons name="close-circle" size={20} color="#ef4444" />
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Explanation Section */}
-        {quizState !== "idle" && (
-          <Animated.View entering={FadeInDown} style={[st.explanationCard, isWrong && { borderLeftColor: "#ef4444", backgroundColor: "#fef2f2" }]}>
-            <View style={st.explanationHeader}>
-              <MaterialCommunityIcons name="lightbulb-on" size={20} color={isCorrect ? "#7c3aed" : "#ef4444"} />
-              <Text style={[st.explanationTitle, isWrong && { color: "#ef4444" }]}>{isCorrect ? "Giải thích" : "Đáp án đúng là " + correctAnswer}</Text>
-            </View>
-            <Text style={[st.explanationText, isWrong && { color: "#7f1d1d" }]}>
-              {explanation || "Câu trả lời đúng là " + correctAnswer}
-            </Text>
-          </Animated.View>
-        )}
-
-        {/* Action Button */}
-        <View style={st.footer}>
-          {quizState === "idle" ? (
-            <TouchableOpacity
-              onPress={handleConfirm}
-              disabled={!selected}
-              activeOpacity={0.85}
-              style={[st.confirmBtn, !selected && st.confirmDisabled]}
-            >
-              <LinearGradient colors={["#7c3aed", "#9d5cef"]} style={st.confirmGrad}>
-                <Text style={st.confirmText}>Xác nhận</Text>
-                <MaterialCommunityIcons name="check" size={20} color="#fff" />
-              </LinearGradient>
-            </TouchableOpacity>
-          ) : isCorrect ? (
-            <TouchableOpacity onPress={handleNext} activeOpacity={0.85} style={st.confirmBtn}>
-              <LinearGradient colors={["#0f9b58", "#1dba6e"]} style={st.confirmGrad}>
-                <Text style={st.confirmText}>{currentIndex < questions.length - 1 ? "Câu tiếp theo" : "Hoàn thành"}</Text>
-                <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
-              </LinearGradient>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity onPress={handleRetry} activeOpacity={0.85} style={st.confirmBtn}>
-              <LinearGradient colors={["#ef4444", "#f87171"]} style={st.confirmGrad}>
-                <Text style={st.confirmText}>Thử lại</Text>
-                <MaterialCommunityIcons name="refresh" size={20} color="#fff" />
-              </LinearGradient>
-            </TouchableOpacity>
           )}
-        </View>
-      </Animated.View>
+
+          {/* Question Card */}
+          <Animated.View style={[st.questionCard, { transform: [{ translateX: shakeAnim }, { scale: scaleAnim }] }]}>
+            <View style={st.quizIconRow}>
+              <View style={st.quizIcon}>
+                <MaterialCommunityIcons name="brain" size={28} color="#7c3aed" />
+              </View>
+              <View style={st.quizBadge}>
+                <Text style={st.quizBadgeText}>Câu hỏi {currentIndex + 1}</Text>
+              </View>
+            </View>
+            <Text style={st.questionText}>{currentQuestion?.description}</Text>
+          </Animated.View>
+
+          {/* Options */}
+          <View style={st.optionsWrap}>
+            {options.map((opt, i) => (
+              <TouchableOpacity
+                key={i}
+                onPress={() => handleSelect(opt)}
+                activeOpacity={0.82}
+                disabled={quizState !== "idle"}
+                style={[getOptionStyle(opt), { opacity: quizState !== "idle" && selected !== getOptionKey(opt) && getOptionKey(opt) !== correctAnswer ? 0.6 : 1 }]}
+              >
+                <View style={[st.optionKey, {
+                  backgroundColor: quizState !== "idle" && getOptionKey(opt) === correctAnswer ? "#10b981" :
+                    quizState !== "idle" && selected === getOptionKey(opt) && getOptionKey(opt) !== correctAnswer ? "#ef4444" :
+                    selected === getOptionKey(opt) ? "#7c3aed" : "#f3f4f6"
+                }]}>
+                  <Text style={[st.optionKeyText, {
+                    color: selected === getOptionKey(opt) || (quizState !== "idle" && getOptionKey(opt) === correctAnswer) ? "#fff" : "#6b7280"
+                  }]}>
+                    {getOptionKey(opt)}
+                  </Text>
+                </View>
+                <Text style={getTextStyle(opt)} numberOfLines={2}>{opt}</Text>
+                {quizState !== "idle" && getOptionKey(opt) === correctAnswer && (
+                  <MaterialCommunityIcons name="check-circle" size={20} color="#10b981" />
+                )}
+                {quizState !== "idle" && selected === getOptionKey(opt) && getOptionKey(opt) !== correctAnswer && (
+                  <MaterialCommunityIcons name="close-circle" size={20} color="#ef4444" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Explanation Section */}
+          {quizState !== "idle" && (
+            <Animated.View entering={FadeInDown} style={[st.explanationCard, isWrong && { borderLeftColor: "#ef4444", backgroundColor: "#fef2f2" }]}>
+              <View style={st.explanationHeader}>
+                <MaterialCommunityIcons name="lightbulb-on" size={20} color={isCorrect ? "#7c3aed" : "#ef4444"} />
+                <Text style={[st.explanationTitle, isWrong && { color: "#ef4444" }]}>{isCorrect ? "Giải thích" : "Đáp án đúng là " + correctAnswer}</Text>
+              </View>
+              <Text style={[st.explanationText, isWrong && { color: "#7f1d1d" }]}>
+                {explanation || "Câu trả lời đúng là " + correctAnswer}
+              </Text>
+            </Animated.View>
+          )}
+
+          {/* Action Button */}
+          <View style={st.footer}>
+            {quizState === "idle" ? (
+              <TouchableOpacity
+                onPress={handleConfirm}
+                disabled={!selected}
+                activeOpacity={0.85}
+                style={[st.confirmBtn, !selected && st.confirmDisabled]}
+              >
+                <LinearGradient colors={["#7c3aed", "#9d5cef"]} style={st.confirmGrad}>
+                  <Text style={st.confirmText}>Xác nhận</Text>
+                  <MaterialCommunityIcons name="check" size={20} color="#fff" />
+                </LinearGradient>
+              </TouchableOpacity>
+            ) : isCorrect ? (
+              <TouchableOpacity onPress={handleNext} activeOpacity={0.85} style={st.confirmBtn}>
+                <LinearGradient colors={["#0f9b58", "#1dba6e"]} style={st.confirmGrad}>
+                  <Text style={st.confirmText}>{currentIndex < questions.length - 1 ? "Câu tiếp theo" : "Hoàn thành"}</Text>
+                  <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
+                </LinearGradient>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={handleRetry} activeOpacity={0.85} style={st.confirmBtn}>
+                <LinearGradient colors={["#ef4444", "#f87171"]} style={st.confirmGrad}>
+                  <Text style={st.confirmText}>Thử lại</Text>
+                  <MaterialCommunityIcons name="refresh" size={20} color="#fff" />
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+          </View>
+        </Animated.View>
+      </ScrollView>
     </View>
   );
 }
