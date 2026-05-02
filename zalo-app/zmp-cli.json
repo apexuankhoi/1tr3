@@ -1,0 +1,20 @@
+{
+  "cwd": "d:/1tr3/zalo-app",
+  "name": "Bản Làng Xanh",
+  "framework": "react-typescript",
+  "cssPreProcessor": "scss",
+  "includeTailwind": true,
+  "package": "zmp-ui",
+  "stateManagement": "zustand",
+  "newProject": true,
+  "template": "single-view",
+  "miniAppId": "843392481076053545",
+  "theming": {
+    "customColor": false,
+    "color": "#154212",
+    "darkTheme": false,
+    "iconFonts": true,
+    "fillBars": false,
+    "useUiKits": true
+  }
+}

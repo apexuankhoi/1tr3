@@ -1,0 +1,40 @@
+{
+  "app": {
+    "id": "843392481076053545",
+    "title": "Bản Làng Xanh",
+    "textColor": {
+      "light": "black",
+      "dark": "white"
+    },
+    "statusBar": "transparent",
+    "actionBarHidden": true,
+    "hideIOSSafeAreaBottom": true,
+    "hideAndroidBottomNavigationBar": false
+  },
+  "listCSS": [],
+  "listSyncJS": [],
+  "listAsyncJS": [],
+  "pages": [
+    "pages/login",
+    "pages/register",
+    "pages/register-info",
+    "pages/index",
+    "pages/tasks",
+    "pages/shop",
+    "pages/ranking",
+    "pages/profile",
+    "pages/library",
+    "pages/community",
+    "pages/quiz",
+    "pages/report",
+    "pages/camera",
+    "pages/qr-scanner",
+    "pages/map",
+    "pages/admin-dashboard",
+    "pages/admin-tasks",
+    "pages/admin-library",
+    "pages/admin-shop",
+    "pages/admin-users",
+    "pages/moderator-dashboard"
+  ]
+}
